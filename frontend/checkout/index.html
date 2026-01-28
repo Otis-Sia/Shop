@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - ShopHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../global.css">
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <header id="main-header"></header>
+    
+    <main id="main-content">
+        <div class="checkout-container">
+            <h2>🎉 Complete Your Order</h2>
+            
+            <div class="checkout-note">
+                <strong>📝 Demo Mode:</strong> This is a demonstration checkout. No real payment will be processed.
+            </div>
+            
+            <div class="checkout-content">
+                <h3>Shipping Information</h3>
+                <form id="checkout-form">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" value="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" value="john@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Shipping Address</label>
+                        <input type="text" value="123 Main Street" required>
+                    </div>
+                    <div class="form-group">
+                        <label>City</label>
+                        <input type="text" value="New York" required>
+                    </div>
+                    
+                    <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Payment Information</h3>
+                    <div class="form-group">
+                        <label>Card Number (Demo)</label>
+                        <input type="text" value="4242 4242 4242 4242" disabled style="background: #f3f4f6;">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Place Order</button>
+                </form>
+            </div>
+        </div>
+    </main>
+    
+    <footer id="main-footer"></footer>
+    
+    <script type="module" src="../../global.js"></script>
+    <script type="module" src="./script.js"></script>
+</body>
+</html>

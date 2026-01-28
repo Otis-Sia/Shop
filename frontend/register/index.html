@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - ShopHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../global.css">
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <header id="main-header"></header>
+
+    <div class="auth-page">
+        <div class="auth-container">
+            <h2>Create Account</h2>
+            <form id="register-form">
+                <div class="name-row">
+                    <div class="form-group">
+                        <label for="first-name">First Name</label>
+                        <input type="text" id="first-name" required placeholder="John" autocomplete="given-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="last-name">Last Name</label>
+                        <input type="text" id="last-name" required placeholder="Doe" autocomplete="family-name">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" required placeholder="you@example.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required placeholder="••••••••" autocomplete="new-password" minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account</button>
+                <div id="error-message" class="error"></div>
+            </form>
+            <p class="auth-footer">
+                Already have an account? <a href="../login/">Sign in</a>
+            </p>
+        </div>
+    </div>
+
+    <footer id="main-footer"></footer>
+
+    <script type="module" src="../../global.js"></script>
+    <script type="module" src="./script.js"></script>
+</body>
+</html>
