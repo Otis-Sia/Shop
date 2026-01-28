@@ -1,0 +1,122 @@
+[
+  {
+    "id": 1,
+    "name": "Sony WH-1000XM5 Wireless Headphones",
+    "price": 349.99,
+    "description": "Industry-leading noise cancellation with 8 microphones for crystal clear audio. 30-hour battery life and quick charging.",
+    "image_url": "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=500&q=80",
+    "category": "Electronics",
+    "stock": 45,
+    "tags": ["express", "bestseller"]
+  },
+  {
+    "id": 2,
+    "name": "Samsung Galaxy S24 Ultra",
+    "price": 1199.99,
+    "description": "The ultimate smartphone experience with AI features, 200MP camera, and S-Pen integration. 512GB Storage.",
+    "image_url": "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=500&q=80",
+    "category": "Phones & Tablets",
+    "stock": 15,
+    "tags": ["new", "express"]
+  },
+  {
+    "id": 3,
+    "name": "Nike Air Zoom Pegasus 40",
+    "price": 129.95,
+    "description": "Responsive road running shoes with breathable mesh upper and Nike React foam for a springy ride.",
+    "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80",
+    "category": "Fashion",
+    "stock": 80,
+    "tags": ["deal"]
+  },
+  {
+    "id": 4,
+    "name": "MacBook Air M2 13-inch",
+    "price": 1099.00,
+    "description": "Supercharged by M2. Strikingly thin design with the power of the next-generation M2 chip. 18 hours battery.",
+    "image_url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca4?w=500&q=80",
+    "category": "Computing",
+    "stock": 25,
+    "tags": ["express"]
+  },
+  {
+    "id": 5,
+    "name": "Nespresso Vertuo Coffee Machine",
+    "price": 159.00,
+    "description": "Versatile automatic coffee maker for authentic espresso and coffee. One-touch brewing system.",
+    "image_url": "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=500&q=80",
+    "category": "Home & Office",
+    "stock": 30,
+    "tags": ["deal"]
+  },
+  {
+    "id": 6,
+    "name": "La Roche-Posay Vitamin C Serum",
+    "price": 39.99,
+    "description": "Anti-aging serum with 10% pure vitamin C, salicylic acid, and neurosensine for radiant skin.",
+    "image_url": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500&q=80",
+    "category": "Health & Beauty",
+    "stock": 100,
+    "tags": ["bestseller"]
+  },
+  {
+    "id": 7,
+    "name": "PlayStation 5 Console",
+    "price": 499.99,
+    "description": "Experience lightning-fast loading, deeper immersion with haptic feedback, and an all-new generation of incredible games.",
+    "image_url": "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=500&q=80",
+    "category": "Gaming",
+    "stock": 10,
+    "tags": ["express", "new"]
+  },
+  {
+    "id": 8,
+    "name": "Men's Slim Fit Chino Pants",
+    "price": 45.50,
+    "description": "Classic slim-fit chinos made from stretch cotton twill. Perfect for both casual and semi-formal occasions.",
+    "image_url": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=500&q=80",
+    "category": "Fashion",
+    "stock": 60,
+    "tags": []
+  },
+  {
+    "id": 9,
+    "name": "Tefal Non-Stick Frying Pan Set",
+    "price": 85.00,
+    "description": "Set of 2 frying pans with Thermo-Signal technology for perfect searing. Durable titanium non-stick coating.",
+    "image_url": "https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=500&q=80",
+    "category": "Home & Kitchen",
+    "stock": 40,
+    "tags": ["deal"]
+  },
+  {
+    "id": 10,
+    "name": "Apple Watch Series 9",
+    "price": 399.00,
+    "description": "Smarter. Brighter. Mightier. Advanced health sensors, crash detection, and the brightest always-on display.",
+    "image_url": "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=500&q=80",
+    "category": "Electronics",
+    "stock": 35,
+    "tags": ["new"]
+  },
+  {
+    "id": 11,
+    "name": "Maybelline Lash Sensational Mascara",
+    "price": 11.99,
+    "description": "Liquid ink formula coats lashes from all sides. Fan effect brush reveals layers of lashes.",
+    "image_url": "https://images.unsplash.com/photo-1631730486784-5456119f69ae?w=500&q=80",
+    "category": "Health & Beauty",
+    "stock": 150,
+    "tags": ["bestseller"]
+  },
+  {
+    "id": 12,
+    "name": "LG 55-inch 4K Smart TV",
+    "price": 479.99,
+    "description": "Real 4K display with active HDR. WebOS smart platform with Netflix, Prime Video, and Disney+.",
+    "image_url": "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=500&q=80",
+    "category": "Electronics",
+    "stock": 20,
+    "tags": ["express", "deal"]
+  }
+]

@@ -1,5 +1,4 @@
-import './global.css'; // Might need adjustment if using module bundler or if global.css is linked in HTML
-import { getCurrentUser, logout } from './frontend/shared/utils/api/auth.js';
+import { getCurrentUser, logout } from './pages/shared/utils/api/auth.js';
 
 // Common Initialization
 const updateHeader = () => {
@@ -9,23 +8,34 @@ const updateHeader = () => {
 
   if (user) {
     header.innerHTML = `
-      <nav>
-        <a href="/">Home</a>
-        <a href="/frontend/products/">Shop</a>
-        <a href="/frontend/cart/">Cart</a>
-        <span>Hello, ${user.first_name}</span>
-        <button id="logout-btn">Logout</button>
+      <nav style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: var(--color-bg-primary); border-bottom: 1px solid var(--color-border-light); flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 2rem;">
+          <a href="/" style="font-size: 1.5rem; font-weight: bold; color: var(--color-primary-500);">ShopHub</a>
+          <a href="/" class="nav-link">Home</a>
+          <a href="/pages/products/" class="nav-link">Shop</a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+          <a href="/pages/cart/" style="display: flex; align-items: center; gap: 0.5rem;" title="Cart">🛒</a>
+          <span style="color: var(--color-text-secondary);">Hello, ${user.first_name}</span>
+          <button id="logout-btn" class="btn btn-sm btn-outline">Logout</button>
+        </div>
       </nav>
     `;
     const logoutBtn = document.getElementById('logout-btn');
     if(logoutBtn) logoutBtn.addEventListener('click', logout);
   } else {
     header.innerHTML = `
-      <nav>
-        <a href="/">Home</a>
-        <a href="/frontend/products/">Shop</a>
-        <a href="/frontend/login/">Login</a>
-        <a href="/frontend/register/">Register</a>
+      <nav style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: var(--color-bg-primary); border-bottom: 1px solid var(--color-border-light); flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 2rem;">
+          <a href="/" style="font-size: 1.5rem; font-weight: bold; color: var(--color-primary-500);">ShopHub</a>
+          <a href="/" class="nav-link">Home</a>
+          <a href="/pages/products/" class="nav-link">Shop</a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <a href="/pages/cart/" style="display: flex; align-items: center;" title="Cart">🛒</a>
+          <a href="/pages/login/" class="btn btn-sm btn-outline">Login</a>
+          <a href="/pages/register/" class="btn btn-sm btn-primary">Register</a>
+        </div>
       </nav>
     `;
   }
