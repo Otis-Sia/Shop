@@ -1,0 +1,1 @@
+throw new Error("Unable to make a module from invalid JSON: control character (\\u0000-\\u001F) found while parsing a string at line 2 column 0");

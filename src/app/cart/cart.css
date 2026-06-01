@@ -1,0 +1,127 @@
+.page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--color-fg);
+}
+
+.cart-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 2rem;
+    align-items: start;
+}
+
+.cart-items {
+    background: var(--color-surface);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+    border: 1px solid var(--color-border);
+}
+
+.cart-summary {
+    background: var(--color-surface);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+    border: 1px solid var(--color-border);
+    position: sticky;
+    top: 100px;
+}
+
+.cart-summary h3 {
+    margin-bottom: 1.5rem;
+    color: var(--color-fg);
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.summary-total {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.empty-cart {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--color-muted);
+}
+
+.empty-cart-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.cart-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    transition: background-color 0.2s ease;
+}
+
+.cart-item:hover {
+    background-color: var(--color-surface-alt);
+}
+
+.cart-item:last-child {
+    border-bottom: none;
+}
+
+.cart-item img {
+    border-radius: 0.5rem;
+    object-fit: cover;
+    height: 80px;
+    width: 80px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.item-details {
+    flex-grow: 1;
+}
+
+.item-details h4 {
+    color: var(--color-fg);
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.item-details p {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+}
+
+.btn-danger {
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-muted);
+    transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: black;
+}
+
+@media (max-width: 968px) {
+    .cart-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .cart-summary {
+        position: static;
+    }
+}

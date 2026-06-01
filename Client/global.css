@@ -10,65 +10,65 @@
    ============================================================================ */
 :root {
   /* Primary Color Palette - Orange Theme */
-  --color-primary-50: #FFF5E6;
-  --color-primary-100: #FFE6C7;
-  --color-primary-200: #FFCC8F;
-  --color-primary-300: #FFB357;
-  --color-primary-400: #FF9A2E;
+  --color-primary-50: #FFF0E5;
+  --color-primary-100: #FFD6B2;
+  --color-primary-200: #FFAE66;
+  --color-primary-300: #FF8F24;
+  --color-primary-400: #FF7E0A;
   --color-primary-500: #FF6B00; /* Main Orange */
-  --color-primary-600: #E65F00;
-  --color-primary-700: #CC5400;
-  --color-primary-800: #B34900;
-  --color-primary-900: #993D00;
+  --color-primary-600: #FF8526; /* Hover Orange */
+  --color-primary-700: #E05E00; /* Active Orange */
+  --color-primary-800: #C24C00;
+  --color-primary-900: #A33F00;
 
   /* Secondary Color Palette - Black Theme */
-  --color-secondary-50: #F5F5F5;
-  --color-secondary-100: #E0E0E0;
-  --color-secondary-200: #BDBDBD;
-  --color-secondary-300: #9E9E9E;
-  --color-secondary-400: #757575;
-  --color-secondary-500: #616161;
-  --color-secondary-600: #424242;
-  --color-secondary-700: #303030;
-  --color-secondary-800: #1A1A1A;
+  --color-secondary-50: #FAFAFA;
+  --color-secondary-100: #F5F5F5;
+  --color-secondary-200: #E5E5E5;
+  --color-secondary-300: #A3A3A3;
+  --color-secondary-400: #737373;
+  --color-secondary-500: #525252;
+  --color-secondary-600: #404040;
+  --color-secondary-700: #262626;
+  --color-secondary-800: #121212;
   --color-secondary-900: #000000; /* Main Black */
 
   /* Accent Colors (Orange variations) */
-  --color-accent-light: #FFAB5C;
-  --color-accent-base: #FF8C2E;
-  --color-accent-dark: #E6590F;
+  --color-accent-light: #FF8526;
+  --color-accent-base: #FF6B00;
+  --color-accent-dark: #E05E00;
 
-  /* Semantic Colors */
-  --color-success-light: #81C784;
-  --color-success-base: #4CAF50;
-  --color-success-dark: #388E3C;
+  /* Semantic Colors - High Contrast Orange / White / Black */
+  --color-success-light: #FFFFFF;
+  --color-success-base: #FF6B00;
+  --color-success-dark: #000000;
   
-  --color-danger-light: #E57373;
-  --color-danger-base: #F44336;
-  --color-danger-dark: #D32F2F;
+  --color-danger-light: #121212;
+  --color-danger-base: #FF6B00;
+  --color-danger-dark: #000000;
   
-  --color-warning-light: #FFD54F;
-  --color-warning-base: #FFC107;
-  --color-warning-dark: #FFA000;
+  --color-warning-light: #121212;
+  --color-warning-base: #FF6B00;
+  --color-warning-dark: #000000;
   
-  --color-info-light: #64B5F6;
-  --color-info-base: #2196F3;
-  --color-info-dark: #1976D2;
+  --color-info-light: #121212;
+  --color-info-base: #FF6B00;
+  --color-info-dark: #000000;
 
-  /* Neutral Colors - Light Mode */
-  --color-text-primary: #1A1A1A;
-  --color-text-secondary: #616161;
-  --color-text-tertiary: #9E9E9E;
-  --color-text-inverse: #FFFFFF;
+  /* Neutral Colors - Dark Mode Premium */
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A3A3A3;
+  --color-text-tertiary: #737373;
+  --color-text-inverse: #000000;
   
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F5F5F5;
-  --color-bg-tertiary: #E0E0E0;
-  --color-bg-inverse: #1A1A1A;
+  --color-bg-primary: #000000;
+  --color-bg-secondary: #121212;
+  --color-bg-tertiary: #1E1E1E;
+  --color-bg-inverse: #FFFFFF;
   
-  --color-border-light: #E0E0E0;
-  --color-border-base: #BDBDBD;
-  --color-border-dark: #9E9E9E;
+  --color-border-light: #262626;
+  --color-border-base: #404040;
+  --color-border-dark: #525252;
 
   /* Typography System */
   --font-family-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;

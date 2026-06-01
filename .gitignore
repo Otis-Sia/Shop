@@ -18,3 +18,8 @@ coverage/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Next.js
+.next/
+nextjs-temp/
+tsconfig.tsbuildinfo
