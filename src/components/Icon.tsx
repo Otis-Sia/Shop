@@ -69,7 +69,34 @@ export type IconName =
   | 'close'
   | 'favorite_border'
   | 'star_border'
-  | 'delete';
+  | 'delete'
+  | 'chevron_right'
+  | 'verified_user'
+  | 'person'
+  | 'star'
+  | 'weekend'
+  | 'health_and_safety'
+  | 'sports_basketball'
+  | 'toys'
+  | 'directions_car'
+  | 'local_grocery_store'
+  | 'print'
+  | 'pets'
+  | 'child_friendly'
+  | 'handyman'
+  | 'palette'
+  | 'music_note'
+  | 'science'
+  | 'cloud_download'
+  | 'cleaning_services'
+  | 'work'
+  | 'school'
+  | 'flight'
+  | 'car_repair'
+  | 'celebration'
+  | 'card_membership'
+  | 'account_balance'
+  | 'label';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName | string;
@@ -695,6 +722,197 @@ export default function Icon({ name, className = '', ...props }: IconProps) {
           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           <line x1="10" y1="11" x2="10" y2="17" />
           <line x1="14" y1="11" x2="14" y2="17" />
+        </svg>
+      );
+
+    case 'chevron_right':
+      return (
+        <svg {...baseSvgProps}>
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      );
+
+    case 'verified_user':
+      return (
+        <svg {...baseSvgProps}>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <polyline points="9 11 11 13 15 9" />
+        </svg>
+      );
+
+    case 'person':
+      return (
+        <svg {...baseSvgProps}>
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      );
+
+    case 'star':
+      return (
+        <svg {...baseSvgProps} fill="currentColor">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      );
+
+        case 'weekend':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M21 10c-1.1 0-2 .9-2 2v3H5v-3c0-1.1-.9-2-2-2s-2 .9-2 2v5c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2v-5c0-1.1-.9-2-2-2zm-3-5H6c-1.1 0-2 .9-2 2v2.15c1.16.41 2 1.51 2 2.81V14h12v-2.04c0-1.3.84-2.4 2-2.81V7c0-1.1-.9-2-2-2z" />
+        </svg>
+      );
+
+    case 'health_and_safety':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M10.5 13H8v-3h2.5V7.5h3V10H16v3h-2.5v2.5h-3V13zM12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3z" />
+        </svg>
+      );
+
+    case 'sports_basketball':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm10 10c0 .94-.13 1.84-.37 2.69-2.3-1.63-5.26-2.31-8.31-2.22l-.18 2h-.03c-.02 0-.04 0-.06.01.69 2.14 1.94 4.02 3.6 5.34C15.22 21.19 13.66 22 12 22s-3.22-.81-4.66-2.18c1.66-1.32 2.91-3.2 3.6-5.34-.02 0-.04-.01-.06-.01h-.03l-.18-2c-3.05-.09-6.01.59-8.31 2.22C2.13 13.84 2 12.94 2 12c0-5.52 4.48-10 10-10s10 4.48 10 10zm-7.6-5.29c1.9 2.1 4.54 3.41 7.42 3.59-.97-4.14-4.22-7.44-8.38-8.36.19 1.63.53 3.24.96 4.77zm-4.8 0c.43-1.53.77-3.14.96-4.77-4.16.92-7.41 4.22-8.38 8.36 2.88-.18 5.52-1.49 7.42-3.59z" />
+        </svg>
+      );
+
+    case 'toys':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+        </svg>
+      );
+
+    case 'directions_car':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" />
+        </svg>
+      );
+
+    case 'local_grocery_store':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
+        </svg>
+      );
+
+    case 'print':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z" />
+        </svg>
+      );
+
+    case 'pets':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <circle cx="4.5" cy="9.5" r="2.5"/><circle cx="9" cy="5.5" r="2.5"/><circle cx="15" cy="5.5" r="2.5"/><circle cx="19.5" cy="9.5" r="2.5"/><path d="M17.34 14.86c-.87-1.02-1.6-1.89-2.48-2.91-.46-.54-1.05-1.08-1.75-1.32-.11-.04-.22-.07-.33-.09-.25-.04-.52-.04-.78-.04s-.53 0-.79.05c-.11.02-.22.05-.33.09-.7.24-1.28.78-1.75 1.32-.87 1.02-1.6 1.89-2.48 2.91-1.31 1.31-2.92 2.76-2.62 4.79.29 1.02 1.02 2.03 2.33 2.32.73.15 1.46-.14 2.04-.46.58-.32 1.15-.65 1.83-.65s1.25.33 1.83.65c.58.32 1.31.61 2.04.46 1.31-.29 2.04-1.3 2.33-2.32.3-2.03-1.31-3.48-2.62-4.79z"/>
+        </svg>
+      );
+
+    case 'child_friendly':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M9 11.75c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25zm6 0c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-.29.02-.58.05-.86 2.36-1.05 4.23-2.98 5.21-5.37C11.07 8.33 14.05 10 17.42 10c.78 0 1.53-.09 2.25-.26.21.71.33 1.47.33 2.26 0 4.41-3.59 8-8 8z" />
+        </svg>
+      );
+
+    case 'handyman':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.1L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" />
+        </svg>
+      );
+
+    case 'palette':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1-.21-.23-.35-.53-.35-.85 0-.66.54-1.2 1.2-1.2h1.65c3.31 0 6-2.69 6-6s-2.69-6-6-6zM6.5 12c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
+        </svg>
+      );
+
+    case 'music_note':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+        </svg>
+      );
+
+    case 'science':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M13 11.33L18 18H6l5-6.67V6h2v5.33zM15.96 19H8.04l4-5.33 4 5.33zM10 2h4v2h-4V2z" />
+        </svg>
+      );
+
+    case 'cloud_download':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.36 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z" />
+        </svg>
+      );
+
+    case 'cleaning_services':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M16 11h-1V3c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v8H8c-2.76 0-5 2.24-5 5v5h18v-5c0-2.76-2.24-5-5-5zm-5-8h2v8h-2V3zm9 16H4v-5c0-1.65 1.35-3 3-3h10c1.65 0 3 1.35 3 3v5z" />
+        </svg>
+      );
+
+    case 'work':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z" />
+        </svg>
+      );
+
+    case 'school':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z" />
+        </svg>
+      );
+
+    case 'flight':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+        </svg>
+      );
+
+    case 'car_repair':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.1L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" />
+        </svg>
+      );
+
+    case 'celebration':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M2 22l14-14L12 2 2 12v10zm3.5-3.5L12 12l2 2-6.5 6.5H5.5v-2zM22 2l-6 2-2 6-2-6-6-2 6-2 2-6 2 6z" />
+        </svg>
+      );
+
+    case 'card_membership':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M20 2H4c-1.11 0-2 .89-2 2v11c0 1.11.89 2 2 2h4v5l4-2 4 2v-5h4c1.11 0 2-.89 2-2V4c0-1.11-.89-2-2-2zm0 13H4v-2h16v2zm0-5H4V4h16v6z" />
+        </svg>
+      );
+
+    case 'account_balance':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M4 10h3v7H4zm6.5 0h3v7h-3zM2 19h20v3H2zm15-9h3v7h-3zm-5-9L2 6v2h20V6z" />
+        </svg>
+      );
+
+    case 'label':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16zM16 17H5V7h11l3.55 5L16 17z" />
         </svg>
       );
 

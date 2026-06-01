@@ -12,8 +12,40 @@ import Icon from '@/components/Icon';
 import ProductRatingBadge from '@/components/shop/ProductRatingBadge';
 import './products.css';
 
+const CATEGORY_ICONS: Record<string, string> = {
+  "Electronics": "devices",
+  "Fashion": "checkroom",
+  "Home & Garden": "weekend",
+  "Health & Beauty": "health_and_safety",
+  "Sports & Outdoors": "sports_basketball",
+  "Toys & Games": "toys",
+  "Automotive": "directions_car",
+  "Grocery & Gourmet": "local_grocery_store",
+  "Books & Media": "menu_book",
+  "Office Supplies": "print",
+  "Pet Supplies": "pets",
+  "Baby Products": "child_friendly",
+  "Tools & Home Improvement": "handyman",
+  "Arts, Crafts & Hobbies": "palette",
+  "Musical Instruments & Gear": "music_note",
+  "Industrial & Scientific": "science",
+  "Digital Goods": "cloud_download",
+  "Home Services": "cleaning_services",
+  "Professional Services": "work",
+  "Education & Tutoring": "school",
+  "Travel & Experiences": "flight",
+  "Beauty & Wellness Appointments": "spa",
+  "Automotive Services": "car_repair",
+  "Event Services": "celebration",
+  "Pet Services": "pets",
+  "Subscriptions & Memberships": "card_membership",
+  "Financial & Insurance": "account_balance",
+  "Printing & Customization": "print"
+};
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState(() => {
@@ -83,6 +115,16 @@ export default function ProductsPage() {
     });
   };
 
+  const handleCategoryClick = (newCategory: string) => {
+    const targetCategory = category === newCategory ? '' : newCategory;
+    setCategory(targetCategory);
+    fetchProducts({
+      keyword: keyword || undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      category: targetCategory || undefined,
+    });
+  };
+
   const handleClearFilters = () => {
     setKeyword('');
     setMaxPrice('');
@@ -125,12 +167,60 @@ export default function ProductsPage() {
         </p>
       </header>
 
-      {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      {/* Main Flex Layout */}
+      <div className="flex flex-col lg:flex-row gap-8 items-start relative w-full">
         
-        {/* Filters Sidebar */}
-        <aside className="lg:col-span-3 bg-white border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] space-y-6 lg:sticky lg:top-24">
-          <h3 className="font-headline-md text-base font-black uppercase tracking-wider text-on-surface flex items-center gap-2 pb-3 border-b-2 border-surface-container">
+        {/* Filters Sidebar Wrapper */}
+        <div 
+          className="flex lg:sticky lg:top-24 items-start shrink-0 z-30"
+          onMouseLeave={() => setHoveredCategory(null)}
+        >
+          <aside className="w-full lg:w-72 shrink-0 bg-white border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] space-y-6 z-20 relative">
+          
+          {/* Categories Menu */}
+          <div>
+            <h3 className="font-headline-md text-base font-black uppercase tracking-wider text-on-surface flex items-center gap-2 pb-3 border-b-2 border-surface-container">
+              <Icon name="category" className="font-black text-sm" />
+              <span>Categories</span>
+            </h3>
+            <ul className="mt-4 flex flex-col gap-1 relative z-30 max-h-[60vh] overflow-y-auto hide-scrollbar">
+              <li
+                onClick={() => handleCategoryClick('')}
+                className={`flex items-center justify-between py-2 px-3 cursor-pointer transition-colors ${
+                  category === '' 
+                    ? 'bg-surface-container text-primary-container font-bold border-l-4 border-primary-container' 
+                    : 'text-on-surface hover:bg-surface-container border-l-4 border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon name="dashboard" className="text-[18px] opacity-80" />
+                  <span className="text-xs font-semibold">All Categories</span>
+                </div>
+              </li>
+              {[...CATEGORIES_DATA.goods, ...CATEGORIES_DATA.services].map(group => (
+                <li
+                  key={group.name}
+                  onMouseEnter={() => setHoveredCategory(group.name)}
+                  onClick={() => handleCategoryClick(group.name)}
+                  className={`flex items-center justify-between py-2 px-3 cursor-pointer transition-colors ${
+                    category === group.name || hoveredCategory === group.name 
+                      ? 'bg-surface-container text-primary-container font-bold border-l-4 border-primary-container' 
+                      : 'text-on-surface hover:bg-surface-container border-l-4 border-transparent'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon name={CATEGORY_ICONS[group.name] || 'label'} className="text-[18px] opacity-80" />
+                    <span className="text-xs font-semibold truncate max-w-[140px]">{group.name}</span>
+                  </div>
+                  <Icon name="chevron_right" className="text-sm opacity-50 shrink-0" />
+                </li>
+              ))}
+            </ul>
+
+          </div>
+
+          <h3 className="font-headline-md text-base font-black uppercase tracking-wider text-on-surface flex items-center gap-2 pb-3 border-b-2 border-surface-container pt-4 mt-6">
             <Icon name="tune" className="font-black text-sm" />
             <span>Refine Search</span>
           </h3>
@@ -163,31 +253,7 @@ export default function ProductsPage() {
               />
             </div>
 
-            {/* Category */}
-            <div className="space-y-1">
-              <label className="font-extrabold text-xs uppercase tracking-wider block text-on-surface">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full h-12 px-4 border-2 border-on-surface rounded-none font-medium text-sm transition-all focus:ring-0 focus:border-primary-container bg-white"
-              >
-                <option value="">All Categories</option>
-                {CATEGORIES_DATA.goods.map(group => (
-                  <optgroup label={group.name} key={`goods-${group.name}`}>
-                    {group.categories.map(c => (
-                      <option key={c.name} value={c.name}>{c.name}</option>
-                    ))}
-                  </optgroup>
-                ))}
-                {CATEGORIES_DATA.services.map(group => (
-                  <optgroup label={group.name} key={`services-${group.name}`}>
-                    {group.categories.map(c => (
-                      <option key={c.name} value={c.name}>{c.name}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
+
           </div>
 
           <div className="space-y-2 pt-2">
@@ -206,18 +272,63 @@ export default function ProductsPage() {
           </div>
         </aside>
 
+        {/* Subcategories Flyout Panel (In-Flow) */}
+        <div 
+           className={`overflow-hidden transition-[width,opacity,margin] duration-300 ease-in-out flex shrink-0 h-full ${hoveredCategory ? 'w-[450px] ml-6 opacity-100' : 'w-0 ml-0 opacity-0'}`}
+        >
+          {hoveredCategory && (
+            <div className="w-[450px] bg-white border-2 border-on-surface shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] z-50 p-6 min-h-full">
+              <h4 className="font-headline-md text-lg font-black uppercase text-on-surface mb-4 border-b-2 border-surface-container pb-2 flex items-center gap-2">
+                <Icon name={CATEGORY_ICONS[hoveredCategory] || 'label'} className="text-xl text-primary-container" />
+                {hoveredCategory}
+              </h4>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 max-h-[60vh] overflow-y-auto pr-2 hide-scrollbar">
+                {[...CATEGORIES_DATA.goods, ...CATEGORIES_DATA.services]
+                  .find(g => g.name === hoveredCategory)?.categories.map(c => (
+                    <div key={c.name} className="flex flex-col gap-1.5">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleCategoryClick(c.name); setHoveredCategory(null); }}
+                        className="font-bold text-sm text-on-surface hover:text-primary-container text-left transition-colors flex items-center gap-1.5"
+                      >
+                        {c.name}
+                        <Icon name="chevron_right" className="text-[10px] opacity-30" />
+                      </button>
+                      {c.subcategories && (
+                        <div className="flex flex-col gap-1 ml-1 pl-2 border-l-2 border-surface-container-high">
+                          {c.subcategories.map(sub => (
+                            <button 
+                              key={sub}
+                              onClick={(e) => { e.stopPropagation(); handleCategoryClick(sub); setHoveredCategory(null); }}
+                              className="font-semibold text-[11px] text-secondary hover:text-primary-container text-left transition-colors"
+                            >
+                              {sub}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
         {/* Products Grid Content */}
-        <div className="lg:col-span-9 space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b-2 border-surface-container pb-4 gap-4">
-            <div className="font-bold text-xs uppercase tracking-wider text-secondary">
-              {loading ? 'Analyzing live products...' : `Showing ${products.length} product${products.length !== 1 ? 's' : ''}`}
+        <div className="flex-1 min-w-0 space-y-6 z-10">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <h2 className="font-black text-xl tracking-tight uppercase text-on-surface hidden sm:block">Recent Listings</h2>
+              <span className="font-bold text-xs uppercase tracking-wider text-secondary hidden sm:block bg-surface-container-low px-2 py-1 rounded">
+                {loading ? '...' : `${products.length} ads`}
+              </span>
             </div>
             
             <div className="flex items-center gap-4 w-full sm:w-auto">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="h-10 px-3 border-2 border-on-surface rounded-none font-bold text-xs uppercase bg-white cursor-pointer"
+                className="h-10 px-3 border border-surface-dim rounded font-bold text-xs uppercase bg-white cursor-pointer"
               >
                 <option value="default">Sort By: Default</option>
                 <option value="price-asc">Price: Low to High</option>
@@ -226,20 +337,20 @@ export default function ProductsPage() {
                 <option value="name-desc">Name: Z to A</option>
               </select>
 
-              <div className="flex border-2 border-on-surface bg-white">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 ${viewMode === 'grid' ? 'bg-primary-container text-on-primary-container' : 'text-on-surface hover:bg-surface-container'}`}
+                  className={`p-2 bg-white rounded border border-surface-dim ${viewMode === 'grid' ? 'text-primary-container border-primary-container' : 'text-secondary hover:text-on-surface'}`}
                   aria-label="Grid view"
                 >
-                  <Icon name="grid_view" />
+                  <Icon name="grid_view" className="text-lg" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 border-l-2 border-on-surface ${viewMode === 'list' ? 'bg-primary-container text-on-primary-container' : 'text-on-surface hover:bg-surface-container'}`}
+                  className={`p-2 bg-white rounded border border-surface-dim ${viewMode === 'list' ? 'text-primary-container border-primary-container' : 'text-secondary hover:text-on-surface'}`}
                   aria-label="List view"
                 >
-                  <Icon name="view_list" />
+                  <Icon name="view_list" className="text-lg" />
                 </button>
               </div>
             </div>
@@ -277,62 +388,74 @@ export default function ProductsPage() {
                 return (
                   <article 
                     key={product.id} 
-                    className={`bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] flex group hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] transition-all ${viewMode === 'list' ? 'flex-col sm:flex-row' : 'flex-col'}`}
+                    className="product-card bg-white border border-surface-dim rounded overflow-hidden flex flex-col group relative"
                   >
-                    <Link href={`/products/${product.id}`} className={`block relative overflow-hidden bg-surface-container-low border-on-surface shrink-0 ${viewMode === 'list' ? 'sm:w-64 sm:border-r-2 border-b-2 sm:border-b-0' : 'border-b-2 aspect-[4/3]'}`}>
+                    <Link href={`/products/${product.id}`} className={`block relative bg-surface-container-low shrink-0 ${viewMode === 'list' ? 'sm:w-64 border-r border-surface-dim h-full' : 'h-48'}`}>
                       <img 
                         src={product.image_url || 'https://via.placeholder.com/150'} 
                         alt={product.name} 
-                        className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${viewMode === 'list' ? 'h-64 sm:h-full' : ''}`}
+                        className={`w-full h-full object-cover ${viewMode === 'list' ? 'absolute inset-0' : ''}`}
                         loading={idx > 3 ? 'lazy' : 'eager'}
                       />
-                      {isExpress && (
-                        <span className="absolute top-3 left-3 bg-on-surface text-white text-[10px] font-black uppercase px-2.5 py-1 border border-on-surface">
-                          Express
-                        </span>
-                      )}
-                      {discount > 0 && (
-                        <span className="absolute top-3 right-3 bg-red-50 text-error border border-error text-[10px] font-black uppercase px-2.5 py-1">
-                          -{discount}%
-                        </span>
-                      )}
+                      <div className="absolute top-2 left-2 flex flex-col gap-1">
+                        {isExpress && (
+                          <span className="bg-primary-container text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-max shadow-sm">
+                            <Icon name="verified_user" className="text-[12px]" /> Verified ID
+                          </span>
+                        )}
+                        {discount > 0 && (
+                          <span className="bg-error text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-max shadow-sm">
+                            -{discount}% OFF
+                          </span>
+                        )}
+                        {!isExpress && (
+                          <span className="bg-white/90 text-on-surface text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-max shadow-sm">
+                            <Icon name="person" className="text-[12px]" /> 2+ YEARS SELLER
+                          </span>
+                        )}
+                      </div>
                     </Link>
                     
-                    <button 
-                      onClick={(e) => handleToggleWishlist(e, product.id)}
-                      className={`absolute top-3 ${discount > 0 ? 'right-16' : 'right-3'} z-10 w-8 h-8 flex items-center justify-center bg-white border border-on-surface shadow-sm hover:scale-110 transition-transform ${wishlistedIds.has(product.id) ? 'text-error' : 'text-on-surface'}`}
-                    >
-                      <Icon name={wishlistedIds.has(product.id) ? "favorite" : "favorite_border"} className="text-lg" />
-                    </button>
+                    <div className="p-4 flex-1 flex flex-col relative">
+                      <button 
+                        onClick={(e) => handleToggleWishlist(e, product.id)}
+                        className={`absolute top-4 right-4 z-10 transition-transform hover:scale-110 ${wishlistedIds.has(product.id) ? 'text-error' : 'text-secondary hover:text-error'}`}
+                      >
+                        <Icon name={wishlistedIds.has(product.id) ? "favorite" : "favorite_border"} className="text-xl" />
+                      </button>
+                      
+                      <p className="text-primary-container font-extrabold text-lg mb-1">
+                        KSh {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </p>
 
-                    <div className="p-5 flex flex-col flex-grow">
-                      <h3 className="font-headline-md text-sm font-black uppercase text-on-surface mb-1">
-                        {product.name}
-                      </h3>
-                      <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-2">
-                        Category: {product.category || 'Apparel'}
+                      {product.category && (
+                        <p className="text-[10px] text-secondary font-medium mb-1 truncate flex items-center gap-1">
+                          <span>{product.category}</span>
+                          {product.tags && product.tags.length > 0 && (
+                            <>
+                              <span className="text-[8px]">▶</span>
+                              <span className="truncate">{product.tags.join(' > ')}</span>
+                            </>
+                          )}
+                        </p>
+                      )}
+                      
+                      <Link href={`/products/${product.id}`}>
+                        <h3 className="font-bold text-sm text-on-surface line-clamp-2 mb-2 pr-8 hover:underline">{product.name}</h3>
+                      </Link>
+                      
+                      <p className="text-xs text-secondary mt-auto line-clamp-2">
+                        {product.description || `Premium quality ${product.category?.toLowerCase() || 'item'} for sale.`}
                       </p>
                       
-                      <div className="mb-4 mt-1">
-                        <ProductRatingBadge productId={product.id} />
-                      </div>
-
-                      <div className="mt-auto flex items-center justify-between">
-                        <div className="flex flex-col">
-                          <span className="font-headline-md text-base font-black text-on-surface">
-                            Kes. {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                          {discount > 0 && (
-                            <span className="text-[10px] text-secondary line-through font-bold">
-                              Kes. {originalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          )}
+                      <div className="mt-4 pt-4 border-t border-surface-container-low flex items-center justify-between gap-2">
+                        <div className="flex-1">
+                           <ProductRatingBadge productId={product.id} />
                         </div>
-                        
                         <button
                           onClick={(e) => handleAddToCart(e, product.id)}
                           disabled={addingToCart[product.id]}
-                          className={`px-4 py-2 border-2 border-on-surface bg-primary-container text-on-primary-container font-headline-md font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-[2px_2px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(26,28,28,1)] hover:bg-amber-500 disabled:opacity-50 ${addedToCart[product.id] ? '!bg-green-600 !text-white' : ''}`}
+                          className={`shrink-0 px-4 py-2 border border-surface-dim bg-white text-on-surface font-bold text-[10px] uppercase tracking-wider transition-colors hover:bg-surface-container rounded ${addedToCart[product.id] ? '!bg-green-600 !text-white !border-green-600' : ''}`}
                         >
                           {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added ✓' : 'Adding...') : 'Add to Cart'}
                         </button>

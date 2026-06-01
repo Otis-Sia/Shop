@@ -8,6 +8,7 @@ import Link from 'next/link';
 import Icon from '@/components/Icon';
 import { getAllOrders } from '@/lib/api/order';
 import { Order } from '@/types/schema';
+import { CATEGORIES_DATA } from '@/lib/data/categories';
 
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -304,13 +305,27 @@ export default function AdminPage() {
   const categoriesList = Array.from(new Set(products.map(p => p.category || 'Apparel')));
   const brandsList = Array.from(new Set(products.map(p => p.brand).filter(Boolean)));
   
+  // Extract all categories from CATEGORIES_DATA for the form datalist
+  const allSystemCategories = React.useMemo(() => {
+    const list: string[] = [];
+    [...CATEGORIES_DATA.goods, ...CATEGORIES_DATA.services].forEach(group => {
+      group.categories.forEach(cat => {
+        list.push(cat.name);
+        if (cat.subcategories) {
+          list.push(...cat.subcategories);
+        }
+      });
+    });
+    return Array.from(new Set(list)).sort();
+  }, []);
+
   // Total inventory value
   const totalInventoryValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
 
   return (
     <div className="bg-background min-h-screen text-on-surface selection:bg-primary-container selection:text-on-primary-container">
       <datalist id="category-options">
-        {categoriesList.map(cat => (
+        {allSystemCategories.map(cat => (
           <option key={cat} value={cat} />
         ))}
       </datalist>

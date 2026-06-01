@@ -177,10 +177,12 @@ export default function Header() {
                 <button className="flex items-center gap-1 hover:text-primary-container text-sm font-bold">
                   Account <Icon name="expand_more" className="text-lg" />
                 </button>
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] hidden group-hover:flex flex-col py-2 z-50">
-                  <button onClick={() => setIsProfileModalOpen(true)} className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container">Profile</button>
-                  <Link href="/orders" className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container">My Orders</Link>
-                  <button onClick={handleLogout} className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-error-container text-error">Logout</button>
+                <div className="absolute right-0 top-full pt-2 w-48 hidden group-hover:block z-50">
+                  <div className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] flex flex-col py-2">
+                    <button onClick={() => setIsProfileModalOpen(true)} className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container">Profile</button>
+                    <Link href="/orders" className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container">My Orders</Link>
+                    <button onClick={handleLogout} className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-error-container text-error">Logout</button>
+                  </div>
                 </div>
               </div>
             </div>

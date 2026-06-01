@@ -44,7 +44,9 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
       const keyword = filters.keyword.toLowerCase();
       products = products.filter(p =>
         p.name.toLowerCase().includes(keyword) ||
-        p.description.toLowerCase().includes(keyword)
+        p.description.toLowerCase().includes(keyword) ||
+        (p.category && p.category.toLowerCase().includes(keyword)) ||
+        (p.tags && p.tags.some(tag => tag.toLowerCase().includes(keyword)))
       );
     }
 
