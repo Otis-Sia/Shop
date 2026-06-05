@@ -30,8 +30,9 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
         discount: d.discount || 0,
         brand: d.brand || '',
         image_url: d.imageUrls && d.imageUrls.length > 0 ? d.imageUrls[0] : (d.image_url || ''),
-        additional_images: d.imageUrls && d.imageUrls.length > 1 ? d.imageUrls.slice(1) : (d.additional_images || [])
-      } as Product;
+        additional_images: d.imageUrls && d.imageUrls.length > 1 ? d.imageUrls.slice(1) : (d.additional_images || []),
+        merchantId: d.merchantId || 'admin'
+      } as Product & { merchantId?: string };
     });
 
     if (products.length === 0) {

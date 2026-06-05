@@ -62,6 +62,7 @@ export default function ProductsPage() {
   const [category, setCategory] = useState('');
   const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [addingToCart, setAddingToCart] = useState<Record<number, boolean>>({});
   const [addedToCart, setAddedToCart] = useState<Record<number, boolean>>({});
   const [userRole, setUserRole] = useState<'customer' | 'admin' | 'merchant' | 'guest'>('guest');
@@ -196,9 +197,23 @@ export default function ProductsPage() {
       {/* Main Flex Layout */}
       <div className="flex flex-col lg:flex-row gap-8 items-start relative w-full">
         
+        {/* Mobile Filters Toggle Button */}
+        <div className="lg:hidden w-full mb-2">
+          <button 
+            onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+            className="w-full bg-white text-on-surface py-3 px-4 flex items-center justify-between font-bold uppercase text-xs border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_rgba(26,28,28,1)] transition-all"
+          >
+            <span className="flex items-center gap-2">
+              <Icon name="tune" className="text-lg" />
+              {isMobileFiltersOpen ? 'Hide Filters' : 'Show Categories & Filters'}
+            </span>
+            <Icon name={isMobileFiltersOpen ? "close" : "menu"} className="text-lg" />
+          </button>
+        </div>
+
         {/* Filters Sidebar Wrapper */}
         <div 
-          className="flex lg:sticky lg:top-24 items-start shrink-0 z-30"
+          className={`${isMobileFiltersOpen ? 'flex' : 'hidden'} lg:flex flex-col lg:sticky lg:top-24 items-start shrink-0 z-30 w-full lg:w-auto`}
           onMouseLeave={() => setHoveredCategory(null)}
         >
           <aside className="w-full lg:w-72 shrink-0 bg-white border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] space-y-6 z-20 relative">

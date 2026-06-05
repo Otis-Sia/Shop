@@ -118,7 +118,7 @@ export default function Header() {
         
         {/* Mobile Hamburger */}
         <button 
-          className="md:hidden text-on-surface hover:text-primary-container"
+          className="lg:hidden text-on-surface hover:text-primary-container"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
           <Icon name={isMobileMenuOpen ? "close" : "menu"} className="text-3xl" />
@@ -130,7 +130,7 @@ export default function Header() {
         </Link>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
+        <div className="hidden lg:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
           <Link href="/products" className="text-on-surface font-semibold hover:text-primary-container transition-colors duration-200">
             Shop All
           </Link>
@@ -169,7 +169,7 @@ export default function Header() {
           </Link>
 
           {user ? (
-            <div className="hidden lg:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-4">
               <span className="font-semibold text-sm text-secondary truncate max-w-[100px]">
                 Hi, {user.first_name}
               </span>
@@ -187,7 +187,7 @@ export default function Header() {
               </div>
             </div>
           ) : (
-            <div className="hidden lg:flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-3">
               <Link
                 href="/login"
                 className="px-4 py-1.5 border-2 border-on-surface bg-surface hover:bg-surface-container font-bold text-xs uppercase tracking-wider transition-transform active:scale-95"
@@ -201,7 +201,7 @@ export default function Header() {
 
       {/* Mobile Menu Slide-out */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 w-full bg-surface border-b-2 border-on-surface shadow-lg z-10 p-6 flex flex-col gap-6 animate-in slide-in-from-top-2">
+        <div className="lg:hidden absolute top-full left-0 w-full bg-surface border-b-2 border-on-surface shadow-lg z-10 p-6 flex flex-col gap-6 animate-in slide-in-from-top-2">
           <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full">
             <input 
               type="text" 

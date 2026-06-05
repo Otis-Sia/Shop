@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Product } from '@/lib/data/products-data';
-import { collection, getDocs, doc, setDoc, deleteDoc, Timestamp, query, where, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, getDocs, doc, setDoc, deleteDoc, Timestamp, query, where, updateDoc, getDoc } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
 import { getAllOrders } from '@/lib/api/order';
@@ -20,6 +21,7 @@ export default function AdminPage() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [merchantsLoading, setMerchantsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'orders' | 'customers' | 'merchants' | 'settings'>('overview');
+  const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'merchant' | 'customer' | null>(null);
   
   // Orders state
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -151,6 +153,23 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadProducts();
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setCurrentUserRole(userDoc.data().role || 'customer');
+          }
+        } catch (err) {
+          console.error("Error fetching user role:", err);
+        }
+      } else {
+        setCurrentUserRole(null);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loadMerchants = async () => {
@@ -661,17 +680,23 @@ export default function AdminPage() {
                               </div>
                             </td>
                             <td className="p-4">
-                              <select 
-                                value={order.status}
-                                onChange={(e) => order.id && handleUpdateOrderStatus(order.id, e.target.value)}
-                                className={`text-[10px] px-2.5 py-1 font-black uppercase border border-on-surface cursor-pointer outline-none ${statusClass}`}
-                              >
-                                <option value="pending">PENDING</option>
-                                <option value="processing">PROCESSING</option>
-                                <option value="shipped">SHIPPED</option>
-                                <option value="delivered">DELIVERED</option>
-                                <option value="cancelled">CANCELLED</option>
-                              </select>
+                              {currentUserRole === 'admin' ? (
+                                <span className={`text-[10px] px-2.5 py-1 font-black uppercase border border-on-surface ${statusClass}`}>
+                                  {order.status}
+                                </span>
+                              ) : (
+                                <select 
+                                  value={order.status}
+                                  onChange={(e) => order.id && handleUpdateOrderStatus(order.id, e.target.value)}
+                                  className={`text-[10px] px-2.5 py-1 font-black uppercase border border-on-surface cursor-pointer outline-none ${statusClass}`}
+                                >
+                                  <option value="pending">PENDING</option>
+                                  <option value="processing">PROCESSING</option>
+                                  <option value="shipped">SHIPPED</option>
+                                  <option value="delivered">DELIVERED</option>
+                                  <option value="cancelled">CANCELLED</option>
+                                </select>
+                              )}
                             </td>
                             <td className="p-4 font-extrabold">Kes. {order.totalAmount?.toFixed(2)}</td>
                             <td className="p-4 font-semibold text-secondary text-xs uppercase">
@@ -1031,17 +1056,23 @@ export default function AdminPage() {
                                 {order.contactInformation?.email ? ` (${order.contactInformation.email})` : ''}
                               </td>
                               <td className="p-4">
-                                <select 
-                                  value={order.status}
-                                  onChange={(e) => order.id && handleUpdateOrderStatus(order.id, e.target.value)}
-                                  className={`text-[10px] px-2 py-1 border font-black uppercase cursor-pointer outline-none ${statusClass}`}
-                                >
-                                  <option value="pending">PENDING</option>
-                                  <option value="processing">PROCESSING</option>
-                                  <option value="shipped">SHIPPED</option>
-                                  <option value="delivered">DELIVERED</option>
-                                  <option value="cancelled">CANCELLED</option>
-                                </select>
+                                {currentUserRole === 'admin' ? (
+                                  <span className={`text-[10px] px-2 py-0.5 border font-black uppercase ${statusClass}`}>
+                                    {order.status}
+                                  </span>
+                                ) : (
+                                  <select 
+                                    value={order.status}
+                                    onChange={(e) => order.id && handleUpdateOrderStatus(order.id, e.target.value)}
+                                    className={`text-[10px] px-2 py-1 border font-black uppercase cursor-pointer outline-none ${statusClass}`}
+                                  >
+                                    <option value="pending">PENDING</option>
+                                    <option value="processing">PROCESSING</option>
+                                    <option value="shipped">SHIPPED</option>
+                                    <option value="delivered">DELIVERED</option>
+                                    <option value="cancelled">CANCELLED</option>
+                                  </select>
+                                )}
                               </td>
                               <td className="p-4 font-bold">{itemsCount} Item{itemsCount !== 1 && 's'}</td>
                               <td className="p-4 font-black">Kes. {order.totalAmount?.toFixed(2)}</td>
