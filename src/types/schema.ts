@@ -15,6 +15,7 @@ export interface UserDocument {
   storeName?: string;
   businessCategory?: string;
   businessType?: string;
+  industry?: string;
   role: UserRole;
   merchantStatus?: 'pending' | 'approved' | 'rejected';
   createdAt: Timestamp | Date;

@@ -77,8 +77,8 @@ export default function MerchantOrders() {
         My Orders
       </h1>
 
-      <div className="bg-surface border-4 border-on-surface overflow-hidden">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-surface border-4 border-on-surface overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[600px]">
           <thead>
             <tr className="bg-on-surface text-surface uppercase font-bold text-sm">
               <th className="p-4 border-b-4 border-on-surface">Order ID</th>

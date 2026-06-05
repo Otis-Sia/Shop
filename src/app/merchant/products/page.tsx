@@ -191,12 +191,23 @@ export default function MerchantProducts() {
             
             <div className="space-y-2">
               <label className="font-bold text-sm uppercase">Category</label>
-              <select name="category" value={editForm.category || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-white">
-                <option value="">Select Category</option>
+              <input 
+                type="text"
+                list="product-category-list"
+                name="category" 
+                value={editForm.category || ''} 
+                onChange={handleChange} 
+                placeholder="Select or type a category"
+                className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-white" 
+              />
+              <datalist id="product-category-list">
                 {allSystemCategories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <option key={cat} value={cat} />
                 ))}
-              </select>
+                {editForm.category && !allSystemCategories.includes(editForm.category) && (
+                  <option value={editForm.category} />
+                )}
+              </datalist>
             </div>
 
             <div className="space-y-2">

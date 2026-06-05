@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1063.0",
+    "@aws-sdk/s3-request-presigner": "^3.1063.0",
     "@tailwindcss/postcss": "^4.3.0",
     "firebase": "^12.13.0",
     "lucide-react": "^1.17.0",
@@ -16,7 +18,8 @@
     "postcss": "^8.5.15",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "tailwindcss": "^4.3.0"
+    "tailwindcss": "^4.3.0",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",

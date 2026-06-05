@@ -95,16 +95,8 @@ export default function AdminPage() {
   useEffect(() => {
     loadProducts();
     loadOrders();
+    loadCustomers();
   }, []);
-
-  useEffect(() => {
-    const fetchTabData = async () => {
-      if (activeTab === 'customers' && customers.length === 0) {
-        loadCustomers();
-      }
-    };
-    fetchTabData();
-  }, [activeTab]);
 
   const loadCustomers = async () => {
     setCustomersLoading(true);
@@ -585,14 +577,14 @@ export default function AdminPage() {
               </div>
  
               {/* Active Users */}
-              <div className="bg-white border-2 border-on-surface p-6 flex flex-col justify-between shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all">
+              <div className="md:col-span-2 bg-white border-2 border-on-surface p-6 flex flex-col justify-between shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all">
                 <div>
                   <div className="flex justify-between items-center mb-4">
                     <Icon name="group" className="text-secondary" />
                     <span className="text-[10px] font-bold text-secondary uppercase tracking-widest">Active Now</span>
                   </div>
                   <h3 className="font-extrabold text-xs text-secondary uppercase tracking-wider">Active Users</h3>
-                  <p className="font-headline-md text-3xl font-black mt-2 text-on-surface">1,248</p>
+                  <p className="font-headline-md text-3xl font-black mt-2 text-on-surface">{customers.length}</p>
                 </div>
                 <div className="w-full mt-6">
                   <div className="w-full bg-surface-container h-2 border border-on-surface">
@@ -602,23 +594,7 @@ export default function AdminPage() {
                 </div>
               </div>
  
-              {/* Inventory Health */}
-              <div className="bg-white border-2 border-on-surface p-6 flex flex-col justify-between shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all">
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <Icon name="inventory" className="text-secondary" />
-                    <span className="text-[10px] font-bold text-secondary uppercase tracking-widest">Stock Level</span>
-                  </div>
-                  <h3 className="font-extrabold text-xs text-secondary uppercase tracking-wider">Low Stock Alerts</h3>
-                  <p className="font-headline-md text-3xl font-black mt-2 text-on-surface">{totalStockAlerts}</p>
-                </div>
-                <button 
-                  onClick={() => { setActiveTab('inventory'); setSearchQuery(''); setCategoryFilter('All'); }}
-                  className="text-left text-xs font-bold text-error underline uppercase tracking-wider hover:text-red-700 mt-6"
-                >
-                  Review {totalStockAlerts} items
-                </button>
-              </div>
+
             </section>
 
             {/* Data Section: Recent Orders */}

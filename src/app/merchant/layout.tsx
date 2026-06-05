@@ -6,7 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import Link from "next/link";
-import { Package, ShoppingCart, LayoutDashboard } from "lucide-react";
+import { Package, ShoppingCart, LayoutDashboard, Settings } from "lucide-react";
 
 export default function MerchantLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -77,6 +77,10 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
           <Link href="/merchant/orders" className="flex items-center gap-3 p-3 hover:bg-surface hover:text-on-surface border-2 border-transparent hover:border-black transition-colors rounded-none">
             <ShoppingCart size={24} />
             My Orders
+          </Link>
+          <Link href="/merchant/settings" className="flex items-center gap-3 p-3 hover:bg-surface hover:text-on-surface border-2 border-transparent hover:border-black transition-colors rounded-none">
+            <Settings size={24} />
+            Settings
           </Link>
         </nav>
       </aside>
