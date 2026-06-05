@@ -14,10 +14,12 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [merchants, setMerchants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'orders' | 'customers' | 'settings'>('overview');
+  const [merchantsLoading, setMerchantsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'orders' | 'customers' | 'merchants' | 'settings'>('overview');
   
   // Orders state
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -105,7 +107,7 @@ export default function AdminPage() {
   const loadCustomers = async () => {
     setCustomersLoading(true);
     try {
-      const q = query(collection(db, 'users'), where('role', '==', 'customer'));
+      const q = query(collection(db, 'users'));
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map(docSnap => {
         const d = docSnap.data();
@@ -134,15 +136,56 @@ export default function AdminPage() {
     }
   };
 
+  const handleUpdateUserRole = async (userId: string, newRole: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        role: newRole,
+        updatedAt: Timestamp.now()
+      });
+      setCustomers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    } catch (err) {
+      console.error('Error updating user role:', err);
+      alert('Failed to update user role.');
+    }
+  };
+
   useEffect(() => {
     loadProducts();
   }, []);
+
+  const loadMerchants = async () => {
+    setMerchantsLoading(true);
+    try {
+      const q = query(collection(db, 'users'), where('merchantStatus', 'in', ['pending', 'approved', 'rejected']));
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMerchants(data);
+    } catch (err) {
+      console.error('Error fetching merchants:', err);
+    } finally {
+      setMerchantsLoading(false);
+    }
+  };
+
+  const handleUpdateMerchantStatus = async (merchantId: string, newStatus: string) => {
+    try {
+      const role = newStatus === 'approved' ? 'merchant' : 'customer';
+      await updateDoc(doc(db, 'users', merchantId), { merchantStatus: newStatus, role });
+      setMerchants(prev => prev.map(m => m.id === merchantId ? { ...m, merchantStatus: newStatus, role } : m));
+    } catch (error) {
+      console.error('Error updating merchant status:', error);
+      alert('Failed to update merchant status.');
+    }
+  };
 
   useEffect(() => {
     if (activeTab === 'customers' && customers.length === 0 && !customersLoading) {
       loadCustomers();
     }
-  }, [activeTab, customers.length, customersLoading]);
+    if (activeTab === 'merchants' && merchants.length === 0 && !merchantsLoading) {
+      loadMerchants();
+    }
+  }, [activeTab, customers.length, customersLoading, merchants.length, merchantsLoading]);
 
   const handleSaveEdit = async () => {
     if (editingId !== null) {
@@ -400,6 +443,19 @@ export default function AdminPage() {
             </li>
             <li>
               <button 
+                onClick={() => setActiveTab('merchants')}
+                className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
+                  activeTab === 'merchants' 
+                    ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                    : 'text-secondary hover:bg-secondary-container hover:text-on-surface border-transparent'
+                }`}
+              >
+                <Icon name="storefront" />
+                <span>Merchants</span>
+              </button>
+            </li>
+            <li>
+              <button 
                 onClick={() => setActiveTab('settings')}
                 className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
                   activeTab === 'settings' 
@@ -415,13 +471,7 @@ export default function AdminPage() {
         </nav>
         
         <div className="px-6 mt-auto space-y-4">
-          <button 
-            onClick={() => { setActiveTab('inventory'); handleAddNew(); }}
-            className="w-full bg-primary-container text-on-primary-container py-3.5 font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 border-2 border-on-surface shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-500 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
-          >
-            <Icon name="add" className="text-sm font-black" />
-            <span>Add Product</span>
-          </button>
+          {/* Add Product removed for Admins */}
           
           <div className="pt-4 border-t border-surface-container-highest flex items-center gap-3">
             <div className="w-10 h-10 bg-on-surface flex items-center justify-center text-surface-bright border border-on-surface font-black">
@@ -463,6 +513,12 @@ export default function AdminPage() {
             className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'customers' ? 'bg-primary-container text-on-primary-container' : 'bg-white hover:bg-surface-container'}`}
           >
             Customers
+          </button>
+          <button 
+            onClick={() => setActiveTab('merchants')}
+            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'merchants' ? 'bg-primary-container text-on-primary-container' : 'bg-white hover:bg-surface-container'}`}
+          >
+            Merchants
           </button>
           <button 
             onClick={() => setActiveTab('settings')}
@@ -733,12 +789,7 @@ export default function AdminPage() {
                 <h2 className="font-headline-md text-3xl md:text-4xl font-black text-on-surface uppercase tracking-tight">Products Database</h2>
               </div>
               <div className="flex gap-3 w-full md:w-auto">
-                <button 
-                  onClick={handleAddNew}
-                  className="bg-primary-container text-on-primary-container border-2 border-on-surface py-3 px-6 text-xs font-black uppercase tracking-wider hover:bg-amber-500 transition-all active:scale-95 duration-150 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] w-full md:w-auto"
-                >
-                  + Add Product
-                </button>
+                {/* Add Product removed for Admins */}
               </div>
             </header>
 
@@ -900,12 +951,7 @@ export default function AdminPage() {
                             {/* Actions */}
                             <td className="p-4 text-right">
                               <div className="flex justify-end items-center gap-2">
-                                <button 
-                                  onClick={() => handleEdit(product)}
-                                  className="px-3.5 py-1.5 border-2 border-on-surface bg-white hover:bg-surface-container font-extrabold text-[10px] uppercase tracking-wider transition-all active:scale-95"
-                                >
-                                  Edit
-                                </button>
+                                {/* Edit removed for Admins */}
                                 <button 
                                   onClick={() => handleRemoveProduct(product.id)}
                                   className="px-3.5 py-1.5 border-2 border-on-surface bg-red-50 hover:bg-red-100 font-extrabold text-[10px] uppercase tracking-wider text-error transition-all active:scale-95"
@@ -1048,7 +1094,7 @@ export default function AdminPage() {
           <div className="animate-in fade-in duration-300">
             <header className="mb-8">
               <p className="font-extrabold text-xs text-primary-container uppercase tracking-widest mb-1.5">System Users</p>
-              <h2 className="font-headline-md text-3xl font-black text-on-surface uppercase tracking-tight">Active Customers</h2>
+              <h2 className="font-headline-md text-3xl font-black text-on-surface uppercase tracking-tight">All System Users</h2>
             </header>
 
             {customersLoading ? (
@@ -1059,7 +1105,7 @@ export default function AdminPage() {
             ) : customers.length === 0 ? (
               <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-10 text-center">
                 <Icon name="info" className="text-4xl text-secondary mx-auto" />
-                <p className="mt-4 text-xs font-black uppercase tracking-widest text-secondary">No customer accounts found</p>
+                <p className="mt-4 text-xs font-black uppercase tracking-widest text-secondary">No users found</p>
               </section>
             ) : (
               <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
@@ -1068,7 +1114,7 @@ export default function AdminPage() {
                     <thead>
                       <tr className="bg-on-surface text-white uppercase text-[10px] tracking-widest font-black">
                         <th className="p-4">Initials</th>
-                        <th className="p-4">Customer Name</th>
+                        <th className="p-4">User Name</th>
                         <th className="p-4">Email Address</th>
                         <th className="p-4">Role</th>
                         <th className="p-4">User ID</th>
@@ -1089,9 +1135,18 @@ export default function AdminPage() {
                             <td className="p-4 font-black">{customer.displayName}</td>
                             <td className="p-4 font-medium text-secondary">{customer.email}</td>
                             <td className="p-4">
-                              <span className="bg-green-100 text-green-800 border border-green-800 text-[9px] font-black uppercase px-2 py-0.5">
-                                {customer.role}
-                              </span>
+                              <select 
+                                value={customer.role}
+                                onChange={(e) => handleUpdateUserRole(customer.id, e.target.value)}
+                                className={`text-[10px] font-black uppercase px-2 py-1 border outline-none cursor-pointer ${
+                                  customer.role === 'admin' 
+                                    ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                                    : 'bg-green-100 text-green-800 border-green-800'
+                                }`}
+                              >
+                                <option value="customer">CUSTOMER</option>
+                                <option value="admin">ADMIN</option>
+                              </select>
                             </td>
                             <td className="p-4 font-mono text-[11px] text-secondary">{customer.uid}</td>
                             <td className="p-4 text-right">
@@ -1100,6 +1155,97 @@ export default function AdminPage() {
                           </tr>
                         );
                       })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+        {/* ─── TAB: MERCHANTS ─── */}
+        {activeTab === 'merchants' && (
+          <div className="animate-in fade-in duration-300">
+            <header className="mb-8">
+              <p className="font-extrabold text-xs text-primary-container uppercase tracking-widest mb-1.5">Marketplace</p>
+              <h2 className="font-headline-md text-3xl font-black text-on-surface uppercase tracking-tight">Merchant Applications</h2>
+            </header>
+
+            {merchantsLoading ? (
+              <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-10 text-center">
+                <Icon name="sync" className="text-4xl animate-spin text-primary-container mx-auto" />
+                <p className="mt-4 text-xs font-black uppercase tracking-widest text-secondary">Loading merchants...</p>
+              </section>
+            ) : merchants.length === 0 ? (
+              <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-10 text-center">
+                <Icon name="info" className="text-4xl text-secondary mx-auto" />
+                <p className="mt-4 text-xs font-black uppercase tracking-widest text-secondary">No merchants found</p>
+              </section>
+            ) : (
+              <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                      <tr className="bg-on-surface text-white uppercase text-[10px] tracking-widest font-black">
+                        <th className="p-4">Email</th>
+                        <th className="p-4">Store Details</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y-2 divide-surface-container-highest text-sm">
+                      {merchants.map((merchant) => (
+                        <tr key={merchant.id} className="hover:bg-secondary-container transition-colors">
+                          <td className="p-4 font-medium text-secondary">{merchant.email}</td>
+                          <td className="p-4">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-on-surface">{merchant.storeName || 'N/A'}</span>
+                              <span className="text-xs text-secondary">{merchant.location || 'N/A'}</span>
+                              <span className="text-[10px] text-primary-container mt-1 uppercase tracking-wider font-bold">
+                                {merchant.businessCategory || 'N/A'} • {merchant.businessType || 'N/A'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className={`border text-[9px] font-black uppercase px-2 py-0.5 ${merchant.merchantStatus === 'approved' ? 'bg-green-100 text-green-800 border-green-800' : merchant.merchantStatus === 'pending' ? 'bg-amber-100 text-amber-800 border-amber-800' : 'bg-red-100 text-red-800 border-red-800'}`}>
+                              {merchant.merchantStatus}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right flex justify-end gap-2">
+                            {merchant.merchantStatus === 'pending' && (
+                              <>
+                                <button 
+                                  onClick={() => handleUpdateMerchantStatus(merchant.id, 'approved')}
+                                  className="text-xs font-bold border border-green-800 px-2 py-1 text-green-800 hover:bg-green-800 hover:text-white transition-colors"
+                                >
+                                  APPROVE
+                                </button>
+                                <button 
+                                  onClick={() => handleUpdateMerchantStatus(merchant.id, 'rejected')}
+                                  className="text-xs font-bold border border-red-800 px-2 py-1 text-red-800 hover:bg-red-800 hover:text-white transition-colors"
+                                >
+                                  REJECT
+                                </button>
+                              </>
+                            )}
+                            {merchant.merchantStatus === 'rejected' && (
+                              <button 
+                                onClick={() => handleUpdateMerchantStatus(merchant.id, 'approved')}
+                                className="text-xs font-bold border border-green-800 px-2 py-1 text-green-800 hover:bg-green-800 hover:text-white transition-colors"
+                              >
+                                APPROVE
+                              </button>
+                            )}
+                            {merchant.merchantStatus === 'approved' && (
+                              <button 
+                                onClick={() => handleUpdateMerchantStatus(merchant.id, 'rejected')}
+                                className="text-xs font-bold border border-red-800 px-2 py-1 text-red-800 hover:bg-red-800 hover:text-white transition-colors"
+                              >
+                                REVOKE
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

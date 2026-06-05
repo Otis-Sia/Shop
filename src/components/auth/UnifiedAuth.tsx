@@ -23,6 +23,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
   const [lastName, setLastName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [role, setRole] = useState<'customer' | 'merchant'>('customer');
 
   // Status fields
   const [error, setError] = useState('');
@@ -35,8 +36,16 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
     try {
       const user = await login({ email: loginEmail, password: loginPassword });
       await syncLocalCartToFirestore(user.uid);
-      // Go to home page
-      window.location.href = '/';
+      
+      // Redirect based on role
+      const userRole = (user as any).role || 'customer';
+      if (userRole === 'admin') {
+        window.location.href = '/admin';
+      } else if (userRole === 'merchant') {
+        window.location.href = '/merchant';
+      } else {
+        window.location.href = '/';
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during sign in.');
     } finally {
@@ -53,11 +62,20 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
         email: signupEmail,
         password: signupPassword,
         first_name: firstName,
-        last_name: lastName
+        last_name: lastName,
+        role: role
       });
       await syncLocalCartToFirestore(user.uid);
-      // Go to home page
-      window.location.href = '/';
+      
+      // Register defaults to customer role, but we check just in case
+      const userRole = (user as any).role || 'customer';
+      if (userRole === 'admin') {
+        window.location.href = '/admin';
+      } else if (userRole === 'merchant') {
+        window.location.href = '/merchant';
+      } else {
+        window.location.href = '/';
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during registration.');
     } finally {
@@ -227,7 +245,15 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                       setSubmitting(true);
                       const user = await loginWithGoogle();
                       await syncLocalCartToFirestore(user.uid);
-                      window.location.href = '/';
+                      
+                      const userRole = (user as any).role || 'customer';
+                      if (userRole === 'admin') {
+                        window.location.href = '/admin';
+                      } else if (userRole === 'merchant') {
+                        window.location.href = '/merchant';
+                      } else {
+                        window.location.href = '/';
+                      }
                     } catch (err: any) {
                       setError(err.message || 'Google sign-in failed');
                       setSubmitting(false);
@@ -316,6 +342,36 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                   onChange={(e) => setSignupPassword(e.target.value)}
                   autoComplete="new-password"
                 />
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <label className="font-bold text-xs tracking-wider block text-on-background uppercase">
+                  Account Type
+                </label>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="role" 
+                      value="customer" 
+                      checked={role === 'customer'} 
+                      onChange={() => setRole('customer')}
+                      className="w-4 h-4 accent-on-background cursor-pointer"
+                    />
+                    <span className="text-sm font-medium uppercase tracking-wide">Customer</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="role" 
+                      value="merchant" 
+                      checked={role === 'merchant'} 
+                      onChange={() => setRole('merchant')}
+                      className="w-4 h-4 accent-on-background cursor-pointer"
+                    />
+                    <span className="text-sm font-medium uppercase tracking-wide">Merchant</span>
+                  </label>
+                </div>
               </div>
 
               <p className="text-xs text-secondary leading-relaxed">

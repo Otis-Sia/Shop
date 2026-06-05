@@ -7,6 +7,9 @@ import { getProducts } from '@/lib/api/products';
 import { CATEGORIES_DATA } from '@/lib/data/categories';
 import { addToCart } from '@/lib/api/cart';
 import { addToWishlist, removeFromWishlist, getWishlist } from '@/lib/api/wishlist';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { getUserProfile, User } from '@/lib/api/auth';
 import { Product } from '@/lib/data/products-data';
 import Icon from '@/components/Icon';
 import ProductRatingBadge from '@/components/shop/ProductRatingBadge';
@@ -61,6 +64,7 @@ export default function ProductsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [addingToCart, setAddingToCart] = useState<Record<number, boolean>>({});
   const [addedToCart, setAddedToCart] = useState<Record<number, boolean>>({});
+  const [userRole, setUserRole] = useState<'customer' | 'admin' | 'merchant' | 'guest'>('guest');
   const router = useRouter();
 
   const fetchProducts = async (filters: { keyword?: string; maxPrice?: number; category?: string } = {}) => {
@@ -89,7 +93,28 @@ export default function ProductsPage() {
         console.error('Error fetching wishlist:', err);
       }
     };
-    fetchW();
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const profile = await getUserProfile(user.uid);
+          if (profile && profile.role) {
+            setUserRole(profile.role);
+          } else {
+            setUserRole('customer'); // Default for users without explicit role
+          }
+          fetchW();
+        } catch (err) {
+          console.error("Error fetching user profile:", err);
+          setUserRole('customer');
+        }
+      } else {
+        setUserRole('guest');
+        setWishlistedIds(new Set());
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleToggleWishlist = async (e: React.MouseEvent, productId: number) => {
@@ -452,13 +477,15 @@ export default function ProductsPage() {
                         <div className="flex-1">
                            <ProductRatingBadge productId={product.id} />
                         </div>
-                        <button
-                          onClick={(e) => handleAddToCart(e, product.id)}
-                          disabled={addingToCart[product.id]}
-                          className={`shrink-0 px-4 py-2 border border-surface-dim bg-white text-on-surface font-bold text-[10px] uppercase tracking-wider transition-colors hover:bg-surface-container rounded ${addedToCart[product.id] ? '!bg-green-600 !text-white !border-green-600' : ''}`}
-                        >
-                          {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added ✓' : 'Adding...') : 'Add to Cart'}
-                        </button>
+                        {(userRole === 'customer' || userRole === 'guest') && (
+                          <button
+                            onClick={(e) => handleAddToCart(e, product.id)}
+                            disabled={addingToCart[product.id]}
+                            className={`shrink-0 px-4 py-2 border border-surface-dim bg-white text-on-surface font-bold text-[10px] uppercase tracking-wider transition-colors hover:bg-surface-container rounded ${addedToCart[product.id] ? '!bg-green-600 !text-white !border-green-600' : ''}`}
+                          >
+                            {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added ✓' : 'Adding...') : 'Add to Cart'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </article>

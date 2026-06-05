@@ -1,7 +1,7 @@
 import { Timestamp } from "firebase/firestore";
 
 // User Roles
-export type UserRole = "customer" | "admin";
+export type UserRole = "customer" | "admin" | "merchant";
 
 // 1. Users Collection
 // Path: users/{userId}
@@ -12,7 +12,11 @@ export interface UserDocument {
   username?: string;
   location?: string;
   phone?: string;
+  storeName?: string;
+  businessCategory?: string;
+  businessType?: string;
   role: UserRole;
+  merchantStatus?: 'pending' | 'approved' | 'rejected';
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
 }
@@ -29,6 +33,7 @@ export interface CartItem {
 // Path: products/{productId}
 export interface Product {
   id?: string; // ID is usually the document ID
+  merchantId: string; // The ID of the merchant who owns this product
   name: string;
   description: string;
   price: number;
@@ -82,6 +87,7 @@ export interface OrderItem {
 export interface Order {
   id?: string; // Document ID
   userId: string;
+  merchantId: string; // The ID of the merchant this order belongs to
   cartId?: string;
   checkoutId?: string;
   status: OrderStatus;

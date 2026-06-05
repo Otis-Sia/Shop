@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { getWishlist, removeFromWishlist } from '@/lib/api/wishlist';
 import { addToCart } from '@/lib/api/cart';
 import { Product } from '@/lib/data/products-data';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { getUserProfile } from '@/lib/api/auth';
 import Icon from '@/components/Icon';
 
 interface Toast {
@@ -19,6 +22,7 @@ export default function WishlistPage() {
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [addingToCart, setAddingToCart] = useState<Record<number, boolean>>({});
   const [addedToCart, setAddedToCart] = useState<Record<number, boolean>>({});
+  const [userRole, setUserRole] = useState<'customer' | 'admin' | 'merchant' | 'guest'>('guest');
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = (message: string, type: 'success' | 'info' = 'success') => {
@@ -42,7 +46,27 @@ export default function WishlistPage() {
   };
 
   useEffect(() => {
-    fetchWishlist();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const profile = await getUserProfile(user.uid);
+          if (profile && profile.role) {
+            setUserRole(profile.role);
+          } else {
+            setUserRole('customer');
+          }
+          fetchWishlist();
+        } catch (err) {
+          console.error("Error fetching user profile:", err);
+          setUserRole('customer');
+        }
+      } else {
+        setUserRole('guest');
+        setProducts([]);
+        setLoading(false);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   // Listen for external wishlist changes
@@ -198,14 +222,16 @@ export default function WishlistPage() {
                         )}
                       </div>
 
-                      <button
-                        onClick={(e) => handleAddToCart(e, product.id)}
-                        disabled={addingToCart[product.id]}
-                        className={`w-full py-2.5 border-2 border-on-surface bg-primary-container text-on-primary-container font-headline-md font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(26,28,28,1)] hover:bg-amber-500 disabled:opacity-50 flex items-center justify-center gap-2 ${addedToCart[product.id] ? '!bg-green-600 !text-white' : ''}`}
-                      >
-                        <Icon name={addedToCart[product.id] ? 'check_circle' : 'shopping_cart'} className="text-sm" />
-                        {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added ✓' : 'Adding...') : 'Add to Cart'}
-                      </button>
+                      {(userRole === 'customer' || userRole === 'guest') && (
+                        <button
+                          onClick={(e) => handleAddToCart(e, product.id)}
+                          disabled={addingToCart[product.id]}
+                          className={`w-full py-2.5 border-2 border-on-surface bg-primary-container text-on-primary-container font-headline-md font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(26,28,28,1)] hover:bg-amber-500 disabled:opacity-50 flex items-center justify-center gap-2 ${addedToCart[product.id] ? '!bg-green-600 !text-white' : ''}`}
+                        >
+                          <Icon name={addedToCart[product.id] ? 'check_circle' : 'shopping_cart'} className="text-sm" />
+                          {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added ✓' : 'Adding...') : 'Add to Cart'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </article>

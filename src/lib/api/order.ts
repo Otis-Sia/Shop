@@ -38,24 +38,45 @@ export const createOrder = async (orderData: Partial<Order>): Promise<Order> => 
     };
     const checkoutDocRef = await addDoc(collection(db, 'checkouts'), newCheckout);
 
-    // 3. Create Order document
-    const newOrder: Order = {
-      userId: user.uid,
-      cartId: cartDocRef.id,
-      checkoutId: checkoutDocRef.id,
-      status: 'pending' as OrderStatus,
-      totalAmount: orderData.totalAmount || 0,
-      contactInformation: orderData.contactInformation,
-      shippingAddress: orderData.shippingAddress || {
-        street: '', city: '', zipCode: '', country: ''
-      },
-      shippingInformation: orderData.shippingInformation,
-      items: orderData.items || [],
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-    };
+    // Group items by merchantId
+    const itemsByMerchant: Record<string, any[]> = {};
+    for (const item of orderData.items || []) {
+      const mId = (item as any).merchantId || 'admin';
+      if (!itemsByMerchant[mId]) itemsByMerchant[mId] = [];
+      itemsByMerchant[mId].push(item);
+    }
 
-    const orderDocRef = await addDoc(collection(db, 'orders'), newOrder);
+    // 3. Create Order documents for each merchant
+    let firstOrder: Order | null = null;
+    let firstOrderId = '';
+
+    for (const merchantId in itemsByMerchant) {
+      const mItems = itemsByMerchant[merchantId];
+      const mTotal = mItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      const newOrder: Order = {
+        userId: user.uid,
+        merchantId: merchantId,
+        cartId: cartDocRef.id,
+        checkoutId: checkoutDocRef.id,
+        status: 'pending' as OrderStatus,
+        totalAmount: mTotal,
+        contactInformation: orderData.contactInformation,
+        shippingAddress: orderData.shippingAddress || {
+          street: '', city: '', zipCode: '', country: ''
+        },
+        shippingInformation: orderData.shippingInformation,
+        items: mItems,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+
+      const orderDocRef = await addDoc(collection(db, 'orders'), newOrder);
+      if (!firstOrder) {
+        firstOrder = newOrder;
+        firstOrderId = orderDocRef.id;
+      }
+    }
     
     // 4. Update Product Stock
     if (orderData.items && orderData.items.length > 0) {
@@ -73,9 +94,11 @@ export const createOrder = async (orderData: Partial<Order>): Promise<Order> => 
 
     await clearCart();
 
+    if (!firstOrder) throw new Error("Failed to create order");
+
     return {
-      ...newOrder,
-      id: orderDocRef.id,
+      ...firstOrder,
+      id: firstOrderId,
     };
   } catch (error) {
     console.error('Error creating order:', error);

@@ -19,27 +19,38 @@ export interface User {
   username?: string;
   location?: string;
   phone?: string;
+  role?: "customer" | "admin" | "merchant";
+  merchantStatus?: "pending" | "approved" | "rejected";
+  storeName?: string;
+  businessCategory?: string;
+  businessType?: string;
 }
 
-export const register = async (userData: { email: string; password: string; first_name: string; last_name: string }) => {
+export const register = async (userData: { email: string; password: string; first_name: string; last_name: string; role?: 'customer' | 'merchant' }) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
     const user = userCredential.user;
 
-    // Store additional profile info in Firestore
-    await setDoc(doc(db, 'users', user.uid), {
+    const role = userData.role || 'customer';
+    const profileData: any = {
       first_name: userData.first_name,
       last_name: userData.last_name,
       email: userData.email,
-      role: 'customer',
+      role: role,
       createdAt: new Date().toISOString()
-    });
+    };
+
+    if (role === 'merchant') {
+      profileData.merchantStatus = 'pending';
+    }
+
+    // Store additional profile info in Firestore
+    await setDoc(doc(db, 'users', user.uid), profileData);
 
     return {
       uid: user.uid,
       email: user.email,
-      first_name: userData.first_name,
-      last_name: userData.last_name
+      ...profileData
     };
   } catch (error: any) {
     throw new Error(error.message || 'Registration failed');
@@ -157,5 +168,19 @@ export const sendPasswordReset = async (email: string) => {
       message = 'Too many attempts. Please try again later.';
     }
     throw new Error(message);
+  }
+};
+
+export const applyForMerchantRole = async (uid: string, details: { storeName: string; location: string; businessCategory: string; businessType: string }) => {
+  try {
+    const docRef = doc(db, 'users', uid);
+    await setDoc(docRef, { 
+      merchantStatus: 'pending',
+      ...details
+    }, { merge: true });
+    return true;
+  } catch (error: any) {
+    console.error('Error applying for merchant role:', error);
+    throw new Error(error.message || 'Failed to apply for merchant role');
   }
 };

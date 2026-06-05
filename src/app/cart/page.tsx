@@ -3,12 +3,16 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getCart, removeFromCart, updateCartItem, CartItem } from '@/lib/api/cart';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { getUserProfile } from '@/lib/api/auth';
 import Icon from '@/components/Icon';
 
 export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [userRole, setUserRole] = useState<'customer' | 'admin' | 'merchant' | 'guest'>('guest');
 
   const loadCart = async () => {
     try {
@@ -35,7 +39,31 @@ export default function CartPage() {
   };
 
   useEffect(() => {
-    loadCart();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const profile = await getUserProfile(user.uid);
+          if (profile && profile.role) {
+            setUserRole(profile.role);
+          } else {
+            setUserRole('customer');
+          }
+          if (!profile || !['admin', 'merchant'].includes(profile.role as string)) {
+            loadCart();
+          } else {
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error("Error fetching user profile:", err);
+          setUserRole('customer');
+          loadCart();
+        }
+      } else {
+        setUserRole('guest');
+        loadCart();
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleQuantityChange = async (productId: number | string, currentQty: number, change: number) => {
@@ -83,7 +111,19 @@ export default function CartPage() {
         Your Cart
       </h1>
 
-      {loading ? (
+      {userRole === 'admin' || userRole === 'merchant' ? (
+        <div className="border-2 border-error p-12 bg-red-50 text-center flex flex-col items-center justify-center max-w-[600px] mx-auto">
+          <Icon name="block" className="text-5xl mb-4 text-error" />
+          <h3 className="font-headline-md text-xl font-bold uppercase mb-2 text-error">Access Denied</h3>
+          <p className="text-sm text-error mb-6 max-w-[300px]">Admins and Merchants cannot purchase items.</p>
+          <Link 
+            href={userRole === 'admin' ? "/admin" : "/merchant"} 
+            className="px-6 py-3 bg-error text-white font-bold text-xs uppercase tracking-wider border-2 border-error shadow-sm active:scale-95 transition-transform"
+          >
+            Return to Dashboard
+          </Link>
+        </div>
+      ) : loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Icon name="sync" className="text-4xl animate-spin text-primary-container" />
           <p className="mt-4 font-bold text-sm tracking-widest text-secondary uppercase">Loading your cart...</p>

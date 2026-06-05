@@ -30,6 +30,11 @@ export default function CheckoutPage() {
       try {
         const profile = await getUserProfile(user.uid);
         if (profile) setUserProfile(profile);
+
+        if (profile && ['admin', 'merchant'].includes(profile.role as string)) {
+          setLoading(false);
+          return;
+        }
         
         const cart = await getCart();
         if (!cart || !cart.CartItems || cart.CartItems.length === 0) {
@@ -88,6 +93,7 @@ export default function CheckoutPage() {
         name: item.Product?.name || 'Unknown',
         price: item.Product?.price ? parseFloat(String(item.Product.price)) : 0,
         quantity: item.quantity,
+        merchantId: (item.Product as any)?.merchantId || 'admin',
       }))
     };
 
@@ -110,6 +116,27 @@ export default function CheckoutPage() {
       <main className="max-w-[1440px] mx-auto px-6 md:px-16 py-16 flex-grow flex flex-col items-center justify-center min-h-[400px]">
         <Icon name="sync" className="text-4xl animate-spin text-primary-container" />
         <p className="mt-4 font-bold text-sm tracking-widest text-secondary uppercase">Loading checkout information...</p>
+      </main>
+    );
+  }
+
+  if (userProfile && ['admin', 'merchant'].includes(userProfile.role as string)) {
+    return (
+      <main className="max-w-[1440px] mx-auto px-6 md:px-16 py-16 flex-grow">
+        <h1 className="font-headline-md text-3xl md:text-5xl font-black mb-10 uppercase tracking-tighter text-on-surface">
+          Checkout
+        </h1>
+        <div className="border-2 border-error p-12 bg-red-50 text-center flex flex-col items-center justify-center max-w-[600px] mx-auto">
+          <Icon name="block" className="text-5xl mb-4 text-error" />
+          <h3 className="font-headline-md text-xl font-bold uppercase mb-2 text-error">Access Denied</h3>
+          <p className="text-sm text-error mb-6 max-w-[300px]">Admins and Merchants cannot purchase items.</p>
+          <Link 
+            href={userProfile.role === 'admin' ? "/admin" : "/merchant"} 
+            className="px-6 py-3 bg-error text-white font-bold text-xs uppercase tracking-wider border-2 border-error shadow-sm active:scale-95 transition-transform"
+          >
+            Return to Dashboard
+          </Link>
+        </div>
       </main>
     );
   }

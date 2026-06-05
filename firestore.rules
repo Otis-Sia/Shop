@@ -3,10 +3,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Products: Anyone can read, but only admins can write
+    // Products: Anyone can read. Merchants can create and update their own. Admins can delete, Merchants can delete their own.
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && request.resource.data.merchantId == request.auth.uid);
+      allow update: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid);
+      allow delete: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid));
       
       // Reviews: Anyone can read, authenticated users can create (one per user), users can delete own reviews
       match /reviews/{reviewId} {
@@ -17,9 +19,17 @@ service cloud.firestore {
       }
     }
 
-    // Users: Users can read and write their own profile document
+    // Users: Users can read and update their own profile document, but cannot change role. They can only change merchantStatus to pending.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId && 
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) && 
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['merchantStatus']) || request.resource.data.merchantStatus == 'pending');
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      
+      // Allow admins full access to write user profiles
+      allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       // Allow admins to read all user profiles
       allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       
@@ -34,22 +44,23 @@ service cloud.firestore {
       }
     }
 
-    // Orders: Users can read and create their own orders. Admins can read all orders.
+    // Orders: Users can read and create their own orders. Admins can read all orders. Merchants can read/update their orders.
     match /orders/{orderId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      allow update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'customer';
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid));
+      allow update: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid));
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     // Carts collection: Users can create and read their own carts
     match /carts/{cartId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'customer';
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     // Checkouts collection: Users can create and read their own checkouts
     match /checkouts/{checkoutId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'customer';
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
