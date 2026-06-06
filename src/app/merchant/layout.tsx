@@ -57,30 +57,30 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <div className="flex min-h-screen bg-surface">
+    <div className="flex flex-col md:flex-row min-h-screen bg-surface">
       {/* Sidebar Navigation for Merchant */}
-      <aside className="w-64 bg-on-surface text-surface flex flex-col border-r-4 border-black">
-        <div className="p-6 border-b-4 border-black border-dashed">
-          <h2 className="font-headline-md font-black text-2xl tracking-tight text-primary-container">
+      <aside className="w-full md:w-64 bg-on-surface text-surface flex flex-col border-b-4 md:border-b-0 md:border-r-4 border-black shrink-0">
+        <div className="p-4 md:p-6 border-b-4 border-black border-dashed">
+          <h2 className="font-headline-md font-black text-xl md:text-2xl tracking-tight text-primary-container">
             MERCHANT HUB
           </h2>
         </div>
-        <nav className="flex-1 p-4 space-y-4 font-body-lg font-bold">
-          <Link href="/merchant" className="flex items-center gap-3 p-3 hover:bg-surface hover:text-on-surface border-2 border-transparent hover:border-black transition-colors rounded-none">
-            <LayoutDashboard size={24} />
-            Dashboard
+        <nav className="p-2 md:p-4 flex flex-row md:flex-col overflow-x-auto md:space-y-4 font-body-lg font-bold hide-scrollbar">
+          <Link href="/merchant" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface border-2 border-transparent hover:border-black transition-colors rounded-none shrink-0">
+            <LayoutDashboard size={20} className="md:w-6 md:h-6" />
+            <span className="text-sm md:text-base">Dashboard</span>
           </Link>
-          <Link href="/merchant/products" className="flex items-center gap-3 p-3 hover:bg-surface hover:text-on-surface border-2 border-transparent hover:border-black transition-colors rounded-none">
-            <Package size={24} />
-            My Products
+          <Link href="/merchant/products" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface border-2 border-transparent hover:border-black transition-colors rounded-none shrink-0">
+            <Package size={20} className="md:w-6 md:h-6" />
+            <span className="text-sm md:text-base">My Products</span>
           </Link>
-          <Link href="/merchant/orders" className="flex items-center gap-3 p-3 hover:bg-surface hover:text-on-surface border-2 border-transparent hover:border-black transition-colors rounded-none">
-            <ShoppingCart size={24} />
-            My Orders
+          <Link href="/merchant/orders" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface border-2 border-transparent hover:border-black transition-colors rounded-none shrink-0">
+            <ShoppingCart size={20} className="md:w-6 md:h-6" />
+            <span className="text-sm md:text-base">My Orders</span>
           </Link>
-          <Link href="/merchant/settings" className="flex items-center gap-3 p-3 hover:bg-surface hover:text-on-surface border-2 border-transparent hover:border-black transition-colors rounded-none">
-            <Settings size={24} />
-            Settings
+          <Link href="/merchant/settings" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface border-2 border-transparent hover:border-black transition-colors rounded-none shrink-0">
+            <Settings size={20} className="md:w-6 md:h-6" />
+            <span className="text-sm md:text-base">Settings</span>
           </Link>
         </nav>
       </aside>

@@ -14,6 +14,7 @@ export default function MerchantProducts() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Partial<Product>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -97,6 +98,59 @@ export default function MerchantProducts() {
       ...prev,
       imageUrls: [...(prev.imageUrls || []), '']
     }));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    
+    setIsUploading(true);
+    try {
+      // 1. Get pre-signed URL from our API
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+
+      const { signedUrl, fileUrl } = await response.json();
+
+      // 2. Upload file directly to S3 using the pre-signed URL
+      const uploadResponse = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+        },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file to S3');
+      }
+      
+      setEditForm(prev => {
+        const currentUrls = prev.imageUrls || [];
+        if (currentUrls.length > 0 && currentUrls[currentUrls.length - 1] === '') {
+          const newUrls = [...currentUrls];
+          newUrls[newUrls.length - 1] = fileUrl;
+          return { ...prev, imageUrls: newUrls };
+        } else {
+          return { ...prev, imageUrls: [...currentUrls, fileUrl] };
+        }
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Failed to upload image.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -255,13 +309,25 @@ export default function MerchantProducts() {
               <button type="button" onClick={handleAddImageUrl} className="text-sm font-bold underline hover:text-primary-container">
                 + Add another image URL
               </button>
+
+              <div className="mt-4 p-4 border-2 border-dashed border-on-surface bg-white">
+                <p className="text-sm font-bold uppercase mb-2">Or Upload Image</p>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileUpload} 
+                  disabled={isUploading}
+                  className="text-sm w-full"
+                />
+                {isUploading && <p className="text-sm font-bold mt-2 animate-pulse text-primary-container">Uploading image...</p>}
+              </div>
             </div>
           </div>
 
           <div className="flex gap-4 pt-4">
             <button 
               type="submit" 
-              disabled={isSaving}
+              disabled={isSaving || isUploading}
               className="bg-primary-container text-on-surface border-4 border-on-surface px-8 py-2 font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50"
             >
               {isSaving ? 'Saving...' : 'Save Product'}
