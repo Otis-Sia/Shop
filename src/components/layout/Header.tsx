@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { subscribeToAuthChanges, logout } from '@/lib/api/auth';
 import { getCart } from '@/lib/api/cart';
@@ -11,7 +12,7 @@ import ProfileModal from '@/components/auth/ProfileModal';
 
 export default function Header() {
   const router = useRouter();
-  const [user, setUser] = useState<{ first_name: string; email: string; uid: string } | null>(null);
+  const [user, setUser] = useState<{ first_name: string; email: string; uid: string; role?: string } | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [cartCount, setCartCount] = useState(0);
@@ -22,9 +23,25 @@ export default function Header() {
 
   useEffect(() => {
     setMounted(true);
-    const unsubscribe = subscribeToAuthChanges((user) => {
+    const unsubscribe = subscribeToAuthChanges(async (user) => {
       if (user) {
-        setUser({ first_name: user.displayName?.split(' ')[0] || user.email?.split('@')[0] || 'User', email: user.email || '', uid: user.uid });
+        let role = 'customer';
+        try {
+          const { doc, getDoc } = await import('firebase/firestore');
+          const { db } = await import('@/lib/firebase');
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            role = userDoc.data().role || 'customer';
+          }
+        } catch (e) {
+          console.error("Error fetching user role for header:", e);
+        }
+        setUser({ 
+          first_name: user.displayName?.split(' ')[0] || user.email?.split('@')[0] || 'User', 
+          email: user.email || '', 
+          uid: user.uid,
+          role 
+        });
       } else {
         setUser(null);
       }
@@ -82,8 +99,9 @@ export default function Header() {
     return (
       <header className="bg-surface sticky top-0 z-50 border-b-2 border-on-surface">
         <nav className="flex justify-between items-center w-full px-6 md:px-16 py-4 max-w-[1440px] mx-auto">
-          <Link href="/" className="font-headline-md text-3xl font-black tracking-tighter text-on-surface">
-            JUJ4
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="w-auto h-10" />
+            <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6" />
           </Link>
         </nav>
       </header>
@@ -125,8 +143,9 @@ export default function Header() {
         </button>
 
         {/* Logo */}
-        <Link href="/" className="font-headline-md text-3xl font-black tracking-tighter text-on-surface hover:text-primary-container transition-colors">
-          JUJ4
+        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="w-auto h-10" />
+          <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6" />
         </Link>
 
         {/* Desktop Links */}
@@ -137,9 +156,14 @@ export default function Header() {
           <Link href="/products?category=Fashion" className="text-on-surface font-semibold hover:text-primary-container transition-colors duration-200">
             New Arrivals
           </Link>
-          {user?.email === 'admin@juj4.com' && (
+          {user?.role === 'admin' && (
             <Link href="/admin" className="text-primary-container font-extrabold hover:underline transition-all duration-200">
               Admin Panel
+            </Link>
+          )}
+          {user?.role === 'merchant' && (
+            <Link href="/merchant" className="text-primary-container font-extrabold hover:underline transition-all duration-200">
+              Merchant Hub
             </Link>
           )}
         </div>
@@ -181,6 +205,12 @@ export default function Header() {
                   <div className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] flex flex-col py-2">
                     <button onClick={() => setIsProfileModalOpen(true)} className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container">Profile</button>
                     <Link href="/orders" className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container">My Orders</Link>
+                    {user?.role === 'merchant' && (
+                      <Link href="/merchant" className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container text-primary-container">Merchant Hub</Link>
+                    )}
+                    {user?.role === 'admin' && (
+                      <Link href="/admin" className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container text-primary-container">Admin Panel</Link>
+                    )}
                     <button onClick={handleLogout} className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-error-container text-error">Logout</button>
                   </div>
                 </div>
@@ -226,7 +256,10 @@ export default function Header() {
             <>
               <button onClick={() => { setIsProfileModalOpen(true); setIsMobileMenuOpen(false); }} className="text-left font-bold text-lg border-b-2 border-surface-container pb-2">Profile</button>
               <Link href="/orders" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-lg border-b-2 border-surface-container pb-2">My Orders</Link>
-              {user.email === 'admin@juj4.com' && (
+              {user?.role === 'merchant' && (
+                <Link href="/merchant" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-lg text-primary-container border-b-2 border-surface-container pb-2">Merchant Hub</Link>
+              )}
+              {user?.role === 'admin' && (
                 <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-lg text-primary-container border-b-2 border-surface-container pb-2">Admin Panel</Link>
               )}
               <button onClick={handleLogout} className="text-left font-bold text-lg text-error pt-2">Logout</button>

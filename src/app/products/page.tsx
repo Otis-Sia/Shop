@@ -241,7 +241,7 @@ export default function ProductsPage() {
 
         {/* Filters Sidebar Wrapper */}
         <div 
-          className={`${isMobileFiltersOpen ? 'flex' : 'hidden'} lg:flex flex-col lg:sticky lg:top-24 items-start shrink-0 z-30 w-full lg:w-auto`}
+          className={`${isMobileFiltersOpen ? 'flex' : 'hidden'} lg:flex flex-col lg:flex-row lg:sticky lg:top-24 items-start shrink-0 z-30 w-full lg:w-auto`}
           onMouseLeave={() => setHoveredCategory(null)}
         >
           <aside className="w-full lg:w-72 shrink-0 bg-white border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] space-y-6 z-20 relative">

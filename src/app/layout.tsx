@@ -12,6 +12,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'JUJ4 - Your Premium Shopping Destination',
   description: 'Discover amazing products at unbeatable prices. Your premium shopping experience starts here.',
+  icons: {
+    icon: '/Logo.svg',
+  },
 };
 
 export default function RootLayout({

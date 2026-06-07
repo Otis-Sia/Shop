@@ -1,10 +1,13 @@
+import Image from 'next/image';
+
 export default function Footer() {
   return (
     <footer className="bg-[#1a1c1c] text-white border-t-4 border-[#ff8c00] py-16 px-6 md:px-16 mt-auto">
       <div className="w-full flex flex-col md:flex-row justify-between items-start text-left max-w-[1440px] mx-auto gap-12">
         <div className="mb-6 md:mb-0 max-w-sm space-y-4">
-          <div className="font-headline-md text-3xl font-black text-[#f9f9f9] tracking-tighter uppercase">
-            JUJ4
+          <div className="flex items-center gap-2 mb-4">
+            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="w-auto h-10" />
+            <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6" />
           </div>
           <p className="text-xs font-semibold text-[#e2e2e2] leading-relaxed">
             Premium engineered sports apparel curated utilizing extreme-velocity structural textures, optimized for peak retail execution.

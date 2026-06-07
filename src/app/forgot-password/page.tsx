@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import Icon from '@/components/Icon';
@@ -39,8 +40,9 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-[520px] bg-white border-2 border-on-background shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]">
         {/* Header */}
         <div className="bg-on-background text-white p-8 md:p-10">
-          <Link href="/" className="inline-block mb-6">
-            <span className="font-headline-md text-2xl font-black tracking-tight">JUJ4</span>
+          <Link href="/" className="inline-block mb-6 flex items-center gap-2">
+            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="w-auto h-10" />
+            <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6" />
           </Link>
           <h1 className="font-headline-md text-2xl md:text-3xl font-black uppercase tracking-tight mb-2">
             Reset Password

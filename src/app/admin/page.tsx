@@ -6,6 +6,7 @@ import { collection, getDocs, doc, setDoc, deleteDoc, Timestamp, query, where, u
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import Link from 'next/link';
+import Image from 'next/image';
 import Icon from '@/components/Icon';
 import { getAllOrders } from '@/lib/api/order';
 import { Order } from '@/types/schema';
@@ -392,8 +393,10 @@ export default function AdminPage() {
       {/* SIDE NAVIGATION BAR */}
       <aside className="fixed left-0 top-0 h-screen flex flex-col py-6 w-64 bg-surface border-r-2 border-on-surface z-40 hidden lg:flex">
         <div className="px-6 mb-10">
-          <Link href="/" className="font-headline-md text-2xl font-black text-on-surface uppercase tracking-tighter hover:text-primary-container transition-colors">
-            JUJ4 Admin
+          <Link href="/" className="font-headline-md text-2xl font-black text-on-surface uppercase tracking-tighter hover:text-primary-container transition-colors flex items-center gap-2">
+            <Image src="/Logo.svg" alt="Logo" width={32} height={32} className="w-auto h-8" />
+            <Image src="/name.svg" alt="JUJ4" width={80} height={32} className="w-auto h-5" />
+            <span className="ml-2">Admin</span>
           </Link>
           <p className="text-xs font-semibold text-secondary uppercase tracking-widest mt-1">System Management</p>
         </div>
@@ -1148,10 +1151,13 @@ export default function AdminPage() {
                                 className={`text-[10px] font-black uppercase px-2 py-1 border outline-none cursor-pointer ${
                                   customer.role === 'admin' 
                                     ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                                    : customer.role === 'merchant'
+                                    ? 'bg-blue-100 text-blue-800 border-blue-800'
                                     : 'bg-green-100 text-green-800 border-green-800'
                                 }`}
                               >
                                 <option value="customer">CUSTOMER</option>
+                                <option value="merchant">MERCHANT</option>
                                 <option value="admin">ADMIN</option>
                               </select>
                             </td>
