@@ -46,6 +46,34 @@ const CATEGORY_ICONS: Record<string, string> = {
   "Printing & Customization": "print"
 };
 
+const formatSellerAge = (createdAt: any): string => {
+  if (!createdAt) return 'NEW SELLER';
+  
+  let date: Date;
+  if (createdAt?.toDate) {
+    date = createdAt.toDate();
+  } else {
+    date = new Date(createdAt);
+  }
+
+  if (isNaN(date.getTime())) return 'NEW SELLER';
+
+  const diffTime = Math.abs(new Date().getTime() - date.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays >= 0 && diffDays <= 6) return '< 1 WEEK SELLER';
+  if (diffDays >= 7 && diffDays <= 14) return '1 WEEK SELLER';
+  if (diffDays >= 15 && diffDays <= 30) return '2 WEEKS SELLER';
+  if (diffDays >= 31 && diffDays <= 59) return '1 MONTH SELLER';
+  
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) return `${diffMonths} MONTHS SELLER`;
+  
+  const diffYears = Math.floor(diffDays / 365);
+  if (diffYears === 1) return '1 YEAR SELLER';
+  return `${diffYears} YEARS SELLER`;
+};
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
@@ -410,6 +438,12 @@ export default function ProductsPage() {
           ) : (
             <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6" : "flex flex-col gap-6"}>
               {[...products].sort((a, b) => {
+                const aVerified = a.merchantStatus === 'approved' || a.merchantStatus === 'verified';
+                const bVerified = b.merchantStatus === 'approved' || b.merchantStatus === 'verified';
+                
+                if (aVerified && !bVerified) return -1;
+                if (!aVerified && bVerified) return 1;
+
                 const priceA = a.discount ? a.price * (1 - a.discount / 100) : a.price;
                 const priceB = b.discount ? b.price * (1 - b.discount / 100) : b.price;
                 switch (sortBy) {
@@ -423,7 +457,8 @@ export default function ProductsPage() {
                 const discount = product.discount || 0;
                 const originalPrice = parseFloat(String(product.price));
                 const finalPrice = discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
-                const isExpress = product.stock > 10;
+                const isVerified = product.merchantStatus === 'approved' || product.merchantStatus === 'verified';
+                const sellerAgeTag = formatSellerAge(product.merchantCreatedAt);
 
                 return (
                   <article 
@@ -438,7 +473,7 @@ export default function ProductsPage() {
                         loading={idx > 3 ? 'lazy' : 'eager'}
                       />
                       <div className="absolute top-2 left-2 flex flex-col gap-1">
-                        {isExpress && (
+                        {isVerified && (
                           <span className="bg-primary-container text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-max shadow-sm">
                             <Icon name="verified_user" className="text-[12px]" /> Verified ID
                           </span>
@@ -448,9 +483,9 @@ export default function ProductsPage() {
                             -{discount}% OFF
                           </span>
                         )}
-                        {!isExpress && (
+                        {!isVerified && (
                           <span className="bg-white/90 text-on-surface text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-max shadow-sm">
-                            <Icon name="person" className="text-[12px]" /> 2+ YEARS SELLER
+                            <Icon name="person" className="text-[12px]" /> {sellerAgeTag}
                           </span>
                         )}
                       </div>
@@ -487,6 +522,24 @@ export default function ProductsPage() {
                       <p className="text-xs text-secondary mt-auto line-clamp-2">
                         {product.description || `Premium quality ${product.category?.toLowerCase() || 'item'} for sale.`}
                       </p>
+
+                      {/* Merchant Info */}
+                      <Link href={`/store/${product.merchantId || 'admin'}`} className="mt-3 flex items-start gap-2 bg-surface-container-lowest p-2 border border-surface-dim rounded hover:border-primary-container hover:shadow-sm transition-all group">
+                        <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs shrink-0 uppercase">
+                          {product.merchantName ? product.merchantName.substring(0,2) : 'JU'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-bold text-on-surface truncate flex items-center gap-1">
+                            {product.merchantName || 'JUJ4 Official Store'}
+                            {product.merchantStatus === 'verified' && (
+                              <Icon name="verified" className="text-[14px] text-blue-500" />
+                            )}
+                          </p>
+                          <p className="text-[9px] text-secondary line-clamp-1">
+                            {product.merchantInfo || 'Verified premium merchant with 100% positive feedback.'}
+                          </p>
+                        </div>
+                      </Link>
                       
                       <div className="mt-4 pt-4 border-t border-surface-container-low flex items-center justify-between gap-2">
                         <div className="flex-1">

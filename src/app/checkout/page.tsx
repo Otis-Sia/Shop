@@ -93,7 +93,7 @@ export default function CheckoutPage() {
         name: item.Product?.name || 'Unknown',
         price: item.Product?.price ? parseFloat(String(item.Product.price)) : 0,
         quantity: item.quantity,
-        merchantId: (item.Product as any)?.merchantId || 'admin',
+        merchantId: item.Product?.merchantId || 'admin',
       }))
     };
 

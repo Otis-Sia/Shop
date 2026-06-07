@@ -59,14 +59,18 @@ export default function OrdersPage() {
         try {
           const q = query(
             collection(db, 'orders'),
-            where('userId', '==', user.uid),
-            orderBy('createdAt', 'desc')
+            where('userId', '==', user.uid)
           );
           const snapshot = await getDocs(q);
           const fetched = snapshot.docs.map((doc) => ({
             ...(doc.data() as Order),
             id: doc.id,
           }));
+          fetched.sort((a, b) => {
+            const timeA = a.createdAt ? (a.createdAt as any).seconds || 0 : 0;
+            const timeB = b.createdAt ? (b.createdAt as any).seconds || 0 : 0;
+            return timeB - timeA;
+          });
           setOrders(fetched);
         } catch (err) {
           console.error('Error fetching orders:', err);

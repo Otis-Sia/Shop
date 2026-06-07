@@ -8,7 +8,7 @@ import {
   sendPasswordResetEmail,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 export interface User {
@@ -20,7 +20,7 @@ export interface User {
   location?: string;
   phone?: string;
   role?: "customer" | "admin" | "merchant";
-  merchantStatus?: "pending" | "approved" | "rejected";
+  merchantStatus?: "pending" | "approved" | "rejected" | "verified";
   storeName?: string;
   businessCategory?: string;
   businessType?: string;
@@ -182,5 +182,16 @@ export const applyForMerchantRole = async (uid: string, details: { storeName: st
   } catch (error: any) {
     console.error('Error applying for merchant role:', error);
     throw new Error(error.message || 'Failed to apply for merchant role');
+  }
+};
+
+export const checkEmailExists = async (email: string): Promise<boolean> => {
+  try {
+    const q = query(collection(db, 'users'), where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty;
+  } catch (error: any) {
+    console.error('Error checking email existence:', error);
+    throw new Error('Failed to check email');
   }
 };

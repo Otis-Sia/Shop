@@ -17,7 +17,7 @@ export interface UserDocument {
   businessType?: string;
   industry?: string;
   role: UserRole;
-  merchantStatus?: 'pending' | 'approved' | 'rejected';
+  merchantStatus?: 'pending' | 'approved' | 'rejected' | 'verified';
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
 }

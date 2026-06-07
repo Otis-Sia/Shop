@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { login, register, loginWithGoogle } from '@/lib/api/auth';
+import { login, register, loginWithGoogle, checkEmailExists } from '@/lib/api/auth';
 import { syncLocalCartToFirestore } from '@/lib/api/cart';
 import Icon from '@/components/Icon';
 
@@ -11,33 +11,47 @@ interface UnifiedAuthProps {
 }
 
 export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) {
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>(initialTab);
+  const [step, setStep] = useState<'email' | 'login' | 'signup'>('email');
   
-  // Login fields
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-
-  // Signup fields
+  // Fields
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
   const [role, setRole] = useState<'customer' | 'merchant'>('customer');
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Status fields
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setError('');
+    setSubmitting(true);
+    try {
+      const exists = await checkEmailExists(email);
+      if (exists) {
+        setStep('login');
+      } else {
+        setStep('signup');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSubmitting(true);
     try {
-      const user = await login({ email: loginEmail, password: loginPassword });
+      const user = await login({ email, password });
       await syncLocalCartToFirestore(user.uid);
       
-      // Redirect based on role
       const userRole = (user as any).role || 'customer';
       if (userRole === 'admin') {
         window.location.href = '/admin';
@@ -59,15 +73,14 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
     setSubmitting(true);
     try {
       const user = await register({
-        email: signupEmail,
-        password: signupPassword,
+        email,
+        password,
         first_name: firstName,
         last_name: lastName,
         role: role
       });
       await syncLocalCartToFirestore(user.uid);
       
-      // Register defaults to customer role, but we check just in case
       const userRole = (user as any).role || 'customer';
       if (userRole === 'admin') {
         window.location.href = '/admin';
@@ -123,38 +136,35 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
           </div>
         </div>
 
-        {/* Right Side: Tabbed Interactive Form Panel */}
+        {/* Right Side: Step-by-Step Form Panel */}
         <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-center bg-white min-h-[550px]">
-          {/* Tabs */}
-          <div className="flex gap-8 mb-10 border-b border-surface-container-highest">
-            <button 
-              type="button"
-              className={`pb-3 font-headline-md text-lg font-bold border-b-4 transition-all duration-200 uppercase ${
-                activeTab === 'login' 
-                  ? 'border-on-background text-on-background font-extrabold' 
-                  : 'border-transparent text-secondary hover:text-on-background'
-              }`}
-              onClick={() => {
-                setActiveTab('login');
-                setError('');
-              }}
-            >
-              Sign In
-            </button>
-            <button 
-              type="button"
-              className={`pb-3 font-headline-md text-lg font-bold border-b-4 transition-all duration-200 uppercase ${
-                activeTab === 'signup' 
-                  ? 'border-on-background text-on-background font-extrabold' 
-                  : 'border-transparent text-secondary hover:text-on-background'
-              }`}
-              onClick={() => {
-                setActiveTab('signup');
-                setError('');
-              }}
-            >
-              Create Account
-            </button>
+          {/* Header Area depending on step */}
+          <div className="mb-8">
+            {step === 'email' && (
+              <>
+                <h2 className="font-headline-md text-2xl font-black uppercase text-on-background mb-2">Welcome</h2>
+                <p className="text-secondary text-sm">Enter your email to sign in or create an account.</p>
+              </>
+            )}
+            {step === 'login' && (
+              <>
+                <h2 className="font-headline-md text-2xl font-black uppercase text-on-background mb-2">Welcome Back</h2>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-secondary">{email}</span>
+                  <button type="button" onClick={() => setStep('email')} className="text-xs uppercase font-bold text-primary-container hover:underline">Edit</button>
+                </div>
+              </>
+            )}
+            {step === 'signup' && (
+              <>
+                <h2 className="font-headline-md text-2xl font-black uppercase text-on-background mb-2">Create Account</h2>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="font-bold text-sm text-secondary">{email}</span>
+                  <button type="button" onClick={() => setStep('email')} className="text-xs uppercase font-bold text-primary-container hover:underline">Edit</button>
+                </div>
+                <p className="text-secondary text-sm">It looks like you are new here. Let's get you set up.</p>
+              </>
+            )}
           </div>
 
           {/* Error Message Box */}
@@ -164,25 +174,81 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
             </div>
           )}
 
-          {/* Login Form */}
-          {activeTab === 'login' && (
-            <form onSubmit={handleLoginSubmit} className="space-y-6">
+          {/* Step 1: Email Form */}
+          {step === 'email' && (
+            <form onSubmit={handleEmailSubmit} className="space-y-6">
               <div className="space-y-2">
-                <label className="font-bold text-xs tracking-wider block text-on-background uppercase" htmlFor="login-email">
+                <label className="font-bold text-xs tracking-wider block text-on-background uppercase" htmlFor="email">
                   Email Address
                 </label>
                 <input 
                   className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all" 
-                  id="login-email" 
+                  id="email" 
                   placeholder="name@domain.com" 
                   type="email"
                   required
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
                 />
               </div>
 
+              <button 
+                className="w-full h-14 bg-on-background text-white font-headline-md font-bold uppercase tracking-wider text-sm transition-all active:scale-[0.98] border-b-4 border-primary-container flex items-center justify-center hover:bg-neutral-800" 
+                type="submit"
+                disabled={submitting}
+              >
+                {submitting ? 'Checking...' : 'Continue'}
+              </button>
+
+              <div className="relative py-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-surface-container-highest"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-3 text-secondary font-bold tracking-wider">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <button 
+                type="button"
+                onClick={async () => {
+                  try {
+                    setError('');
+                    setSubmitting(true);
+                    const user = await loginWithGoogle();
+                    await syncLocalCartToFirestore(user.uid);
+                    
+                    const userRole = (user as any).role || 'customer';
+                    if (userRole === 'admin') {
+                      window.location.href = '/admin';
+                    } else if (userRole === 'merchant') {
+                      window.location.href = '/merchant';
+                    } else {
+                      window.location.href = '/';
+                    }
+                  } catch (err: any) {
+                    setError(err.message || 'Google sign-in failed');
+                    setSubmitting(false);
+                  }
+                }}
+                className="w-full h-14 border-2 border-on-background flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-wider hover:bg-surface-container-low transition-colors"
+              >
+                <img 
+                  alt="Google Logo" 
+                  className="w-5 h-5" 
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHqgSvWFI7jZB6h0SWvxr8akP6MOaQzMARZ79KLaV_2CiWI5gn_wgZiMmF7sPTzh6DkfczLydnpb6cvj38yqnAKRX9-IXSQr-IjetlAHyDwAn_BXoGkkhWml3TAJL3AxLl8NOuOhYr5csuutNYeIYoHf9g0ZtWNgHQMQ0f7kw3FA4eQvN764uB7buCycIS1dduhvYEuK9R4_YP-j_gzJmtn9D4B9bNGChKuyYYQHqBfGkT-DLecOc0Ao754UtcKkCQmOPRuZXexlvC"
+                /> 
+                Google
+              </button>
+            </form>
+          )}
+
+          {/* Step 2A: Login Form */}
+          {step === 'login' && (
+            <form onSubmit={handleLoginSubmit} className="space-y-6">
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="font-bold text-xs tracking-wider block text-on-background uppercase" htmlFor="login-pass">
@@ -198,9 +264,10 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                   placeholder="••••••••" 
                   type="password"
                   required
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
+                  autoFocus
                 />
               </div>
 
@@ -224,63 +291,11 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
               >
                 {submitting ? 'Signing in...' : 'Sign In'}
               </button>
-
-              <div className="relative py-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-surface-container-highest"></div>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-3 text-secondary font-bold tracking-wider">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <button 
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      setError('');
-                      setSubmitting(true);
-                      const user = await loginWithGoogle();
-                      await syncLocalCartToFirestore(user.uid);
-                      
-                      const userRole = (user as any).role || 'customer';
-                      if (userRole === 'admin') {
-                        window.location.href = '/admin';
-                      } else if (userRole === 'merchant') {
-                        window.location.href = '/merchant';
-                      } else {
-                        window.location.href = '/';
-                      }
-                    } catch (err: any) {
-                      setError(err.message || 'Google sign-in failed');
-                      setSubmitting(false);
-                    }
-                  }}
-                  className="h-14 border-2 border-on-background flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-wider hover:bg-surface-container-low transition-colors"
-                >
-                  <img 
-                    alt="Google Logo" 
-                    className="w-5 h-5" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHqgSvWFI7jZB6h0SWvxr8akP6MOaQzMARZ79KLaV_2CiWI5gn_wgZiMmF7sPTzh6DkfczLydnpb6cvj38yqnAKRX9-IXSQr-IjetlAHyDwAn_BXoGkkhWml3TAJL3AxLl8NOuOhYr5csuutNYeIYoHf9g0ZtWNgHQMQ0f7kw3FA4eQvN764uB7buCycIS1dduhvYEuK9R4_YP-j_gzJmtn9D4B9bNGChKuyYYQHqBfGkT-DLecOc0Ao754UtcKkCQmOPRuZXexlvC"
-                  /> 
-                  Google
-                </button>
-                <button 
-                  type="button"
-                  className="h-14 border-2 border-on-background flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-wider hover:bg-surface-container-low transition-colors"
-                >
-                  <Icon name="apple" className="text-xl" /> 
-                  Apple
-                </button>
-              </div>
             </form>
           )}
 
-          {/* Signup Form */}
-          {activeTab === 'signup' && (
+          {/* Step 2B: Signup Form */}
+          {step === 'signup' && (
             <form onSubmit={handleSignupSubmit} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -295,6 +310,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     autoComplete="given-name"
+                    autoFocus
                   />
                 </div>
                 <div className="space-y-2">
@@ -314,21 +330,6 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
               </div>
 
               <div className="space-y-2">
-                <label className="font-bold text-xs tracking-wider block text-on-background uppercase" htmlFor="signup-email">
-                  Email Address
-                </label>
-                <input 
-                  className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all" 
-                  id="signup-email" 
-                  type="email"
-                  required
-                  value={signupEmail}
-                  onChange={(e) => setSignupEmail(e.target.value)}
-                  autoComplete="email"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <label className="font-bold text-xs tracking-wider block text-on-background uppercase" htmlFor="signup-pass">
                   Create Password
                 </label>
@@ -338,8 +339,8 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                   placeholder="Min. 8 characters" 
                   type="password"
                   required
-                  value={signupPassword}
-                  onChange={(e) => setSignupPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"
                 />
               </div>
@@ -393,3 +394,4 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
     </main>
   );
 }
+

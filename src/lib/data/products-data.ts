@@ -14,6 +14,11 @@ export interface Product {
   discount?: number;
   additional_images?: string[];
   brand?: string;
+  merchantId?: string;
+  merchantName?: string;
+  merchantInfo?: string;
+  merchantStatus?: 'pending' | 'approved' | 'rejected' | 'verified';
+  merchantCreatedAt?: any;
 }
 
 export const productsData: Product[] = productsJson as Product[];

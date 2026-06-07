@@ -7,9 +7,10 @@ export interface ProductFilters {
   maxPrice?: number;
   limit?: number;
   category?: string;
+  merchantId?: string;
 }
 
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export const getProducts = async (filters: ProductFilters = {}): Promise<Product[]> => {
@@ -32,7 +33,7 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
         image_url: d.imageUrls && d.imageUrls.length > 0 ? d.imageUrls[0] : (d.image_url || ''),
         additional_images: d.imageUrls && d.imageUrls.length > 1 ? d.imageUrls.slice(1) : (d.additional_images || []),
         merchantId: d.merchantId || 'admin'
-      } as Product & { merchantId?: string };
+      } as Product;
     });
 
     if (products.length === 0) {
@@ -40,6 +41,37 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
     } else {
       products.sort((a, b) => b.id - a.id);
     }
+
+    // Fetch merchant profiles to populate merchantName
+    const uniqueMerchantIds = Array.from(new Set(products.map(p => p.merchantId).filter(id => id && id !== 'admin'))) as string[];
+    const merchantProfiles: Record<string, any> = {};
+    
+    await Promise.all(uniqueMerchantIds.map(async (uid) => {
+      try {
+        const docRef = doc(db, 'users', uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          merchantProfiles[uid] = docSnap.data();
+        }
+      } catch (err) {
+        console.error(`Error fetching profile for ${uid}:`, err);
+      }
+    }));
+
+    products = products.map(p => {
+      if (p.merchantId !== 'admin' && p.merchantId && merchantProfiles[p.merchantId]) {
+        const profile = merchantProfiles[p.merchantId];
+        const storeName = profile.storeName || (profile.first_name ? `${profile.first_name} ${profile.last_name || ''}` : undefined);
+        return {
+          ...p,
+          merchantName: storeName,
+          merchantInfo: profile.businessCategory ? `${profile.businessCategory} seller` : undefined,
+          merchantStatus: profile.merchantStatus,
+          merchantCreatedAt: profile.createdAt
+        };
+      }
+      return p;
+    });
 
     if (filters.keyword) {
       const keyword = filters.keyword.toLowerCase();
@@ -57,6 +89,10 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
 
     if (filters.category) {
       products = products.filter(p => p.category === filters.category);
+    }
+
+    if (filters.merchantId) {
+      products = products.filter(p => p.merchantId === filters.merchantId);
     }
 
     if (filters.limit) {

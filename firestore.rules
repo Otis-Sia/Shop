@@ -46,7 +46,7 @@ service cloud.firestore {
 
     // Orders: Users can read and create their own orders. Admins can read all orders. Merchants can read/update their orders.
     match /orders/{orderId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'customer';
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow read: if request.auth != null && (resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid));
       allow update: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid));
       allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
@@ -54,13 +54,13 @@ service cloud.firestore {
 
     // Carts collection: Users can create and read their own carts
     match /carts/{cartId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'customer';
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     // Checkouts collection: Users can create and read their own checkouts
     match /checkouts/{checkoutId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'customer';
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 

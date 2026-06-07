@@ -167,7 +167,7 @@ export default function AdminPage() {
   const loadMerchants = async () => {
     setMerchantsLoading(true);
     try {
-      const q = query(collection(db, 'users'), where('merchantStatus', 'in', ['pending', 'approved', 'rejected']));
+      const q = query(collection(db, 'users'), where('merchantStatus', 'in', ['pending', 'approved', 'rejected', 'verified']));
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setMerchants(data);
@@ -180,7 +180,7 @@ export default function AdminPage() {
 
   const handleUpdateMerchantStatus = async (merchantId: string, newStatus: string) => {
     try {
-      const role = newStatus === 'approved' ? 'merchant' : 'customer';
+      const role = (newStatus === 'approved' || newStatus === 'verified') ? 'merchant' : 'customer';
       await updateDoc(doc(db, 'users', merchantId), { merchantStatus: newStatus, role });
       setMerchants(prev => prev.map(m => m.id === merchantId ? { ...m, merchantStatus: newStatus, role } : m));
     } catch (error) {
@@ -1213,7 +1213,7 @@ export default function AdminPage() {
                             </div>
                           </td>
                           <td className="p-4">
-                            <span className={`border text-[9px] font-black uppercase px-2 py-0.5 ${merchant.merchantStatus === 'approved' ? 'bg-green-100 text-green-800 border-green-800' : merchant.merchantStatus === 'pending' ? 'bg-amber-100 text-amber-800 border-amber-800' : 'bg-red-100 text-red-800 border-red-800'}`}>
+                            <span className={`border text-[9px] font-black uppercase px-2 py-0.5 ${merchant.merchantStatus === 'verified' ? 'bg-blue-100 text-blue-800 border-blue-800' : merchant.merchantStatus === 'approved' ? 'bg-green-100 text-green-800 border-green-800' : merchant.merchantStatus === 'pending' ? 'bg-amber-100 text-amber-800 border-amber-800' : 'bg-red-100 text-red-800 border-red-800'}`}>
                               {merchant.merchantStatus}
                             </span>
                           </td>
@@ -1243,12 +1243,36 @@ export default function AdminPage() {
                               </button>
                             )}
                             {merchant.merchantStatus === 'approved' && (
-                              <button 
-                                onClick={() => handleUpdateMerchantStatus(merchant.id, 'rejected')}
-                                className="text-xs font-bold border border-red-800 px-2 py-1 text-red-800 hover:bg-red-800 hover:text-white transition-colors"
-                              >
-                                REVOKE
-                              </button>
+                              <>
+                                <button 
+                                  onClick={() => handleUpdateMerchantStatus(merchant.id, 'verified')}
+                                  className="text-xs font-bold border border-blue-800 px-2 py-1 text-blue-800 hover:bg-blue-800 hover:text-white transition-colors"
+                                >
+                                  VERIFY
+                                </button>
+                                <button 
+                                  onClick={() => handleUpdateMerchantStatus(merchant.id, 'rejected')}
+                                  className="text-xs font-bold border border-red-800 px-2 py-1 text-red-800 hover:bg-red-800 hover:text-white transition-colors"
+                                >
+                                  REVOKE
+                                </button>
+                              </>
+                            )}
+                            {merchant.merchantStatus === 'verified' && (
+                              <>
+                                <button 
+                                  onClick={() => handleUpdateMerchantStatus(merchant.id, 'approved')}
+                                  className="text-xs font-bold border border-gray-500 px-2 py-1 text-gray-600 hover:bg-gray-500 hover:text-white transition-colors"
+                                >
+                                  UNVERIFY
+                                </button>
+                                <button 
+                                  onClick={() => handleUpdateMerchantStatus(merchant.id, 'rejected')}
+                                  className="text-xs font-bold border border-red-800 px-2 py-1 text-red-800 hover:bg-red-800 hover:text-white transition-colors"
+                                >
+                                  REVOKE
+                                </button>
+                              </>
                             )}
                           </td>
                         </tr>

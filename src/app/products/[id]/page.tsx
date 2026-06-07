@@ -217,6 +217,24 @@ export default function ProductDetailPage() {
             </p>
           </div>
 
+          {/* Merchant Info */}
+          <Link href={`/store/${product.merchantId || 'admin'}`} className="flex items-start gap-3 bg-surface-container-lowest p-3 border-2 border-on-surface-variant shadow-[2px_2px_0px_0px_rgba(26,28,28,0.2)] hover:border-primary-container transition-colors group block">
+            <div className="w-10 h-10 bg-primary-container text-on-primary-container flex items-center justify-center font-black text-sm shrink-0 border-2 border-on-surface uppercase">
+              {product.merchantName ? product.merchantName.substring(0,2) : 'JU'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-on-surface uppercase truncate tracking-wider flex items-center gap-1">
+                {product.merchantName || 'JUJ4 Official Store'}
+                {product.merchantStatus === 'verified' && (
+                  <Icon name="verified" className="text-[14px] text-blue-500" />
+                )}
+              </p>
+              <p className="text-[10px] text-secondary font-bold mt-0.5 leading-snug">
+                {product.merchantInfo || 'Verified premium merchant with 100% positive feedback.'}
+              </p>
+            </div>
+          </Link>
+
           {/* Option Settings */}
           <div className="space-y-4 border-t-2 border-surface-container pt-4">
             {/* Colors */}
