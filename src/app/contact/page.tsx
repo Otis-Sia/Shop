@@ -52,7 +52,7 @@ export default function ContactPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
         {/* Contact Form */}
-        <div className="bg-white border-2 border-on-surface p-8 md:p-12 shadow-[8px_8px_0px_0px_rgba(26,28,28,1)]">
+        <div className="bg-surface border-2 border-on-surface p-8 md:p-12 shadow-[8px_8px_0px_0px_var(--color-on-surface)]">
           <h2 className="font-headline-md text-2xl font-black uppercase tracking-tight mb-8">Send a Message</h2>
           
           {status === 'success' ? (
@@ -133,7 +133,7 @@ export default function ContactPage() {
               <button 
                 type="submit" 
                 disabled={status === 'submitting'}
-                className="w-full h-14 bg-primary-container text-on-primary-container font-headline-md font-black uppercase tracking-wider border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] hover:bg-amber-500 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_rgba(26,28,28,1)] transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+                className="w-full h-14 bg-primary-container text-on-primary-container font-headline-md font-black uppercase tracking-wider border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_var(--color-on-surface)] transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
               >
                 {status === 'submitting' ? (
                   <><Icon name="sync" className="animate-spin" /> Sending...</>
@@ -190,7 +190,7 @@ export default function ContactPage() {
           </div>
 
           {/* FAQs Preview */}
-          <div className="bg-white border-2 border-on-surface p-8">
+          <div className="bg-surface border-2 border-on-surface p-8">
             <h3 className="font-headline-md text-xl font-black uppercase tracking-tight mb-6">Quick Answers</h3>
             <div className="space-y-4">
               <div className="border-b-2 border-surface-container pb-4">

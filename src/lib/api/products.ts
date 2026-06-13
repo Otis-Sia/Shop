@@ -111,6 +111,17 @@ export const getCategories = async (): Promise<string[]> => {
   return Array.from(new Set(products.map(p => p.category))).filter(Boolean) as string[];
 };
 
+export const getAvailableTags = async (): Promise<string[]> => {
+  const products = await getProducts();
+  const tags = new Set<string>();
+  products.forEach(p => {
+    if (p.tags && Array.isArray(p.tags)) {
+      p.tags.forEach(t => tags.add(t));
+    }
+  });
+  return Array.from(tags);
+};
+
 export const getProduct = async (id: number | string): Promise<Product> => {
   try {
     const products = await getProducts();

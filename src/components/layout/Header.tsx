@@ -9,6 +9,7 @@ import { getCart } from '@/lib/api/cart';
 import { getWishlistCount } from '@/lib/api/wishlist';
 import Icon from '@/components/Icon';
 import ProfileModal from '@/components/auth/ProfileModal';
+import ThemeSelector from '@/components/layout/ThemeSelector';
 
 export default function Header() {
   const router = useRouter();
@@ -100,8 +101,8 @@ export default function Header() {
       <header className="bg-surface sticky top-0 z-50 border-b-2 border-on-surface">
         <nav className="flex justify-between items-center w-full px-6 md:px-16 py-4 max-w-[1440px] mx-auto">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="w-auto h-10" />
-            <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6" />
+            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="w-auto h-10 dark:invert" />
+            <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6 dark:invert" />
           </Link>
         </nav>
       </header>
@@ -112,14 +113,14 @@ export default function Header() {
     <header className="bg-surface sticky top-0 z-50 border-b-2 border-on-surface">
       {/* Top Search Bar (Expandable) */}
       {isSearchOpen && (
-        <div className="w-full bg-white border-b-2 border-on-surface px-6 md:px-16 py-4 flex items-center justify-center animate-in slide-in-from-top-4">
+        <div className="w-full bg-surface border-b-2 border-on-surface px-6 md:px-16 py-4 flex items-center justify-center animate-in slide-in-from-top-4">
           <form onSubmit={handleSearchSubmit} className="w-full max-w-2xl relative flex items-center">
             <input 
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search products, categories, or brands..." 
-              className="w-full h-12 pl-4 pr-12 border-2 border-on-surface font-semibold focus:outline-none focus:ring-2 focus:ring-primary-container"
+              className="w-full h-12 pl-4 pr-12 border-2 border-on-surface bg-surface text-on-surface font-semibold focus:outline-none focus:ring-2 focus:ring-primary-container"
               autoFocus
             />
             <button type="submit" className="absolute right-3 text-secondary hover:text-on-surface">
@@ -144,8 +145,8 @@ export default function Header() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="w-auto h-10" />
-          <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6" />
+          <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="w-auto h-10 dark:invert" />
+          <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6 dark:invert" />
         </Link>
 
         {/* Desktop Links */}
@@ -155,6 +156,9 @@ export default function Header() {
           </Link>
           <Link href="/products?category=Fashion" className="text-on-surface font-semibold hover:text-primary-container transition-colors duration-200">
             New Arrivals
+          </Link>
+          <Link href="/services" className="text-on-surface font-semibold hover:text-primary-container transition-colors duration-200">
+            Services
           </Link>
           {user?.role === 'admin' && (
             <Link href="/admin" className="text-primary-container font-extrabold hover:underline transition-all duration-200">
@@ -170,6 +174,8 @@ export default function Header() {
 
         {/* Action icons & buttons */}
         <div className="flex items-center gap-4 sm:gap-6">
+          <ThemeSelector />
+
           <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="hidden sm:block text-on-surface hover:text-primary-container transition-colors">
             <Icon name="search" className="text-2xl" />
           </button>
@@ -202,7 +208,7 @@ export default function Header() {
                   Account <Icon name="expand_more" className="text-lg" />
                 </button>
                 <div className="absolute right-0 top-full pt-2 w-48 hidden group-hover:block z-50">
-                  <div className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] flex flex-col py-2">
+                  <div className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex flex-col py-2">
                     <button onClick={() => setIsProfileModalOpen(true)} className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container">Profile</button>
                     <Link href="/orders" className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container">My Orders</Link>
                     {user?.role === 'merchant' && (
@@ -238,7 +244,7 @@ export default function Header() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..." 
-              className="w-full h-12 pl-4 pr-12 border-2 border-on-surface font-semibold focus:outline-none focus:ring-2 focus:ring-primary-container"
+              className="w-full h-12 pl-4 pr-12 border-2 border-on-surface bg-surface text-on-surface font-semibold focus:outline-none focus:ring-2 focus:ring-primary-container"
             />
             <button type="submit" className="absolute right-3 text-secondary">
               <Icon name="search" />
@@ -250,6 +256,9 @@ export default function Header() {
           </Link>
           <Link href="/products?category=Fashion" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-lg border-b-2 border-surface-container pb-2">
             New Arrivals
+          </Link>
+          <Link href="/services" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-lg border-b-2 border-surface-container pb-2">
+            Services
           </Link>
           
           {user ? (

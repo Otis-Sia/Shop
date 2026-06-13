@@ -123,13 +123,13 @@ export default function WishlistPage() {
 
       {/* Loading State */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-24 bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]">
+        <div className="flex flex-col items-center justify-center py-24 bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
           <Icon name="sync" className="text-4xl animate-spin text-primary-container" />
           <p className="mt-4 font-bold text-xs tracking-widest text-secondary uppercase">Loading Wishlist...</p>
         </div>
       ) : products.length === 0 ? (
         /* Empty State */
-        <div className="flex flex-col items-center justify-center py-24 bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]">
+        <div className="flex flex-col items-center justify-center py-24 bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
           <div className="w-20 h-20 flex items-center justify-center bg-surface-container border-2 border-on-surface mb-6">
             <Icon name="favorite" className="text-4xl text-secondary" />
           </div>
@@ -141,7 +141,7 @@ export default function WishlistPage() {
           </p>
           <Link
             href="/products"
-            className="px-8 py-3 bg-primary-container text-on-primary-container font-headline-md font-bold text-xs uppercase tracking-wider border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] active:scale-95 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(26,28,28,1)] transition-all"
+            className="px-8 py-3 bg-primary-container text-on-primary-container font-headline-md font-bold text-xs uppercase tracking-wider border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] active:scale-95 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] transition-all"
           >
             Browse Products
           </Link>
@@ -164,7 +164,7 @@ export default function WishlistPage() {
               return (
                 <article
                   key={product.id}
-                  className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] flex flex-col group hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] transition-all"
+                  className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex flex-col group hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] transition-all"
                 >
                   {/* Product Image */}
                   <Link
@@ -178,7 +178,7 @@ export default function WishlistPage() {
                       loading="lazy"
                     />
                     {discount > 0 && (
-                      <span className="absolute top-3 right-3 bg-red-50 text-error border border-error text-[10px] font-black uppercase px-2.5 py-1">
+                      <span className="absolute top-3 right-3 bg-error-container text-on-error-container border border-error text-[10px] font-black uppercase px-2.5 py-1">
                         -{discount}%
                       </span>
                     )}
@@ -190,7 +190,7 @@ export default function WishlistPage() {
                         handleRemove(product.id);
                       }}
                       disabled={removingId === product.id}
-                      className="absolute top-3 left-3 w-9 h-9 flex items-center justify-center bg-white border-2 border-on-surface shadow-[2px_2px_0px_0px_rgba(26,28,28,1)] hover:bg-red-50 hover:text-error active:scale-95 active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(26,28,28,1)] transition-all disabled:opacity-50"
+                      className="absolute top-3 left-3 w-9 h-9 flex items-center justify-center bg-surface border-2 border-on-surface shadow-[2px_2px_0px_0px_var(--color-on-surface)] hover:bg-red-50 hover:text-error active:scale-95 active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_var(--color-on-surface)] transition-all disabled:opacity-50"
                       aria-label="Remove from wishlist"
                     >
                       <Icon
@@ -213,11 +213,11 @@ export default function WishlistPage() {
                     <div className="mt-auto space-y-3">
                       <div className="flex flex-col">
                         <span className="font-headline-md text-base font-black text-on-surface">
-                          Kes. {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          Ksh {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                         {discount > 0 && (
                           <span className="text-[10px] text-secondary line-through font-bold">
-                            Kes. {originalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            Ksh {originalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         )}
                       </div>
@@ -226,7 +226,7 @@ export default function WishlistPage() {
                         <button
                           onClick={(e) => handleAddToCart(e, product.id)}
                           disabled={addingToCart[product.id]}
-                          className={`w-full py-2.5 border-2 border-on-surface bg-primary-container text-on-primary-container font-headline-md font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(26,28,28,1)] hover:bg-amber-500 disabled:opacity-50 flex items-center justify-center gap-2 ${addedToCart[product.id] ? '!bg-green-600 !text-white' : ''}`}
+                          className={`w-full py-2.5 border-2 border-on-surface bg-primary-container text-on-primary-container font-headline-md font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-[3px_3px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 disabled:opacity-50 flex items-center justify-center gap-2 ${addedToCart[product.id] ? '!bg-green-600 !text-white' : ''}`}
                         >
                           <Icon name={addedToCart[product.id] ? 'check_circle' : 'shopping_cart'} className="text-sm" />
                           {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added ✓' : 'Adding...') : 'Add to Cart'}
@@ -246,9 +246,9 @@ export default function WishlistPage() {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto px-5 py-3 border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] font-bold text-xs uppercase tracking-wider flex items-center gap-2 animate-[slideInRight_0.3s_ease-out] ${
+            className={`pointer-events-auto px-5 py-3 border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] font-bold text-xs uppercase tracking-wider flex items-center gap-2 animate-[slideInRight_0.3s_ease-out] ${
               toast.type === 'success'
-                ? 'bg-green-100 text-green-900'
+                ? 'bg-surface-container text-green-500 dark:text-green-400'
                 : 'bg-surface-container text-on-surface'
             }`}
           >

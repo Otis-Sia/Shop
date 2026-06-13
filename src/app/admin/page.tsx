@@ -10,7 +10,10 @@ import Image from 'next/image';
 import Icon from '@/components/Icon';
 import { getAllOrders } from '@/lib/api/order';
 import { Order } from '@/types/schema';
-import { CATEGORIES_DATA } from '@/lib/data/categories';
+
+import { getSystemCategories, seedCategories, createSystemCategory, updateSystemCategory, deleteSystemCategory } from '@/lib/api/categories';
+import { SystemCategory, CategoryNode } from '@/types/schema';
+import CategoryManager from '@/components/admin/CategoryManager';
 
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -21,7 +24,9 @@ export default function AdminPage() {
   const [customersLoading, setCustomersLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [merchantsLoading, setMerchantsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'orders' | 'customers' | 'merchants' | 'settings'>('overview');
+  const [categories, setCategories] = useState<SystemCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'orders' | 'customers' | 'merchants' | 'categories' | 'settings'>('overview');
   const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'merchant' | 'customer' | null>(null);
   
   // Orders state
@@ -194,10 +199,25 @@ export default function AdminPage() {
     if (activeTab === 'customers' && customers.length === 0 && !customersLoading) {
       loadCustomers();
     }
-    if (activeTab === 'merchants' && merchants.length === 0 && !merchantsLoading) {
+    if (activeTab === 'merchants') {
       loadMerchants();
     }
-  }, [activeTab, customers.length, customersLoading, merchants.length, merchantsLoading]);
+    if (activeTab === 'categories') {
+      loadCategories();
+    }
+  }, [activeTab]);
+
+  const loadCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const data = await getSystemCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
 
   const handleSaveEdit = async () => {
     if (editingId !== null) {
@@ -360,19 +380,17 @@ export default function AdminPage() {
   const categoriesList = Array.from(new Set(products.map(p => p.category || 'Apparel')));
   const brandsList = Array.from(new Set(products.map(p => p.brand).filter(Boolean)));
   
-  // Extract all categories from CATEGORIES_DATA for the form datalist
+  // Extract all categories from dynamic state for the form datalist
   const allSystemCategories = React.useMemo(() => {
     const list: string[] = [];
-    [...CATEGORIES_DATA.goods, ...CATEGORIES_DATA.services].forEach(group => {
+    categories.forEach(group => {
       group.categories.forEach(cat => {
         list.push(cat.name);
-        if (cat.subcategories) {
-          list.push(...cat.subcategories);
-        }
+        if (cat.subcategories) list.push(...cat.subcategories);
       });
     });
     return Array.from(new Set(list)).sort();
-  }, []);
+  }, [categories]);
 
   // Total inventory value
   const totalInventoryValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
@@ -470,6 +488,19 @@ export default function AdminPage() {
             </li>
             <li>
               <button 
+                onClick={() => setActiveTab('categories')}
+                className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
+                  activeTab === 'categories' 
+                    ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                    : 'text-secondary hover:bg-secondary-container hover:text-on-surface border-transparent'
+                }`}
+              >
+                <Icon name="category" />
+                <span>Categories</span>
+              </button>
+            </li>
+            <li>
+              <button 
                 onClick={() => setActiveTab('settings')}
                 className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
                   activeTab === 'settings' 
@@ -503,40 +534,46 @@ export default function AdminPage() {
       <main className="lg:ml-64 p-6 md:p-12 min-h-screen">
         
         {/* MOBILE NAVIGATION TABS */}
-        <div className="lg:hidden mb-8 overflow-x-auto no-scrollbar flex border-2 border-on-surface bg-white divide-x-2 divide-on-surface">
+        <div className="lg:hidden mb-8 overflow-x-auto no-scrollbar flex border-2 border-on-surface bg-surface divide-x-2 divide-on-surface">
           <button 
             onClick={() => setActiveTab('overview')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'overview' ? 'bg-primary-container text-on-primary-container' : 'bg-white hover:bg-surface-container'}`}
+            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'overview' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
           >
             Overview
           </button>
           <button 
             onClick={() => setActiveTab('inventory')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'inventory' ? 'bg-primary-container text-on-primary-container' : 'bg-white hover:bg-surface-container'}`}
+            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'inventory' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
           >
             Inventory
           </button>
           <button 
             onClick={() => setActiveTab('orders')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'orders' ? 'bg-primary-container text-on-primary-container' : 'bg-white hover:bg-surface-container'}`}
+            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'orders' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
           >
             Orders
           </button>
           <button 
             onClick={() => setActiveTab('customers')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'customers' ? 'bg-primary-container text-on-primary-container' : 'bg-white hover:bg-surface-container'}`}
+            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'customers' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
           >
             Customers
           </button>
           <button 
             onClick={() => setActiveTab('merchants')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'merchants' ? 'bg-primary-container text-on-primary-container' : 'bg-white hover:bg-surface-container'}`}
+            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'merchants' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
           >
             Merchants
           </button>
           <button 
+            onClick={() => setActiveTab('categories')}
+            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'categories' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
+          >
+            Categories
+          </button>
+          <button 
             onClick={() => setActiveTab('settings')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'settings' ? 'bg-primary-container text-on-primary-container' : 'bg-white hover:bg-surface-container'}`}
+            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'settings' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
           >
             Settings
           </button>
@@ -552,11 +589,11 @@ export default function AdminPage() {
                 <h2 className="font-headline-md text-3xl md:text-4xl font-black text-on-surface uppercase tracking-tight">System Overview</h2>
               </div>
               <div className="flex gap-3 w-full md:w-auto">
-                <div className="flex items-center bg-white border-2 border-on-surface px-4 py-2 text-xs font-bold uppercase tracking-wider w-full md:w-auto justify-center">
+                <div className="flex items-center bg-surface border-2 border-on-surface px-4 py-2 text-xs font-bold uppercase tracking-wider w-full md:w-auto justify-center">
                   <Icon name="calendar_today" className="mr-2 text-sm" />
                   <span>Last 30 Days</span>
                 </div>
-                <button className="bg-white border-2 border-on-surface py-2 px-6 text-xs font-extrabold uppercase tracking-wider hover:bg-surface-container transition-colors active:scale-95 duration-150">
+                <button className="bg-surface border-2 border-on-surface py-2 px-6 text-xs font-extrabold uppercase tracking-wider hover:bg-surface-container transition-colors active:scale-95 duration-150">
                   Export
                 </button>
               </div>
@@ -565,22 +602,22 @@ export default function AdminPage() {
             {/* Bento KPI Cards Grid */}
             <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
               {/* Highlight Card */}
-              <div className="md:col-span-2 bg-primary-container border-2 border-on-surface p-6 flex flex-col justify-between shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
+              <div className="md:col-span-2 bg-primary-container border-2 border-on-surface p-6 flex flex-col justify-between shadow-[4px_4px_0px_0px_var(--color-on-surface)] relative overflow-hidden">
                 <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none translate-x-4 translate-y-4">
                   <Icon name="trending_up" className="text-[150px] font-black" />
                 </div>
                 <div className="relative z-10">
                   <div className="flex justify-between items-start">
                     <Icon name="trending_up" className="text-3xl font-black" />
-                    <span className="font-extrabold bg-on-surface text-white px-2 py-0.5 text-[10px] uppercase tracking-wider">+14.2%</span>
+                    <span className="font-extrabold bg-on-surface text-surface px-2 py-0.5 text-[10px] uppercase tracking-wider">+14.2%</span>
                   </div>
                   <h3 className="font-headline-md text-lg font-black mt-6 uppercase tracking-wider">Total Sales Revenue</h3>
                 </div>
-                <p className="font-headline-md text-4xl md:text-5xl font-black mt-8 text-on-surface tracking-tighter">Kes. 284,902.00</p>
+                <p className="font-headline-md text-4xl md:text-5xl font-black mt-8 text-on-surface tracking-tighter">Ksh 284,902.00</p>
               </div>
  
               {/* Active Users */}
-              <div className="md:col-span-2 bg-white border-2 border-on-surface p-6 flex flex-col justify-between shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all">
+              <div className="md:col-span-2 bg-surface border-2 border-on-surface p-6 flex flex-col justify-between shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:-translate-y-0.5 transition-all">
                 <div>
                   <div className="flex justify-between items-center mb-4">
                     <Icon name="group" className="text-secondary" />
@@ -601,7 +638,7 @@ export default function AdminPage() {
             </section>
 
             {/* Data Section: Recent Orders */}
-            <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-12">
+            <section className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] mb-12">
               <div className="p-6 border-b-2 border-on-surface flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface">
                 <h3 className="font-headline-md text-lg font-black uppercase tracking-wider">Recent System Orders</h3>
                 <span className="inline-block bg-primary-container text-on-primary-container text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider border border-on-surface">Live Sync Active</span>
@@ -609,7 +646,7 @@ export default function AdminPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[600px]">
                   <thead>
-                    <tr className="bg-on-surface text-white uppercase text-[10px] tracking-widest font-black">
+                    <tr className="bg-on-surface text-surface uppercase text-[10px] tracking-widest font-black">
                       <th className="p-4 border-b border-on-surface">Order ID</th>
                       <th className="p-4 border-b border-on-surface">Customer</th>
                       <th className="p-4 border-b border-on-surface">Status</th>
@@ -636,7 +673,7 @@ export default function AdminPage() {
                         const statusColors: Record<string, string> = {
                           pending: 'bg-surface-container-highest text-on-surface border-on-surface',
                           processing: 'bg-primary-container text-on-primary-container border-on-surface',
-                          shipped: 'bg-on-surface text-white border-on-surface',
+                          shipped: 'bg-on-surface text-surface border-on-surface',
                           delivered: 'bg-green-500 text-white border-on-surface',
                           cancelled: 'border-error text-error bg-error-container',
                         };
@@ -677,7 +714,7 @@ export default function AdminPage() {
                                 </select>
                               )}
                             </td>
-                            <td className="p-4 font-extrabold">Kes. {order.totalAmount?.toFixed(2)}</td>
+                            <td className="p-4 font-extrabold">Ksh {order.totalAmount?.toFixed(2)}</td>
                             <td className="p-4 font-semibold text-secondary text-xs uppercase">
                               {order.createdAt ? new Date((order.createdAt as any).seconds ? (order.createdAt as any).seconds * 1000 : (order.createdAt as any)).toLocaleDateString() : 'N/A'}
                             </td>
@@ -705,7 +742,7 @@ export default function AdminPage() {
 
             {/* Performance and Charts Section */}
             <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-on-surface text-white p-6 border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
+              <div className="lg:col-span-2 bg-on-surface text-surface p-6 border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex flex-col justify-between">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="font-headline-md text-lg font-black uppercase tracking-wider">Peak Performance Hours</h3>
                   <Icon name="auto_graph" className="text-primary-container text-2xl" />
@@ -713,40 +750,40 @@ export default function AdminPage() {
                 {/* Mock Chart Visualization */}
                 <div className="flex items-end justify-between h-48 gap-1.5 md:gap-3 px-2">
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '40%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">40%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">40%</div>
                   </div>
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '55%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">55%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">55%</div>
                   </div>
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '45%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">45%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">45%</div>
                   </div>
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '80%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">80%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">80%</div>
                   </div>
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '100%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">100%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">100%</div>
                   </div>
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '90%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">90%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">90%</div>
                   </div>
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '60%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">60%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">60%</div>
                   </div>
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '30%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">30%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">30%</div>
                   </div>
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '40%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">40%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">40%</div>
                   </div>
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '50%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">50%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">50%</div>
                   </div>
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '70%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">70%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">70%</div>
                   </div>
                   <div className="w-full bg-primary-container hover:bg-amber-500 transition-colors cursor-pointer group relative" style={{ height: '85%' }}>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">85%</div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface text-on-surface border border-on-surface font-black px-1.5 py-0.5 text-[9px] rounded-none opacity-0 group-hover:opacity-100 transition-opacity">85%</div>
                   </div>
                 </div>
                 <div className="flex justify-between mt-4 font-bold text-[10px] text-surface-variant uppercase tracking-wider px-1">
@@ -757,7 +794,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="bg-white border-2 border-on-surface p-6 relative overflow-hidden group shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
+              <div className="bg-surface border-2 border-on-surface p-6 relative overflow-hidden group shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex flex-col justify-between">
                 <div>
                   <h3 className="font-headline-md text-lg font-black uppercase tracking-wider mb-6">Quick Analytics</h3>
                   <ul className="space-y-4">
@@ -767,7 +804,7 @@ export default function AdminPage() {
                     </li>
                     <li className="flex justify-between border-b-2 border-surface-container-high pb-2">
                       <span className="font-semibold text-xs text-secondary uppercase tracking-wider">Avg. Order Value</span>
-                      <span className="font-black text-sm text-on-surface">Kes. 142.00</span>
+                      <span className="font-black text-sm text-on-surface">Ksh 142.00</span>
                     </li>
                     <li className="flex justify-between border-b-2 border-surface-container-high pb-2">
                       <span className="font-semibold text-xs text-secondary uppercase tracking-wider">Bounce Rate</span>
@@ -775,7 +812,7 @@ export default function AdminPage() {
                     </li>
                   </ul>
                 </div>
-                <button className="mt-8 w-full border-2 border-on-surface py-3 font-bold uppercase tracking-wider text-xs hover:bg-on-surface hover:text-white transition-all active:scale-95 duration-150 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)]">
+                <button className="mt-8 w-full border-2 border-on-surface py-3 font-bold uppercase tracking-wider text-xs hover:bg-on-surface hover:text-white transition-all active:scale-95 duration-150 shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_var(--color-on-surface)]">
                   Deep Dive Report
                 </button>
               </div>
@@ -799,8 +836,8 @@ export default function AdminPage() {
 
             {/* Quick Inventory Summary Bento Section */}
             <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white border-2 border-on-surface p-4 flex items-center gap-4">
-                <div className="w-10 h-10 bg-on-surface text-white flex items-center justify-center">
+              <div className="bg-surface border-2 border-on-surface p-4 flex items-center gap-4">
+                <div className="w-10 h-10 bg-on-surface text-surface flex items-center justify-center">
                   <Icon name="category" className="text-lg" />
                 </div>
                 <div>
@@ -808,16 +845,16 @@ export default function AdminPage() {
                   <p className="font-black text-lg text-on-surface">{products.length}</p>
                 </div>
               </div>
-              <div className="bg-white border-2 border-on-surface p-4 flex items-center gap-4">
+              <div className="bg-surface border-2 border-on-surface p-4 flex items-center gap-4">
                 <div className="w-10 h-10 bg-primary-container text-on-primary-container flex items-center justify-center border border-on-surface">
                   <Icon name="payments" className="text-lg" />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Inventory Value</p>
-                  <p className="font-black text-lg text-on-surface">Kes. {totalInventoryValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  <p className="font-black text-lg text-on-surface">Ksh {totalInventoryValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
               </div>
-              <div className="bg-white border-2 border-on-surface p-4 flex items-center gap-4">
+              <div className="bg-surface border-2 border-on-surface p-4 flex items-center gap-4">
                 <div className="w-10 h-10 bg-red-100 text-error flex items-center justify-center border border-error">
                   <Icon name="warning" className="text-lg" />
                 </div>
@@ -829,7 +866,7 @@ export default function AdminPage() {
             </section>
 
             {/* Live Filter Controls */}
-            <section className="bg-white border-2 border-on-surface p-4 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <section className="bg-surface border-2 border-on-surface p-4 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
               {/* Search */}
               <div className="w-full md:max-w-md relative">
                 <input 
@@ -846,7 +883,7 @@ export default function AdminPage() {
                 <select 
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full h-12 px-4 border-2 border-on-surface rounded-none font-extrabold uppercase text-xs tracking-wider focus:ring-0 bg-white"
+                  className="w-full h-12 px-4 border-2 border-on-surface rounded-none font-extrabold uppercase text-xs tracking-wider focus:ring-0 bg-surface"
                 >
                   <option value="All">All Categories</option>
                   {categoriesList.map((cat, idx) => (
@@ -857,9 +894,9 @@ export default function AdminPage() {
             </section>
 
             {/* Live Products Table */}
-            <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <section className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
               {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white">
+                <div className="flex flex-col items-center justify-center py-20 bg-surface">
                   <Icon name="sync" className="text-4xl animate-spin text-primary-container" />
                   <p className="mt-4 font-bold text-xs tracking-widest text-secondary uppercase">Loading Live Inventory...</p>
                 </div>
@@ -873,7 +910,7 @@ export default function AdminPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
-                      <tr className="bg-on-surface text-white uppercase text-[10px] tracking-widest font-black border-b border-on-surface">
+                      <tr className="bg-on-surface text-surface uppercase text-[10px] tracking-widest font-black border-b border-on-surface">
                         <th className="p-4 w-20">Image</th>
                         <th className="p-4 w-1/3">Name & Details</th>
                         <th className="p-4 text-center w-24">Price</th>
@@ -916,7 +953,7 @@ export default function AdminPage() {
                                     </span>
                                   )}
                                   {product.additional_images && product.additional_images.length > 0 && (
-                                    <span className="bg-white border border-on-surface text-secondary text-[9px] font-bold px-1.5 py-0.5">
+                                    <span className="bg-surface border border-on-surface text-secondary text-[9px] font-bold px-1.5 py-0.5">
                                       +{product.additional_images.length} Pics
                                     </span>
                                   )}
@@ -927,9 +964,9 @@ export default function AdminPage() {
                             {/* Base Price */}
                             <td className="p-4 text-center font-extrabold">
                               <div>
-                                <span className="text-on-surface">Kes. {unitPrice.toFixed(2)}</span>
+                                <span className="text-on-surface">Ksh {unitPrice.toFixed(2)}</span>
                                 {discount > 0 && (
-                                  <div className="text-[10px] text-secondary line-through font-normal">Kes. {originalPrice.toFixed(2)}</div>
+                                  <div className="text-[10px] text-secondary line-through font-normal">Ksh {originalPrice.toFixed(2)}</div>
                                 )}
                               </div>
                             </td>
@@ -984,11 +1021,11 @@ export default function AdminPage() {
             </header>
 
             {/* Orders Table */}
-            <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <section className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
-                    <tr className="bg-on-surface text-white uppercase text-[10px] tracking-widest font-black">
+                    <tr className="bg-on-surface text-surface uppercase text-[10px] tracking-widest font-black">
                       <th className="p-4">Order ID</th>
                       <th className="p-4">Customer</th>
                       <th className="p-4">Delivery Status</th>
@@ -1020,7 +1057,7 @@ export default function AdminPage() {
                         const statusColors: Record<string, string> = {
                           pending: 'bg-surface-container-highest text-on-surface border-on-surface',
                           processing: 'bg-primary-container text-on-primary-container border-on-surface',
-                          shipped: 'bg-on-surface text-white border-on-surface',
+                          shipped: 'bg-on-surface text-surface border-on-surface',
                           delivered: 'bg-green-500 text-white border-on-surface',
                           cancelled: 'border-error text-error bg-error-container',
                         };
@@ -1054,7 +1091,7 @@ export default function AdminPage() {
                                 )}
                               </td>
                               <td className="p-4 font-bold">{itemsCount} Item{itemsCount !== 1 && 's'}</td>
-                              <td className="p-4 font-black">Kes. {order.totalAmount?.toFixed(2)}</td>
+                              <td className="p-4 font-black">Ksh {order.totalAmount?.toFixed(2)}</td>
                               <td className="p-4 font-semibold text-secondary text-xs uppercase">
                                 {order.createdAt ? new Date((order.createdAt as any).seconds ? (order.createdAt as any).seconds * 1000 : (order.createdAt as any)).toLocaleString() : 'N/A'}
                               </td>
@@ -1073,11 +1110,11 @@ export default function AdminPage() {
                                   <div className="font-bold text-xs uppercase tracking-widest text-on-surface mb-3">Order Items:</div>
                                   <ul className="space-y-2">
                                     {order.items?.map((item, idx) => (
-                                      <li key={idx} className="flex justify-between items-center bg-white p-3 border border-on-surface shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-sm">
+                                      <li key={idx} className="flex justify-between items-center bg-surface p-3 border border-on-surface shadow-[2px_2px_0px_0px_var(--color-on-surface)] text-sm">
                                         <span className="font-semibold">{item.name || 'Unknown Product'}</span>
                                         <div className="flex gap-6 items-center">
                                           <span className="text-secondary font-bold text-xs uppercase tracking-wider">Qty: {item.quantity}</span>
-                                          <span className="font-black text-primary-container">Kes. {item.price?.toFixed(2)}</span>
+                                          <span className="font-black text-primary-container">Ksh {item.price?.toFixed(2)}</span>
                                         </div>
                                       </li>
                                     ))}
@@ -1108,21 +1145,21 @@ export default function AdminPage() {
             </header>
 
             {customersLoading ? (
-              <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-10 text-center">
+              <section className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] p-10 text-center">
                 <Icon name="sync" className="text-4xl animate-spin text-primary-container mx-auto" />
                 <p className="mt-4 text-xs font-black uppercase tracking-widest text-secondary">Loading customers...</p>
               </section>
             ) : customers.length === 0 ? (
-              <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-10 text-center">
+              <section className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] p-10 text-center">
                 <Icon name="info" className="text-4xl text-secondary mx-auto" />
                 <p className="mt-4 text-xs font-black uppercase tracking-widest text-secondary">No users found</p>
               </section>
             ) : (
-              <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <section className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[800px]">
                     <thead>
-                      <tr className="bg-on-surface text-white uppercase text-[10px] tracking-widest font-black">
+                      <tr className="bg-on-surface text-surface uppercase text-[10px] tracking-widest font-black">
                         <th className="p-4">Initials</th>
                         <th className="p-4">User Name</th>
                         <th className="p-4">Email Address</th>
@@ -1184,21 +1221,21 @@ export default function AdminPage() {
             </header>
 
             {merchantsLoading ? (
-              <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-10 text-center">
+              <section className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] p-10 text-center">
                 <Icon name="sync" className="text-4xl animate-spin text-primary-container mx-auto" />
                 <p className="mt-4 text-xs font-black uppercase tracking-widest text-secondary">Loading merchants...</p>
               </section>
             ) : merchants.length === 0 ? (
-              <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-10 text-center">
+              <section className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] p-10 text-center">
                 <Icon name="info" className="text-4xl text-secondary mx-auto" />
                 <p className="mt-4 text-xs font-black uppercase tracking-widest text-secondary">No merchants found</p>
               </section>
             ) : (
-              <section className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <section className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[800px]">
                     <thead>
-                      <tr className="bg-on-surface text-white uppercase text-[10px] tracking-widest font-black">
+                      <tr className="bg-on-surface text-surface uppercase text-[10px] tracking-widest font-black">
                         <th className="p-4">Email</th>
                         <th className="p-4">Store Details</th>
                         <th className="p-4">Status</th>
@@ -1213,9 +1250,9 @@ export default function AdminPage() {
                             <div className="flex flex-col">
                               <span className="font-bold text-on-surface">{merchant.storeName || 'N/A'}</span>
                               <span className="text-xs text-secondary">{merchant.location || 'N/A'}</span>
-                              <span className="text-[10px] text-primary-container mt-1 uppercase tracking-wider font-bold">
-                                {merchant.businessCategory || 'N/A'} • {merchant.businessType || 'N/A'}
-                              </span>
+                              <p className="font-medium text-secondary truncate mt-0.5">
+                                {merchant.businessCategories?.join(', ') || (merchant as any).businessCategory || 'N/A'} • {merchant.businessType || 'N/A'}
+                              </p>
                             </div>
                           </td>
                           <td className="p-4">
@@ -1291,6 +1328,13 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ─── TAB X: CATEGORIES MANAGEMENT ─── */}
+        {activeTab === 'categories' && (
+          <div className="animate-in fade-in duration-300">
+             <CategoryManager categories={categories} loading={categoriesLoading} onRefresh={loadCategories} />
+          </div>
+        )}
+
         {/* ─── TAB 5: SYSTEM CONFIGURATION (MOCK) ─── */}
         {activeTab === 'settings' && (
           <div className="animate-in fade-in duration-300">
@@ -1299,7 +1343,7 @@ export default function AdminPage() {
               <h2 className="font-headline-md text-3xl font-black text-on-surface uppercase tracking-tight">Store Settings</h2>
             </header>
 
-            <section className="bg-white border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-w-2xl space-y-6">
+            <section className="bg-surface border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)] max-w-2xl space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="font-bold text-xs uppercase tracking-wider block text-on-surface">Store Identity Name</label>
@@ -1319,7 +1363,7 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="font-bold text-xs uppercase tracking-wider block text-on-surface">Free Shipping Threshold (Kes.)</label>
+                  <label className="font-bold text-xs uppercase tracking-wider block text-on-surface">Free Shipping Threshold (Ksh)</label>
                   <input type="number" defaultValue={150} className="w-full h-12 px-4 border-2 border-on-surface rounded-none font-medium" />
                 </div>
               </div>
@@ -1332,7 +1376,7 @@ export default function AdminPage() {
               </div>
               <button 
                 onClick={() => alert('Settings synchronized with system registry successfully!')}
-                className="bg-primary-container text-on-primary-container border-2 border-on-surface py-3.5 px-8 font-black uppercase tracking-wider text-xs hover:bg-amber-500 transition-all active:scale-95 duration-150 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                className="bg-primary-container text-on-primary-container border-2 border-on-surface py-3.5 px-8 font-black uppercase tracking-wider text-xs hover:bg-amber-500 transition-all active:scale-95 duration-150 shadow-[3px_3px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)]"
               >
                 Save Registry Settings
               </button>
@@ -1344,7 +1388,7 @@ export default function AdminPage() {
       {/* ─── NEOBRUTALIST MODAL FOR ADDING/EDITING ─── */}
       {(editingId !== null || isAdding) && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto backdrop-blur-sm">
-          <div className="bg-white border-4 border-on-surface shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-3xl flex flex-col my-8 animate-in zoom-in-95 duration-200">
+          <div className="bg-surface border-4 border-on-surface shadow-[8px_8px_0px_0px_var(--color-on-surface)] w-full max-w-3xl flex flex-col my-8 animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="bg-primary-container p-5 border-b-4 border-on-surface flex justify-between items-center">
               <h3 className="font-headline-md text-xl font-black text-on-primary-container uppercase tracking-tight">
@@ -1352,7 +1396,7 @@ export default function AdminPage() {
               </h3>
               <button 
                 onClick={() => { setEditingId(null); setIsAdding(false); }}
-                className="w-10 h-10 border-2 border-on-surface bg-white hover:bg-surface-container flex items-center justify-center active:scale-90 transition-transform font-black text-on-surface"
+                className="w-10 h-10 border-2 border-on-surface bg-surface hover:bg-surface-container flex items-center justify-center active:scale-90 transition-transform font-black text-on-surface"
               >
                 X
               </button>
@@ -1402,7 +1446,7 @@ export default function AdminPage() {
               {/* Row 2: Price, Discount, Stock */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <label className="font-extrabold text-xs uppercase tracking-wider block text-on-surface">Price (Kes.)</label>
+                  <label className="font-extrabold text-xs uppercase tracking-wider block text-on-surface">Price (Ksh)</label>
                   <input 
                     type="number" 
                     name="price" 
@@ -1549,14 +1593,14 @@ export default function AdminPage() {
             <div className="bg-surface p-5 border-t-4 border-on-surface flex justify-end gap-3">
               <button 
                 onClick={() => { setEditingId(null); setIsAdding(false); }}
-                className="px-6 py-3 border-2 border-on-surface bg-white hover:bg-surface-container font-extrabold text-xs uppercase tracking-wider transition-transform active:scale-95 duration-100"
+                className="px-6 py-3 border-2 border-on-surface bg-surface hover:bg-surface-container font-extrabold text-xs uppercase tracking-wider transition-transform active:scale-95 duration-100"
               >
                 Cancel
               </button>
               <button 
                 onClick={isAdding ? handleSaveNew : handleSaveEdit}
                 disabled={isSaving}
-                className="px-8 py-3 bg-primary-container text-on-primary-container border-2 border-on-surface font-headline-md font-black text-xs uppercase tracking-wider transition-transform active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 duration-100"
+                className="px-8 py-3 bg-primary-container text-on-primary-container border-2 border-on-surface font-headline-md font-black text-xs uppercase tracking-wider transition-transform active:scale-95 shadow-[3px_3px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] disabled:opacity-50 duration-100"
               >
                 {isSaving ? 'Saving...' : (isAdding ? 'Add Item' : 'Save System Changes')}
               </button>

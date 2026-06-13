@@ -196,7 +196,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
 
   if (loading) {
     return (
-      <div className="border-2 border-on-surface bg-white p-8 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]">
+      <div className="border-2 border-on-surface bg-surface p-8 shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-gray-200 rounded w-48" />
           <div className="h-4 bg-gray-200 rounded w-32" />
@@ -218,7 +218,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
 
       {/* Stats Header */}
       {stats && stats.totalReviews > 0 && (
-        <div className="border-2 border-on-surface bg-white p-6 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]">
+        <div className="border-2 border-on-surface bg-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
           <div className="flex flex-col md:flex-row gap-8">
             {/* Average Rating */}
             <div className="flex flex-col items-center justify-center md:min-w-[160px]">
@@ -262,7 +262,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
       )}
 
       {/* Write Review Section */}
-      <div className="border-2 border-on-surface bg-white p-6 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]">
+      <div className="border-2 border-on-surface bg-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
         {!user ? (
           /* Login Prompt */
           <div className="text-center py-4">
@@ -271,7 +271,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
             </p>
             <Link
               href="/login"
-              className="inline-block bg-primary-container text-on-primary-container font-bold text-sm uppercase tracking-wider px-6 py-3 border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] active:scale-95 active:translate-y-0.5 transition-all"
+              className="inline-block bg-primary-container text-on-primary-container font-bold text-sm uppercase tracking-wider px-6 py-3 border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] active:scale-95 active:translate-y-0.5 transition-all"
             >
               Sign In
             </Link>
@@ -320,7 +320,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
             <button
               type="submit"
               disabled={submitting}
-              className="bg-primary-container text-on-primary-container font-bold text-sm uppercase tracking-wider px-6 py-3 border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] active:scale-95 active:translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]"
+              className="bg-primary-container text-on-primary-container font-bold text-sm uppercase tracking-wider px-6 py-3 border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] active:scale-95 active:translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_var(--color-on-surface)]"
             >
               {submitting ? 'Submitting...' : 'Submit Review'}
             </button>
@@ -341,7 +341,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
           reviews.map((review) => (
             <div
               key={review.id}
-              className="border-2 border-on-surface bg-white p-5 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]"
+              className="border-2 border-on-surface bg-surface p-5 shadow-[4px_4px_0px_0px_var(--color-on-surface)]"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">

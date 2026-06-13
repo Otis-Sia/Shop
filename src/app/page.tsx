@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import Icon from '@/components/Icon';
+import Countdown from '@/components/Countdown';
 
 export default function HomePage() {
   const [email, setEmail] = useState('');
@@ -23,7 +24,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════
           1. FULL-SCREEN HERO
          ═══════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-[90vh] flex items-center justify-center bg-on-surface text-white overflow-hidden border-b-4 border-primary-container">
+      <section className="relative min-h-[90vh] flex items-center justify-center bg-on-surface text-surface overflow-hidden border-b-4 border-primary-container">
         {/* Animated geometric background */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-[10%] left-[5%] w-32 h-32 border-2 border-primary-container/30 rotate-45 animate-pulse" />
@@ -31,7 +32,7 @@ export default function HomePage() {
           <div className="absolute bottom-[15%] left-[15%] w-24 h-24 bg-primary-container/10 rotate-45 animate-pulse" style={{ animationDelay: '1s' }} />
           <div className="absolute top-[30%] right-[25%] w-16 h-16 border border-white/10 rotate-[30deg] animate-bounce" style={{ animationDuration: '8s' }} />
           <div className="absolute bottom-[40%] left-[50%] w-40 h-40 border border-primary-container/10 rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
-          <div className="absolute top-[5%] right-[40%] w-20 h-20 bg-white/5 rotate-12 animate-bounce" style={{ animationDuration: '10s' }} />
+          <div className="absolute top-[5%] right-[40%] w-20 h-20 bg-surface/5 rotate-12 animate-bounce" style={{ animationDuration: '10s' }} />
         </div>
 
         {/* JUJ4 watermark */}
@@ -56,6 +57,11 @@ export default function HomePage() {
             JUJ4 redefines the online shopping experience. Premium products, seamless checkout, and unmatched quality — all in one place.
           </p>
 
+          <div className="mb-10 w-full max-w-3xl">
+            <h3 className="font-extrabold text-xs text-primary-container uppercase tracking-[0.25em] mb-[-10px]">Grand Opening In</h3>
+            <Countdown />
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-4">
             <Link
               href="/products"
@@ -65,7 +71,7 @@ export default function HomePage() {
             </Link>
             <a
               href="#brand-story"
-              className="px-10 py-4 border-2 border-white bg-transparent text-white font-bold uppercase tracking-wider text-sm transition-colors hover:bg-white/10 active:scale-95"
+              className="px-10 py-4 border-2 border-white bg-transparent text-white font-bold uppercase tracking-wider text-sm transition-colors hover:bg-surface/10 active:scale-95"
             >
               About Us
             </a>
@@ -81,7 +87,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════
           2. BRAND STORY
          ═══════════════════════════════════════════════════════════ */}
-      <section id="brand-story" className="py-20 md:py-28 bg-white border-b-2 border-on-surface">
+      <section id="brand-story" className="py-20 md:py-28 bg-surface border-b-2 border-on-surface">
         <div className="max-w-[1440px] mx-auto px-6 md:px-16">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Text side */}
@@ -102,7 +108,7 @@ export default function HomePage() {
               </p>
               <Link
                 href="/products"
-                className="inline-block px-8 py-3 bg-on-surface text-white border-2 border-on-surface font-headline-md font-bold uppercase tracking-wider text-xs transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,140,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(255,140,0,1)] hover:-translate-y-0.5"
+                className="inline-block px-8 py-3 bg-on-surface text-surface border-2 border-on-surface font-headline-md font-bold uppercase tracking-wider text-xs transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,140,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(255,140,0,1)] hover:-translate-y-0.5"
               >
                 Explore Our Catalog
               </Link>
@@ -110,7 +116,7 @@ export default function HomePage() {
 
             {/* Visual side — neobrutalist card stack */}
             <div className="relative">
-              <div className="bg-surface border-2 border-on-surface p-8 shadow-[8px_8px_0px_0px_rgba(26,28,28,1)]">
+              <div className="bg-surface border-2 border-on-surface p-8 shadow-[8px_8px_0px_0px_var(--color-on-surface)]">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-14 h-14 bg-primary-container border-2 border-on-surface flex items-center justify-center">
                     <Icon name="storefront" className="text-on-primary-container text-3xl font-bold" />
@@ -127,7 +133,7 @@ export default function HomePage() {
                     { label: 'Countries', value: '30+' },
                     { label: 'Reviews', value: '4.9★' },
                   ].map((stat) => (
-                    <div key={stat.label} className="bg-white border-2 border-on-surface p-4 text-center">
+                    <div key={stat.label} className="bg-surface border-2 border-on-surface p-4 text-center">
                       <p className="font-headline-md text-2xl font-black text-primary-container">{stat.value}</p>
                       <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mt-1">{stat.label}</p>
                     </div>
@@ -154,7 +160,7 @@ export default function HomePage() {
               { value: '24/7', label: 'Support', icon: 'headset_mic' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="w-12 h-12 bg-on-surface text-white rounded-none flex items-center justify-center mx-auto mb-3 border-2 border-on-surface">
+                <div className="w-12 h-12 bg-on-surface text-surface rounded-none flex items-center justify-center mx-auto mb-3 border-2 border-on-surface">
                   <Icon name={stat.icon} className="text-xl font-bold" />
                 </div>
                 <p className="font-headline-md text-3xl md:text-4xl font-black text-on-primary-container tracking-tighter">
@@ -198,7 +204,7 @@ export default function HomePage() {
               <Link
                 key={cat.name}
                 href="/products"
-                className="bg-white border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] hover:border-primary-container transition-all flex flex-col items-center text-center group"
+                className="bg-surface border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] hover:border-primary-container transition-all flex flex-col items-center text-center group"
               >
                 <div className="w-14 h-14 bg-surface-container border-2 border-on-surface flex items-center justify-center mb-4 group-hover:bg-primary-container transition-colors">
                   <Icon name={cat.icon} className="text-2xl text-on-surface group-hover:text-on-primary-container transition-colors font-bold" />
@@ -215,7 +221,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════
           5. NEWSLETTER SIGNUP
          ═══════════════════════════════════════════════════════════ */}
-      <section className="py-20 md:py-28 bg-white border-y-2 border-on-surface">
+      <section className="py-20 md:py-28 bg-surface border-y-2 border-on-surface">
         <div className="max-w-[1440px] mx-auto px-6 md:px-16">
           <div className="max-w-2xl mx-auto text-center">
             <p className="font-extrabold text-xs text-primary-container uppercase tracking-widest mb-1.5">
@@ -239,7 +245,7 @@ export default function HomePage() {
               />
               <button
                 type="submit"
-                className="px-8 py-4 bg-primary-container text-on-primary-container border-2 border-on-surface font-headline-md font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(26,28,28,1)] hover:bg-amber-500 whitespace-nowrap"
+                className="px-8 py-4 bg-primary-container text-on-primary-container border-2 border-on-surface font-headline-md font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 whitespace-nowrap"
               >
                 {subscribed ? 'Subscribed ✓' : 'Subscribe'}
               </button>
@@ -257,7 +263,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════
           6. CALL TO ACTION BANNER
          ═══════════════════════════════════════════════════════════ */}
-      <section className="relative py-24 md:py-32 bg-on-surface text-white overflow-hidden">
+      <section className="relative py-24 md:py-32 bg-on-surface text-surface overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[20%] left-[10%] w-40 h-40 border border-primary-container/20 rotate-45" />

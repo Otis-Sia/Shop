@@ -152,7 +152,7 @@ export default function CheckoutPage() {
         <div className="flex-grow w-full space-y-8">
           
           {/* Shipping Information Card */}
-          <div className="border-2 border-on-surface bg-white p-8">
+          <div className="border-2 border-on-surface bg-surface p-8">
             <h3 className="font-headline-md text-xl font-bold uppercase tracking-wider text-on-surface pb-3 border-b-2 border-on-surface mb-6">
               Shipping Information
             </h3>
@@ -168,7 +168,7 @@ export default function CheckoutPage() {
                   name="fullName"
                   defaultValue={userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : ''}
                   required
-                  className="w-full h-14 px-4 border-2 border-on-surface rounded-none font-medium bg-white text-on-surface transition-all focus:border-primary-container focus:ring-0"
+                  className="w-full h-14 px-4 border-2 border-on-surface rounded-none font-medium bg-surface text-on-surface transition-all focus:border-primary-container focus:ring-0"
                 />
               </div>
 
@@ -182,7 +182,7 @@ export default function CheckoutPage() {
                   name="email"
                   defaultValue={userProfile?.email || ''}
                   required
-                  className="w-full h-14 px-4 border-2 border-on-surface rounded-none font-medium bg-white text-on-surface transition-all focus:border-primary-container focus:ring-0"
+                  className="w-full h-14 px-4 border-2 border-on-surface rounded-none font-medium bg-surface text-on-surface transition-all focus:border-primary-container focus:ring-0"
                 />
               </div>
               
@@ -195,7 +195,7 @@ export default function CheckoutPage() {
                   id="phone"
                   name="phone"
                   defaultValue={userProfile?.phone || ''}
-                  className="w-full h-14 px-4 border-2 border-on-surface rounded-none font-medium bg-white text-on-surface transition-all focus:border-primary-container focus:ring-0"
+                  className="w-full h-14 px-4 border-2 border-on-surface rounded-none font-medium bg-surface text-on-surface transition-all focus:border-primary-container focus:ring-0"
                 />
               </div>
 
@@ -209,7 +209,7 @@ export default function CheckoutPage() {
                   name="address"
                   defaultValue={userProfile?.location || ''}
                   required
-                  className="w-full h-14 px-4 border-2 border-on-surface rounded-none font-medium bg-white text-on-surface transition-all focus:border-primary-container focus:ring-0"
+                  className="w-full h-14 px-4 border-2 border-on-surface rounded-none font-medium bg-surface text-on-surface transition-all focus:border-primary-container focus:ring-0"
                 />
               </div>
 
@@ -223,14 +223,14 @@ export default function CheckoutPage() {
                   name="city"
                   defaultValue="New York"
                   required
-                  className="w-full h-14 px-4 border-2 border-on-surface rounded-none font-medium bg-white text-on-surface transition-all focus:border-primary-container focus:ring-0"
+                  className="w-full h-14 px-4 border-2 border-on-surface rounded-none font-medium bg-surface text-on-surface transition-all focus:border-primary-container focus:ring-0"
                 />
               </div>
             </div>
           </div>
 
           {/* Payment Information Card */}
-          <div className="border-2 border-on-surface bg-white p-8">
+          <div className="border-2 border-on-surface bg-surface p-8">
             <h3 className="font-headline-md text-xl font-bold uppercase tracking-wider text-on-surface pb-3 border-b-2 border-on-surface mb-6">
               Payment Information
             </h3>
@@ -275,7 +275,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* Summary Details */}
-          <div className="border-2 border-on-surface p-8 bg-white">
+          <div className="border-2 border-on-surface p-8 bg-surface">
             <h3 className="font-headline-md text-lg font-extrabold mb-6 uppercase tracking-wider text-on-surface border-b-2 border-on-surface pb-2">
               Order Summary
             </h3>
@@ -293,7 +293,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-between pt-3 pb-1 font-black text-lg border-t-2 border-on-surface border-dashed">
                 <span className="uppercase tracking-widest text-on-surface">Total to Pay</span>
-                <span className="text-primary-container text-xl md:text-2xl font-black">Kes. {total.toFixed(2)}</span>
+                <span className="text-primary-container text-xl md:text-2xl font-black">Ksh {total.toFixed(2)}</span>
               </div>
             </div>
 

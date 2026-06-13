@@ -11,11 +11,11 @@ import Icon from '@/components/Icon';
 import { Timestamp } from 'firebase/firestore';
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; text: string }> = {
-  pending: { label: 'Pending', bg: 'bg-gray-200', text: 'text-gray-800' },
-  paid: { label: 'Paid', bg: 'bg-amber-200', text: 'text-amber-900' },
-  shipped: { label: 'Shipped', bg: 'bg-gray-800', text: 'text-white' },
-  delivered: { label: 'Delivered', bg: 'bg-green-200', text: 'text-green-900' },
-  cancelled: { label: 'Cancelled', bg: 'bg-red-200', text: 'text-red-900' },
+  pending: { label: 'Pending', bg: 'bg-surface-container', text: 'text-on-surface' },
+  paid: { label: 'Paid', bg: 'bg-amber-200 dark:bg-amber-900', text: 'text-amber-900 dark:text-amber-200' },
+  shipped: { label: 'Shipped', bg: 'bg-on-surface', text: 'text-surface' },
+  delivered: { label: 'Delivered', bg: 'bg-green-200 dark:bg-green-900', text: 'text-green-900 dark:text-green-200' },
+  cancelled: { label: 'Cancelled', bg: 'bg-error-container', text: 'text-on-error-container' },
 };
 
 const TIMELINE_STEPS: { key: OrderStatus; label: string }[] = [
@@ -111,7 +111,7 @@ export default function OrdersPage() {
         </div>
       ) : orders.length === 0 ? (
         /* Empty State */
-        <div className="border-2 border-on-surface p-12 bg-white text-center flex flex-col items-center justify-center max-w-[600px] mx-auto shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]">
+        <div className="border-2 border-on-surface p-12 bg-surface text-center flex flex-col items-center justify-center max-w-[600px] mx-auto shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
           <Icon name="shopping_bag" className="text-5xl mb-4 text-secondary" />
           <h3 className="font-headline-md text-xl font-bold uppercase mb-2 text-on-surface">
             No orders yet
@@ -121,7 +121,7 @@ export default function OrdersPage() {
           </p>
           <Link
             href="/products"
-            className="px-8 py-3 bg-primary-container text-on-primary-container font-bold text-xs uppercase tracking-wider border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] active:scale-95 active:translate-y-0.5 transition-all"
+            className="px-8 py-3 bg-primary-container text-on-primary-container font-bold text-xs uppercase tracking-wider border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] active:scale-95 active:translate-y-0.5 transition-all"
           >
             Start Shopping
           </Link>
@@ -139,7 +139,7 @@ export default function OrdersPage() {
             return (
               <div
                 key={order.id}
-                className="border-2 border-on-surface bg-white shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] transition-all hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)]"
+                className="border-2 border-on-surface bg-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] transition-all hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)]"
               >
                 {/* Order Header — always visible */}
                 <button
@@ -168,7 +168,7 @@ export default function OrdersPage() {
                     {/* Right: Total & Expand */}
                     <div className="flex items-center gap-4">
                       <span className="font-headline-md text-lg md:text-xl font-black text-on-surface">
-                        Kes. {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                        Ksh {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                       </span>
                       <div
                         className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
@@ -190,7 +190,7 @@ export default function OrdersPage() {
                         </h4>
                         <div className="flex items-center justify-between relative">
                           {/* Connecting Line */}
-                          <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-200" />
+                          <div className="absolute top-3 left-0 right-0 h-0.5 bg-surface-dim" />
                           <div
                             className="absolute top-3 left-0 h-0.5 bg-primary-container transition-all duration-500"
                             style={{
@@ -207,8 +207,8 @@ export default function OrdersPage() {
                                   className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                                     isCompleted
                                       ? 'bg-primary-container border-on-surface'
-                                      : 'bg-white border-gray-300'
-                                  } ${isCurrent ? 'ring-2 ring-primary-container ring-offset-2' : ''}`}
+                                      : 'bg-surface border-surface-dim'
+                                  } ${isCurrent ? 'ring-2 ring-primary-container ring-offset-2 ring-offset-surface' : ''}`}
                                 >
                                   {isCompleted && (
                                     <Icon name="check" className="text-xs text-on-primary-container" />
@@ -216,7 +216,7 @@ export default function OrdersPage() {
                                 </div>
                                 <span
                                   className={`mt-2 text-[10px] font-extrabold uppercase tracking-wider ${
-                                    isCompleted ? 'text-on-surface' : 'text-gray-400'
+                                    isCompleted ? 'text-on-surface' : 'text-secondary'
                                   }`}
                                 >
                                   {step.label}
@@ -230,9 +230,9 @@ export default function OrdersPage() {
 
                     {/* Cancelled Notice */}
                     {isCancelled && (
-                      <div className="bg-red-50 border-2 border-red-300 p-4 flex items-center gap-3">
-                        <Icon name="error" className="text-xl text-red-600" />
-                        <span className="text-sm font-bold text-red-800 uppercase tracking-wider">
+                      <div className="bg-error-container border-2 border-error p-4 flex items-center gap-3">
+                        <Icon name="error" className="text-xl text-error" />
+                        <span className="text-sm font-bold text-on-error-container uppercase tracking-wider">
                           This order has been cancelled
                         </span>
                       </div>
@@ -248,16 +248,16 @@ export default function OrdersPage() {
                           {order.items.map((item, idx) => (
                             <div
                               key={`${item.productId}-${idx}`}
-                              className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
+                              className="flex justify-between items-center py-2 border-b border-surface-container last:border-0"
                             >
                               <div>
                                 <p className="text-sm font-bold text-on-surface">{item.name}</p>
                                 <p className="text-xs text-secondary font-semibold">
-                                  Qty: {item.quantity} × Kes. {item.price.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                                  Qty: {item.quantity} × Ksh {item.price.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                                 </p>
                               </div>
                               <span className="font-headline-md text-sm font-black text-on-surface">
-                                Kes. {(item.quantity * item.price).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                                Ksh {(item.quantity * item.price).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                               </span>
                             </div>
                           ))}
@@ -307,7 +307,7 @@ export default function OrdersPage() {
                             <div className="text-sm text-secondary space-y-1">
                               <p className="font-semibold">{order.shippingInformation.method}</p>
                               <p>
-                                Cost: Kes. {order.shippingInformation.cost.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                                Cost: Ksh {order.shippingInformation.cost.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                               </p>
                               {order.shippingInformation.trackingNumber && (
                                 <p className="font-bold text-on-surface">
@@ -326,7 +326,7 @@ export default function OrdersPage() {
                         Order Total
                       </span>
                       <span className="font-headline-md text-xl font-black text-on-surface">
-                        Kes. {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                        Ksh {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>

@@ -96,7 +96,10 @@ export type IconName =
   | 'celebration'
   | 'card_membership'
   | 'account_balance'
-  | 'label';
+  | 'label'
+  | 'light_mode'
+  | 'dark_mode'
+  | 'brightness_auto';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName | string;
@@ -913,6 +916,37 @@ export default function Icon({ name, className = '', ...props }: IconProps) {
       return (
         <svg {...baseSvgProps} fill="currentColor" stroke="none">
           <path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16zM16 17H5V7h11l3.55 5L16 17z" />
+        </svg>
+      );
+
+    case 'light_mode':
+      return (
+        <svg {...baseSvgProps}>
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+      );
+
+    case 'dark_mode':
+      return (
+        <svg {...baseSvgProps}>
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      );
+
+    case 'brightness_auto':
+      return (
+        <svg {...baseSvgProps}>
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
       );
 

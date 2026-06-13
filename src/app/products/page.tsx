@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getProducts } from '@/lib/api/products';
-import { CATEGORIES_DATA } from '@/lib/data/categories';
+import { getProducts, getCategories, getAvailableTags } from '@/lib/api/products';
+import { useCategories } from '@/hooks/useCategories';
 import { addToCart } from '@/lib/api/cart';
 import { addToWishlist, removeFromWishlist, getWishlist } from '@/lib/api/wishlist';
 import { auth } from '@/lib/firebase';
@@ -76,6 +76,7 @@ const formatSellerAge = (createdAt: any): string => {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const { categories } = useCategories();
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -94,6 +95,7 @@ export default function ProductsPage() {
   const [addingToCart, setAddingToCart] = useState<Record<number, boolean>>({});
   const [addedToCart, setAddedToCart] = useState<Record<number, boolean>>({});
   const [userRole, setUserRole] = useState<'customer' | 'admin' | 'merchant' | 'guest'>('guest');
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const router = useRouter();
 
   const fetchProducts = async (filters: { keyword?: string; maxPrice?: number; category?: string } = {}) => {
@@ -112,6 +114,16 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts({ keyword: keyword || undefined });
+
+    const fetchCats = async () => {
+      try {
+        const [cats, tags] = await Promise.all([getCategories(), getAvailableTags()]);
+        setAvailableCategories(Array.from(new Set([...cats, ...tags])));
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+    fetchCats();
 
     
     const fetchW = async () => {
@@ -229,7 +241,7 @@ export default function ProductsPage() {
         <div className="lg:hidden w-full mb-2">
           <button 
             onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-            className="w-full bg-white text-on-surface py-3 px-4 flex items-center justify-between font-bold uppercase text-xs border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_rgba(26,28,28,1)] transition-all"
+            className="w-full bg-surface text-on-surface py-3 px-4 flex items-center justify-between font-bold uppercase text-xs border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_var(--color-on-surface)] transition-all"
           >
             <span className="flex items-center gap-2">
               <Icon name="tune" className="text-lg" />
@@ -244,7 +256,7 @@ export default function ProductsPage() {
           className={`${isMobileFiltersOpen ? 'flex' : 'hidden'} lg:flex flex-col lg:flex-row lg:sticky lg:top-24 items-start shrink-0 z-30 w-full lg:w-auto`}
           onMouseLeave={() => setHoveredCategory(null)}
         >
-          <aside className="w-full lg:w-72 shrink-0 bg-white border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] space-y-6 z-20 relative">
+          <aside className="w-full lg:w-72 shrink-0 bg-surface border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)] space-y-6 z-20 relative">
           
           {/* Categories Menu */}
           <div>
@@ -266,7 +278,15 @@ export default function ProductsPage() {
                   <span className="text-xs font-semibold">All Categories</span>
                 </div>
               </li>
-              {[...CATEGORIES_DATA.goods, ...CATEGORIES_DATA.services].map(group => (
+              {categories
+                .filter(group => 
+                  availableCategories.includes(group.name) || 
+                  group.categories.some(c => 
+                    availableCategories.includes(c.name) || 
+                    c.subcategories?.some(sub => availableCategories.includes(sub))
+                  )
+                )
+                .map(group => (
                 <li
                   key={group.name}
                   onMouseEnter={() => setHoveredCategory(group.name)}
@@ -309,7 +329,7 @@ export default function ProductsPage() {
             
             {/* Max Price */}
             <div className="space-y-1">
-              <label className="font-extrabold text-xs uppercase tracking-wider block text-on-surface">Max Price ($)</label>
+              <label className="font-extrabold text-xs uppercase tracking-wider block text-on-surface">Max Price (Ksh)</label>
               <input
                 type="number"
                 placeholder="e.g., 500"
@@ -327,13 +347,13 @@ export default function ProductsPage() {
           <div className="space-y-2 pt-2">
             <button 
               onClick={handleApplyFilters}
-              className="w-full bg-primary-container text-on-primary-container py-3 font-headline-md font-bold uppercase tracking-wider text-xs border-2 border-on-surface transition-transform active:scale-95 shadow-[3px_3px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(26,28,28,1)] hover:bg-amber-500"
+              className="w-full bg-primary-container text-on-primary-container py-3 font-headline-md font-bold uppercase tracking-wider text-xs border-2 border-on-surface transition-transform active:scale-95 shadow-[3px_3px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] hover:bg-amber-500"
             >
               Apply Filters
             </button>
             <button 
               onClick={handleClearFilters}
-              className="w-full bg-white text-secondary py-3.5 font-bold uppercase tracking-wider text-xs border-2 border-on-surface transition-colors hover:bg-surface-container active:scale-95"
+              className="w-full bg-surface text-secondary py-3.5 font-bold uppercase tracking-wider text-xs border-2 border-on-surface transition-colors hover:bg-surface-container active:scale-95"
             >
               Clear Filters
             </button>
@@ -345,14 +365,18 @@ export default function ProductsPage() {
            className={`overflow-hidden transition-[width,opacity,margin] duration-300 ease-in-out flex shrink-0 h-full ${hoveredCategory ? 'w-[450px] ml-6 opacity-100' : 'w-0 ml-0 opacity-0'}`}
         >
           {hoveredCategory && (
-            <div className="w-[450px] bg-white border-2 border-on-surface shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] z-50 p-6 min-h-full">
+            <div className="w-[450px] bg-surface border-2 border-on-surface shadow-[6px_6px_0px_0px_var(--color-on-surface)] z-50 p-6 min-h-full">
               <h4 className="font-headline-md text-lg font-black uppercase text-on-surface mb-4 border-b-2 border-surface-container pb-2 flex items-center gap-2">
                 <Icon name={CATEGORY_ICONS[hoveredCategory] || 'label'} className="text-xl text-primary-container" />
                 {hoveredCategory}
               </h4>
               <div className="grid grid-cols-2 gap-x-6 gap-y-4 max-h-[60vh] overflow-y-auto pr-2 hide-scrollbar">
-                {[...CATEGORIES_DATA.goods, ...CATEGORIES_DATA.services]
-                  .find(g => g.name === hoveredCategory)?.categories.map(c => (
+                {categories
+                  .find(g => g.name === hoveredCategory)?.categories
+                  .filter(c => availableCategories.includes(c.name) || c.subcategories?.some(sub => availableCategories.includes(sub)))
+                  .map(c => {
+                    const validSubcategories = c.subcategories?.filter(sub => availableCategories.includes(sub));
+                    return (
                     <div key={c.name} className="flex flex-col gap-1.5">
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleCategoryClick(c.name); setHoveredCategory(null); }}
@@ -361,9 +385,9 @@ export default function ProductsPage() {
                         {c.name}
                         <Icon name="chevron_right" className="text-[10px] opacity-30" />
                       </button>
-                      {c.subcategories && (
+                      {validSubcategories && validSubcategories.length > 0 && (
                         <div className="flex flex-col gap-1 ml-1 pl-2 border-l-2 border-surface-container-high">
-                          {c.subcategories.map(sub => (
+                          {validSubcategories.map(sub => (
                             <button 
                               key={sub}
                               onClick={(e) => { e.stopPropagation(); handleCategoryClick(sub); setHoveredCategory(null); }}
@@ -375,7 +399,7 @@ export default function ProductsPage() {
                         </div>
                       )}
                     </div>
-                ))}
+                  )})}
               </div>
             </div>
           )}
@@ -396,7 +420,7 @@ export default function ProductsPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="h-10 px-3 border border-surface-dim rounded font-bold text-xs uppercase bg-white cursor-pointer"
+                className="h-10 px-3 border border-surface-dim rounded font-bold text-xs uppercase bg-surface cursor-pointer"
               >
                 <option value="default">Sort By: Default</option>
                 <option value="price-asc">Price: Low to High</option>
@@ -408,14 +432,14 @@ export default function ProductsPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 bg-white rounded border border-surface-dim ${viewMode === 'grid' ? 'text-primary-container border-primary-container' : 'text-secondary hover:text-on-surface'}`}
+                  className={`p-2 bg-surface rounded border border-surface-dim ${viewMode === 'grid' ? 'text-primary-container border-primary-container' : 'text-secondary hover:text-on-surface'}`}
                   aria-label="Grid view"
                 >
                   <Icon name="grid_view" className="text-lg" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 bg-white rounded border border-surface-dim ${viewMode === 'list' ? 'text-primary-container border-primary-container' : 'text-secondary hover:text-on-surface'}`}
+                  className={`p-2 bg-surface rounded border border-surface-dim ${viewMode === 'list' ? 'text-primary-container border-primary-container' : 'text-secondary hover:text-on-surface'}`}
                   aria-label="List view"
                 >
                   <Icon name="view_list" className="text-lg" />
@@ -425,12 +449,12 @@ export default function ProductsPage() {
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-24 bg-white border-2 border-on-surface">
+            <div className="flex flex-col items-center justify-center py-24 bg-surface border-2 border-on-surface">
               <Icon name="sync" className="text-4xl animate-spin text-primary-container" />
               <p className="mt-4 font-bold text-xs tracking-widest text-secondary uppercase">Loading Catalog...</p>
             </div>
           ) : products.length === 0 ? (
-            <div className="p-12 text-center flex flex-col items-center justify-center bg-white border-2 border-on-surface">
+            <div className="p-12 text-center flex flex-col items-center justify-center bg-surface border-2 border-on-surface">
               <Icon name="info" className="text-4xl text-secondary mb-3" />
               <h4 className="font-extrabold uppercase text-sm">No items found</h4>
               <p className="text-xs text-secondary mt-1 max-w-[280px]">Adjust your filter query or clear searches to reset the collection grid.</p>
@@ -463,7 +487,7 @@ export default function ProductsPage() {
                 return (
                   <article 
                     key={product.id} 
-                    className="product-card bg-white border border-surface-dim rounded overflow-hidden flex flex-col group relative"
+                    className="product-card bg-surface border border-surface-dim rounded overflow-hidden flex flex-col group relative"
                   >
                     <Link href={`/products/${product.id}`} className={`block relative bg-surface-container-low shrink-0 ${viewMode === 'list' ? 'sm:w-64 border-r border-surface-dim h-full' : 'h-48'}`}>
                       <img 
@@ -484,7 +508,7 @@ export default function ProductsPage() {
                           </span>
                         )}
                         {!isVerified && (
-                          <span className="bg-white/90 text-on-surface text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-max shadow-sm">
+                          <span className="bg-surface/90 text-on-surface text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-max shadow-sm">
                             <Icon name="person" className="text-[12px]" /> {sellerAgeTag}
                           </span>
                         )}
@@ -500,7 +524,7 @@ export default function ProductsPage() {
                       </button>
                       
                       <p className="text-primary-container font-extrabold text-lg mb-1">
-                        KSh {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        Ksh {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </p>
 
                       {product.category && (
@@ -549,7 +573,7 @@ export default function ProductsPage() {
                           <button
                             onClick={(e) => handleAddToCart(e, product.id)}
                             disabled={addingToCart[product.id]}
-                            className={`shrink-0 px-4 py-2 border border-surface-dim bg-white text-on-surface font-bold text-[10px] uppercase tracking-wider transition-colors hover:bg-surface-container rounded ${addedToCart[product.id] ? '!bg-green-600 !text-white !border-green-600' : ''}`}
+                            className={`shrink-0 px-4 py-2 border border-surface-dim bg-surface text-on-surface font-bold text-[10px] uppercase tracking-wider transition-colors hover:bg-surface-container rounded ${addedToCart[product.id] ? '!bg-green-600 !text-white !border-green-600' : ''}`}
                           >
                             {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added ✓' : 'Adding...') : 'Add to Cart'}
                           </button>

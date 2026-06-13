@@ -106,7 +106,7 @@ export default function ProductDetailPage() {
 
   if (error || !product) {
     return (
-      <div className="max-w-[600px] mx-auto my-20 p-12 bg-white border-2 border-on-surface text-center flex flex-col items-center justify-center">
+      <div className="max-w-[600px] mx-auto my-20 p-12 bg-surface border-2 border-on-surface text-center flex flex-col items-center justify-center">
         <Icon name="error" className="text-5xl mb-4 text-error" />
         <h3 className="font-headline-md text-xl font-bold uppercase mb-2">Product Not Found</h3>
         <p className="text-sm text-secondary mb-6 max-w-[320px]">We couldn't retrieve the specified catalog items. They may have been deregistered by an administrator.</p>
@@ -141,7 +141,7 @@ export default function ProductDetailPage() {
         
         {/* Left Column: Picture Gallery */}
         <div className="lg:col-span-6 space-y-4">
-          <div className="relative bg-surface-container-low border-4 border-on-surface shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] overflow-hidden flex items-center justify-center">
+          <div className="relative bg-surface-container-low border-4 border-on-surface shadow-[6px_6px_0px_0px_var(--color-on-surface)] overflow-hidden flex items-center justify-center">
             <img 
               src={activeImage || product.image_url} 
               alt={product.name} 
@@ -190,7 +190,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Right Column: Specifications & Configuration */}
-        <div className="lg:col-span-6 space-y-8 bg-white border-2 border-on-surface p-6 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]">
+        <div className="lg:col-span-6 space-y-8 bg-surface border-2 border-on-surface p-6 md:p-8 shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
           {/* Header */}
           <div className="border-b-2 border-surface-container pb-4 space-y-2">
             <span className="bg-surface-container text-on-surface border border-on-surface text-[9px] font-black uppercase px-2 py-0.5 tracking-wider">
@@ -201,9 +201,9 @@ export default function ProductDetailPage() {
             </h1>
             
             <div className="flex items-center gap-3 pt-1">
-              <span className="font-headline-md text-2xl font-black text-on-surface">Kes. {finalPrice.toFixed(2)}</span>
+              <span className="font-headline-md text-2xl font-black text-on-surface">Ksh {finalPrice.toFixed(2)}</span>
               {discount > 0 && (
-                <span className="text-sm font-bold text-secondary line-through">Kes. {originalPrice.toFixed(2)}</span>
+                <span className="text-sm font-bold text-secondary line-through">Ksh {originalPrice.toFixed(2)}</span>
               )}
               <ProductRatingBadge productId={product.id} />
             </div>
@@ -273,7 +273,7 @@ export default function ProductDetailPage() {
                       className={`px-4 py-2 border-2 text-xs font-extrabold uppercase transition-all ${
                         size === selectedSize 
                           ? 'bg-primary-container text-on-primary-container border-on-surface' 
-                          : 'bg-white text-on-surface border-on-surface hover:bg-surface-container'
+                          : 'bg-surface text-on-surface border-on-surface hover:bg-surface-container'
                       }`}
                     >
                       {size}
@@ -290,7 +290,7 @@ export default function ProductDetailPage() {
               {/* Quantity Box */}
               <div className="space-y-1.5">
                 <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">Qty</label>
-                <div className="flex border-2 border-on-surface bg-white w-32">
+                <div className="flex border-2 border-on-surface bg-surface w-32">
                   <button 
                     onClick={() => setQuantity(q => Math.max(1, q - 1))}
                     className="px-3 py-2 font-bold hover:bg-surface-container active:bg-surface-dim transition-colors border-r-2 border-on-surface text-sm flex-1"
@@ -314,7 +314,7 @@ export default function ProductDetailPage() {
                 <button
                   onClick={handleAddToCart}
                   disabled={cartStatus === 'adding'}
-                  className={`flex-1 h-12 bg-primary-container text-on-primary-container font-headline-md font-bold uppercase tracking-wider text-xs border-2 border-on-surface transition-transform active:scale-95 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(26,28,28,1)] hover:bg-amber-500 disabled:opacity-50 flex items-center justify-center gap-2 ${
+                  className={`flex-1 h-12 bg-primary-container text-on-primary-container font-headline-md font-bold uppercase tracking-wider text-xs border-2 border-on-surface transition-transform active:scale-95 shadow-[4px_4px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 disabled:opacity-50 flex items-center justify-center gap-2 ${
                     cartStatus === 'added' ? '!bg-green-600 !text-white' : ''
                   }`}
                 >
@@ -326,7 +326,7 @@ export default function ProductDetailPage() {
                 <button
                   onClick={handleToggleWishlist}
                   disabled={wishlistLoading}
-                  className={`w-12 h-12 bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] flex items-center justify-center hover:bg-surface-container active:scale-95 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(26,28,28,1)] transition-all ${isWishlisted ? 'text-error' : 'text-on-surface'}`}
+                  className={`w-12 h-12 bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex items-center justify-center hover:bg-surface-container active:scale-95 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] transition-all ${isWishlisted ? 'text-error' : 'text-on-surface'}`}
                   title="Toggle Wishlist"
                 >
                   <Icon name={isWishlisted ? 'favorite' : 'favorite_border'} className="text-xl" />
@@ -346,7 +346,7 @@ export default function ProductDetailPage() {
               <Icon name="local_shipping" className="text-primary-container text-2xl font-bold" />
               <div>
                 <h4 className="font-extrabold text-[10px] uppercase text-on-surface">Free Delivery</h4>
-                <p className="text-[9px] text-secondary font-semibold uppercase mt-0.5">Complimentary for orders over Kes. 150</p>
+                <p className="text-[9px] text-secondary font-semibold uppercase mt-0.5">Complimentary for orders over Ksh 150</p>
               </div>
             </div>
             <div className="flex gap-3 items-start p-3 bg-surface border border-on-surface-variant">

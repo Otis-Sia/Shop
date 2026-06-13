@@ -90,7 +90,7 @@ function OrderConfirmationContent() {
   if (error || !order) {
     return (
       <main className="max-w-[1440px] mx-auto px-6 md:px-16 py-16 flex-grow flex items-center justify-center min-h-[500px]">
-        <div className="border-2 border-on-surface bg-white p-12 max-w-[500px] text-center shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]">
+        <div className="border-2 border-on-surface bg-surface p-12 max-w-[500px] text-center shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
           <Icon name="error" className="text-5xl text-error mb-4" />
           <h2 className="font-headline-md text-2xl font-black uppercase tracking-tight text-on-surface mb-2">
             Order Not Found
@@ -100,7 +100,7 @@ function OrderConfirmationContent() {
           </p>
           <Link
             href="/products"
-            className="inline-block px-8 py-3 bg-primary-container text-on-primary-container font-bold text-xs uppercase tracking-wider border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] active:scale-95 active:translate-y-0.5 transition-all"
+            className="inline-block px-8 py-3 bg-primary-container text-on-primary-container font-bold text-xs uppercase tracking-wider border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] active:scale-95 active:translate-y-0.5 transition-all"
           >
             Browse Products
           </Link>
@@ -120,9 +120,9 @@ function OrderConfirmationContent() {
         <ConfettiDecor />
 
         {/* Main Confirmation Card */}
-        <div className="relative z-10 border-2 border-on-surface bg-white p-8 md:p-12 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] text-center">
+        <div className="relative z-10 border-2 border-on-surface bg-surface p-8 md:p-12 shadow-[4px_4px_0px_0px_var(--color-on-surface)] text-center">
           {/* Success Checkmark */}
-          <div className="mx-auto mb-6 w-20 h-20 bg-green-200 border-2 border-on-surface rounded-full flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(26,28,28,1)] animate-[scaleIn_0.5s_ease-out]">
+          <div className="mx-auto mb-6 w-20 h-20 bg-green-200 border-2 border-on-surface rounded-full flex items-center justify-center shadow-[3px_3px_0px_0px_var(--color-on-surface)] animate-[scaleIn_0.5s_ease-out]">
             <Icon name="check" className="text-4xl text-green-800" />
           </div>
 
@@ -135,7 +135,7 @@ function OrderConfirmationContent() {
           </p>
 
           {/* Order Number */}
-          <div className="inline-block border-2 border-on-surface bg-surface px-6 py-3 mb-8 shadow-[2px_2px_0px_0px_rgba(26,28,28,1)]">
+          <div className="inline-block border-2 border-on-surface bg-surface px-6 py-3 mb-8 shadow-[2px_2px_0px_0px_var(--color-on-surface)]">
             <span className="font-extrabold text-xs uppercase tracking-widest text-secondary block mb-1">
               Order Number
             </span>
@@ -152,7 +152,7 @@ function OrderConfirmationContent() {
                 Total Amount
               </span>
               <span className="font-headline-md text-lg font-black text-on-surface">
-                Kes. {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                Ksh {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
               </span>
             </div>
 
@@ -197,13 +197,13 @@ function OrderConfirmationContent() {
           <div className="flex flex-col sm:flex-row gap-4">
             <Link
               href="/products"
-              className="flex-1 h-14 bg-primary-container text-on-primary-container font-headline-md font-extrabold uppercase tracking-wider text-sm border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] active:scale-95 active:translate-y-0.5"
+              className="flex-1 h-14 bg-primary-container text-on-primary-container font-headline-md font-extrabold uppercase tracking-wider text-sm border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] active:scale-95 active:translate-y-0.5"
             >
               Continue Shopping
             </Link>
             <Link
               href="/orders"
-              className="flex-1 h-14 bg-white text-on-surface font-headline-md font-extrabold uppercase tracking-wider text-sm border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] active:scale-95 active:translate-y-0.5"
+              className="flex-1 h-14 bg-surface text-on-surface font-headline-md font-extrabold uppercase tracking-wider text-sm border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] active:scale-95 active:translate-y-0.5"
             >
               View My Orders
             </Link>

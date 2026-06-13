@@ -57,6 +57,27 @@
   --font-body-md: "Inter", sans-serif;
 }
 
+@layer base {
+  .dark {
+    --color-background: #121212;
+    --color-on-background: #e2e2e2;
+    --color-surface: #1a1a1a;
+    --color-on-surface: #f9f9f9;
+    --color-surface-container: #222222;
+    --color-surface-container-low: #1e1e1e;
+    --color-surface-container-highest: #333333;
+    --color-surface-dim: #2a2a2a;
+    --color-secondary: #a3a3a3;
+    --color-outline: #e2e2e2;
+    --color-on-surface-variant: #e2e2e2;
+    --color-primary-container: #ff8c00;
+    --color-on-primary-container: #1a1c1c;
+    --color-error: #ff5252;
+    --color-error-container: #5c0000;
+    --color-on-error-container: #ffdad6;
+  }
+}
+
 body {
   font-family: 'Inter', sans-serif;
   background-color: var(--color-background);
@@ -76,7 +97,7 @@ body {
 
 /* Neobrutalist Borders and Hover Shadows */
 .auth-card-border {
-  border: 2px solid #1a1c1c;
+  border: 2px solid var(--color-on-surface);
 }
 
 .auth-card-shadow {
@@ -85,12 +106,12 @@ body {
 
 .auth-card-shadow:hover {
   transform: translate(-3px, -3px);
-  box-shadow: 4px 4px 0px 0px rgba(26, 28, 28, 1);
+  box-shadow: 4px 4px 0px 0px var(--color-on-surface);
 }
 
 /* Global Heavy Border Overrides */
 .heavy-border {
-  border: 2px solid #1a1c1c;
+  border: 2px solid var(--color-on-surface);
 }
 
 /* Interactive Input Focus */
@@ -99,6 +120,12 @@ input:focus, select:focus, textarea:focus {
   border-color: #ff8c00 !important;
   border-width: 2px !important;
   box-shadow: none !important;
+}
+
+/* Default input background to match theme (prevents white flash in dark mode) */
+input, select, textarea {
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
 }
 
 /* Hide scrollbar utility */

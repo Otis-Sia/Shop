@@ -3,7 +3,13 @@
 import { useState } from 'react';
 import { Upload, FileUp, CheckCircle2, XCircle } from 'lucide-react';
 
-export default function S3Uploader() {
+interface S3UploaderProps {
+  onUploadSuccess?: (url: string) => void;
+  label?: string;
+  className?: string;
+}
+
+export default function S3Uploader({ onUploadSuccess, label = 'Upload to S3', className = '' }: S3UploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
@@ -57,6 +63,9 @@ export default function S3Uploader() {
 
       // 3. Success! Set the uploaded URL
       setUploadedUrl(fileUrl);
+      if (onUploadSuccess) {
+        onUploadSuccess(fileUrl);
+      }
     } catch (err: any) {
       setError(err.message || 'An error occurred during upload.');
     } finally {
@@ -66,10 +75,10 @@ export default function S3Uploader() {
   };
 
   return (
-    <div className="p-6 border rounded-xl bg-white shadow-sm max-w-md w-full">
-      <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+    <div className={`p-6 border rounded-xl bg-surface-container shadow-[4px_4px_0px_0px_var(--color-on-surface)] border-2 border-on-surface w-full ${className}`}>
+      <h2 className="text-xl font-bold font-headline-md uppercase tracking-tight mb-4 flex items-center gap-2 text-on-surface">
         <Upload className="w-5 h-5" />
-        Upload to S3
+        {label}
       </h2>
 
       <div className="mb-4">
@@ -117,13 +126,14 @@ export default function S3Uploader() {
       )}
 
       <button
+        type="button"
         onClick={handleUpload}
         disabled={!file || uploading}
-        className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+        className="w-full py-3 px-4 bg-primary-container hover:bg-on-surface text-on-surface hover:text-surface disabled:bg-surface-container disabled:text-on-surface/50 disabled:cursor-not-allowed font-bold uppercase tracking-widest border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_var(--color-on-surface)] transition-all flex items-center justify-center gap-2 mt-2"
       >
         {uploading ? (
           <>
-            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
             Uploading...
           </>
         ) : (

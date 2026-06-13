@@ -16,7 +16,7 @@ export default function TermsOfServicePage() {
           <p className="font-extrabold text-xs uppercase tracking-wider text-secondary">Last Updated: October 2024</p>
         </div>
 
-        <div className="bg-white border-2 border-on-surface p-8 md:p-12 shadow-[8px_8px_0px_0px_rgba(26,28,28,1)] space-y-10">
+        <div className="bg-surface border-2 border-on-surface p-8 md:p-12 shadow-[8px_8px_0px_0px_var(--color-on-surface)] space-y-10">
           <div className="space-y-4">
             <h2 className="font-headline-md text-2xl font-black uppercase tracking-tight flex items-center gap-3 border-b-2 border-surface-container pb-2">
               <Icon name="description" className="text-primary-container" />
@@ -43,7 +43,7 @@ export default function TermsOfServicePage() {
               3. Products & Pricing
             </h2>
             <p className="font-body-md text-sm text-secondary font-medium leading-relaxed">
-              All prices are displayed in Kenyan Shillings (Kes.) unless otherwise noted. We reserve the right to modify prices, products, and services without prior notice. We make every effort to display product colors and images accurately.
+              All prices are displayed in Kenyan Shillings (Ksh) unless otherwise noted. We reserve the right to modify prices, products, and services without prior notice. We make every effort to display product colors and images accurately.
             </p>
           </div>
 

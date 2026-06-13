@@ -37,9 +37,9 @@ export default function ForgotPasswordPage() {
 
   return (
     <main className="flex-grow flex items-center justify-center py-20 px-4 md:px-16 min-h-[calc(100vh-140px)]">
-      <div className="w-full max-w-[520px] bg-white border-2 border-on-background shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]">
+      <div className="w-full max-w-[520px] bg-surface border-2 border-on-background shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
         {/* Header */}
-        <div className="bg-on-background text-white p-8 md:p-10">
+        <div className="bg-on-background text-background p-8 md:p-10">
           <Link href="/" className="inline-block mb-6 flex items-center gap-2">
             <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="w-auto h-10" />
             <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6" />
@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
           <h1 className="font-headline-md text-2xl md:text-3xl font-black uppercase tracking-tight mb-2">
             Reset Password
           </h1>
-          <p className="font-body-md text-sm text-gray-300 leading-relaxed">
+          <p className="font-body-md text-sm opacity-80 leading-relaxed">
             Enter the email address associated with your account and we&apos;ll send you a link to reset your password.
           </p>
         </div>
@@ -138,7 +138,7 @@ export default function ForgotPasswordPage() {
                   <div className="w-full border-t border-surface-container-highest"></div>
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-3 text-secondary font-bold tracking-wider">
+                  <span className="bg-surface px-3 text-secondary font-bold tracking-wider">
                     Or
                   </span>
                 </div>

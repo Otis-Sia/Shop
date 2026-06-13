@@ -59,7 +59,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════
           1. HERO SECTION
          ═══════════════════════════════════════════════════════════ */}
-      <section className="relative bg-on-surface text-white py-24 md:py-36 overflow-hidden border-b-4 border-primary-container">
+      <section className="relative bg-on-surface text-surface py-24 md:py-36 overflow-hidden border-b-4 border-primary-container">
         {/* JUJ4 watermark */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
           <span className="font-headline-md text-[150px] md:text-[250px] lg:text-[350px] font-black text-white/[0.03] tracking-tighter">
@@ -100,7 +100,7 @@ export default function LandingPage() {
             </Link>
             <a
               href="#collections"
-              className="px-10 py-4 border-2 border-white bg-transparent text-white font-bold uppercase tracking-wider text-sm transition-colors hover:bg-white/10 active:scale-95"
+              className="px-10 py-4 border-2 border-white bg-transparent text-white font-bold uppercase tracking-wider text-sm transition-colors hover:bg-surface/10 active:scale-95"
             >
               Explore Collections
             </a>
@@ -130,7 +130,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════
           3. FEATURED COLLECTIONS
          ═══════════════════════════════════════════════════════════ */}
-      <section id="collections" className="py-20 md:py-28 bg-white border-b-2 border-on-surface">
+      <section id="collections" className="py-20 md:py-28 bg-surface border-b-2 border-on-surface">
         <div className="max-w-[1440px] mx-auto px-6 md:px-16">
           <div className="text-center mb-16">
             <p className="font-extrabold text-xs text-primary-container uppercase tracking-widest mb-1.5">
@@ -148,7 +148,7 @@ export default function LandingPage() {
             {/* Large feature card — New Arrivals */}
             <Link
               href="/products"
-              className="group bg-on-surface text-white border-2 border-on-surface p-10 flex flex-col justify-between min-h-[350px] shadow-[6px_6px_0px_0px_rgba(255,140,0,1)] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_rgba(255,140,0,1)] transition-all relative overflow-hidden"
+              className="group bg-on-surface text-surface border-2 border-on-surface p-10 flex flex-col justify-between min-h-[350px] shadow-[6px_6px_0px_0px_rgba(255,140,0,1)] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_rgba(255,140,0,1)] transition-all relative overflow-hidden"
             >
               {/* Background decoration */}
               <div className="absolute top-4 right-4 w-32 h-32 border border-white/10 rotate-45 group-hover:rotate-[50deg] transition-transform duration-500" />
@@ -171,15 +171,15 @@ export default function LandingPage() {
             {/* 2x2 grid of smaller cards */}
             <div className="grid grid-cols-2 gap-5">
               {[
-                { name: 'Electronics', icon: 'devices', color: 'bg-blue-50' },
-                { name: 'Fashion', icon: 'checkroom', color: 'bg-pink-50' },
-                { name: 'Home & Living', icon: 'chair', color: 'bg-green-50' },
-                { name: 'Sports', icon: 'sports_soccer', color: 'bg-amber-50' },
+              { name: 'Electronics', icon: 'devices', color: 'bg-surface-container' },
+                { name: 'Fashion', icon: 'checkroom', color: 'bg-surface-container' },
+                { name: 'Home & Living', icon: 'chair', color: 'bg-surface-container' },
+                { name: 'Sports', icon: 'sports_soccer', color: 'bg-surface-container' },
               ].map((cat) => (
                 <Link
                   key={cat.name}
                   href="/products"
-                  className="bg-surface border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] hover:border-primary-container transition-all flex flex-col items-center justify-center text-center group"
+                  className="bg-surface border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] hover:border-primary-container transition-all flex flex-col items-center justify-center text-center group"
                 >
                   <div className={`w-14 h-14 ${cat.color} border-2 border-on-surface flex items-center justify-center mb-4 group-hover:bg-primary-container transition-colors`}>
                     <Icon name={cat.icon} className="text-2xl text-on-surface group-hover:text-on-primary-container transition-colors font-bold" />
@@ -206,7 +206,7 @@ export default function LandingPage() {
             </div>
             <Link
               href="/products"
-              className="px-6 py-3 border-2 border-on-surface bg-white font-extrabold uppercase tracking-wider text-xs hover:bg-surface-container active:scale-95 transition-all shadow-[3px_3px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(26,28,28,1)]"
+              className="px-6 py-3 border-2 border-on-surface bg-surface font-extrabold uppercase tracking-wider text-xs hover:bg-surface-container active:scale-95 transition-all shadow-[3px_3px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)]"
             >
               Browse Full Catalog
             </Link>
@@ -227,7 +227,7 @@ export default function LandingPage() {
                 return (
                   <article
                     key={product.id}
-                    className="bg-white border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] flex flex-col group hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,28,28,1)] transition-all"
+                    className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex flex-col group hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] transition-all"
                   >
                     <Link href={`/products/${product.id}`} className="block relative overflow-hidden bg-surface-container-low border-b-2 border-on-surface">
                       <img
@@ -242,7 +242,7 @@ export default function LandingPage() {
                         </span>
                       )}
                       {discount > 0 && (
-                        <span className="absolute top-3 right-3 bg-red-50 text-error border border-error text-[10px] font-black uppercase px-2 py-0.5">
+                        <span className="absolute top-3 right-3 bg-error-container text-on-error-container border border-error text-[10px] font-black uppercase px-2 py-0.5">
                           -{discount}%
                         </span>
                       )}
@@ -259,11 +259,11 @@ export default function LandingPage() {
                       <div className="mt-auto flex items-center justify-between">
                         <div className="flex flex-col">
                           <span className="font-headline-md text-base font-black text-on-surface">
-                            Kes. {finalPrice.toFixed(2)}
+                            Ksh {finalPrice.toFixed(2)}
                           </span>
                           {discount > 0 && (
                             <span className="text-[10px] text-secondary line-through font-bold">
-                              Kes. {originalPrice.toFixed(2)}
+                              Ksh {originalPrice.toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -271,7 +271,7 @@ export default function LandingPage() {
                         <button
                           onClick={() => handleAddToCart(product.id)}
                           disabled={addingToCart[product.id]}
-                          className={`px-4 py-2 border-2 border-on-surface bg-primary-container text-on-primary-container font-headline-md font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-[2px_2px_0px_0px_rgba(26,28,28,1)] active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(26,28,28,1)] hover:bg-amber-500 disabled:opacity-50 ${addedToCart[product.id] ? '!bg-green-600 !text-white' : ''}`}
+                          className={`px-4 py-2 border-2 border-on-surface bg-primary-container text-on-primary-container font-headline-md font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 disabled:opacity-50 ${addedToCart[product.id] ? '!bg-green-600 !text-white' : ''}`}
                         >
                           {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added ✓' : 'Adding...') : 'Add To Cart'}
                         </button>
@@ -290,18 +290,18 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════
           5. TRUST BADGES
          ═══════════════════════════════════════════════════════════ */}
-      <section className="py-16 md:py-20 bg-white border-y-2 border-on-surface">
+      <section className="py-16 md:py-20 bg-surface border-y-2 border-on-surface">
         <div className="max-w-[1440px] mx-auto px-6 md:px-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { icon: 'local_shipping', title: 'Free Shipping', desc: 'On all orders over Kes. 150' },
+              { icon: 'local_shipping', title: 'Free Shipping', desc: 'On all orders over Ksh 150' },
               { icon: 'shield_lock', title: 'Secure Payment', desc: 'Encrypted checkout pipeline' },
               { icon: 'swap_horiz', title: 'Easy Returns', desc: '30-day hassle-free returns' },
               { icon: 'workspace_premium', title: 'Premium Quality', desc: 'Carefully curated items' },
             ].map((badge) => (
               <div
                 key={badge.title}
-                className="bg-surface border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)] hover:-translate-y-1 transition-all text-center flex flex-col items-center"
+                className="bg-surface border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:-translate-y-1 transition-all text-center flex flex-col items-center"
               >
                 <div className="w-12 h-12 bg-primary-container border-2 border-on-surface flex items-center justify-center mb-4">
                   <Icon name={badge.icon} className="text-on-primary-container text-2xl font-bold" />
@@ -317,7 +317,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════
           6. NEWSLETTER / CTA
          ═══════════════════════════════════════════════════════════ */}
-      <section className="relative py-20 md:py-28 bg-on-surface text-white overflow-hidden">
+      <section className="relative py-20 md:py-28 bg-on-surface text-surface overflow-hidden">
         {/* Background shapes */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[15%] left-[5%] w-32 h-32 border border-primary-container/20 rotate-45" />
@@ -342,7 +342,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right — Email form */}
-            <div className="bg-white/5 border-2 border-white/20 p-8 backdrop-blur-sm">
+            <div className="bg-surface/5 border-2 border-white/20 p-8 backdrop-blur-sm">
               <form onSubmit={handleSubscribe} className="flex flex-col gap-4">
                 <input
                   type="email"
@@ -350,7 +350,7 @@ export default function LandingPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="YOUR EMAIL ADDRESS"
                   required
-                  className="w-full px-5 py-4 border-2 border-white/30 bg-white/5 text-white font-body-md font-semibold text-sm uppercase tracking-wider placeholder:text-white/40 focus:border-primary-container outline-none transition-colors"
+                  className="w-full px-5 py-4 border-2 border-white/30 bg-surface/5 text-white font-body-md font-semibold text-sm uppercase tracking-wider placeholder:text-white/40 focus:border-primary-container outline-none transition-colors"
                 />
                 <button
                   type="submit"

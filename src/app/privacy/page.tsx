@@ -123,7 +123,7 @@ export default function PrivacyPolicyPage() {
           {sections.map((section, index) => (
             <section
               key={index}
-              className="bg-white border-2 border-on-surface p-6 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,28,28,1)]"
+              className="bg-surface border-2 border-on-surface p-6 md:p-8 shadow-[4px_4px_0px_0px_var(--color-on-surface)]"
             >
               <h2 className="font-headline-md text-lg md:text-xl font-black uppercase tracking-tight mb-4 flex items-center gap-3">
                 <span className="inline-flex items-center justify-center w-10 h-10 bg-primary-container text-on-primary-container border-2 border-on-background text-lg">

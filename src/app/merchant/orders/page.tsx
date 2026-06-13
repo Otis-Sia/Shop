@@ -116,7 +116,7 @@ export default function MerchantOrders() {
                           <option value="cancelled">CANCELLED</option>
                         </select>
                       </td>
-                      <td className="p-4 font-bold">${order.totalAmount.toFixed(2)}</td>
+                      <td className="p-4 font-bold">Ksh {order.totalAmount.toFixed(2)}</td>
                       <td className="p-4 text-right">
                         <button 
                           onClick={() => order.id && toggleDetails(order.id)}
@@ -150,12 +150,12 @@ export default function MerchantOrders() {
                                       <p className="font-bold text-sm">{item.name}</p>
                                       <p className="text-xs text-secondary">Qty: {item.quantity}</p>
                                     </div>
-                                    <p className="font-bold text-sm">${(item.price * item.quantity).toFixed(2)}</p>
+                                    <p className="font-bold text-sm">Ksh {(item.price * item.quantity).toFixed(2)}</p>
                                   </div>
                                 ))}
                                 <div className="flex justify-between items-center pt-2">
                                   <p className="font-black uppercase text-sm">Order Total</p>
-                                  <p className="font-black text-lg">${order.totalAmount.toFixed(2)}</p>
+                                  <p className="font-black text-lg">Ksh {order.totalAmount.toFixed(2)}</p>
                                 </div>
                               </div>
                             </div>

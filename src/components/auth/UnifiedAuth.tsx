@@ -98,7 +98,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
 
   return (
     <main className="flex-grow flex items-center justify-center py-20 px-4 md:px-16 min-h-[calc(100vh-140px)]">
-      <div className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 gap-0 border-2 border-on-background overflow-hidden bg-white">
+      <div className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 gap-0 border-2 border-on-background overflow-hidden bg-surface">
         
         {/* Left Side: Premium Brand Information Panel */}
         <div className="relative bg-on-background text-surface flex flex-col justify-center p-12 lg:p-16 space-y-6 min-h-[400px]">
@@ -137,7 +137,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
         </div>
 
         {/* Right Side: Step-by-Step Form Panel */}
-        <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-center bg-white min-h-[550px]">
+        <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-center bg-surface min-h-[550px]">
           {/* Header Area depending on step */}
           <div className="mb-8">
             {step === 'email' && (
@@ -182,7 +182,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                   Email Address
                 </label>
                 <input 
-                  className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all" 
+                  className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all bg-surface text-on-surface" 
                   id="email" 
                   placeholder="name@domain.com" 
                   type="email"
@@ -206,7 +206,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                   <div className="w-full border-t border-surface-container-highest"></div>
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-3 text-secondary font-bold tracking-wider">
+                  <span className="bg-surface px-3 text-secondary font-bold tracking-wider">
                     Or continue with
                   </span>
                 </div>
@@ -259,7 +259,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                   </a>
                 </div>
                 <input 
-                  className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all" 
+                  className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all bg-surface text-on-surface" 
                   id="login-pass" 
                   placeholder="••••••••" 
                   type="password"
@@ -303,7 +303,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                     First Name
                   </label>
                   <input 
-                    className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all" 
+                    className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all bg-surface text-on-surface" 
                     id="first-name" 
                     type="text"
                     required
@@ -318,7 +318,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                     Last Name
                   </label>
                   <input 
-                    className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all" 
+                    className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all bg-surface text-on-surface" 
                     id="last-name" 
                     type="text"
                     required
@@ -334,7 +334,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                   Create Password
                 </label>
                 <input 
-                  className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all" 
+                  className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all bg-surface text-on-surface" 
                   id="signup-pass" 
                   placeholder="Min. 8 characters" 
                   type="password"

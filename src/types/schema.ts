@@ -3,6 +3,21 @@ import { Timestamp } from "firebase/firestore";
 // User Roles
 export type UserRole = "customer" | "admin" | "merchant";
 
+// Category Structure
+export interface CategoryNode {
+  name: string;
+  subcategories?: string[];
+}
+
+export interface SystemCategory {
+  id?: string;
+  name: string;
+  type: 'goods' | 'services';
+  categories: CategoryNode[];
+  createdAt?: Timestamp | Date;
+  updatedAt?: Timestamp | Date;
+}
+
 // 1. Users Collection
 // Path: users/{userId}
 export interface UserDocument {
@@ -13,9 +28,22 @@ export interface UserDocument {
   location?: string;
   phone?: string;
   storeName?: string;
-  businessCategory?: string;
+  storeDescription?: string;
+  businessCategories?: string[];
   businessType?: string;
+  offeringType?: 'goods' | 'services' | 'both';
   industry?: string;
+  storeContactEmail?: string;
+  storeContactPhone?: string;
+  socialMediaLinks?: {
+    instagram?: string;
+    twitter?: string;
+    facebook?: string;
+    website?: string;
+  };
+  logoUrl?: string;
+  bannerUrl?: string;
+  onboardingComplete?: boolean;
   role: UserRole;
   merchantStatus?: 'pending' | 'approved' | 'rejected' | 'verified';
   createdAt: Timestamp | Date;
@@ -35,18 +63,33 @@ export interface CartItem {
 export interface Product {
   id?: string; // ID is usually the document ID
   merchantId: string; // The ID of the merchant who owns this product
+  itemType?: 'goods' | 'service';
   name: string;
+  shortDescription?: string;
   description: string;
+  sku?: string;
   price: number;
+  salePrice?: number;
+  saleStartDate?: Timestamp | Date | null;
+  saleEndDate?: Timestamp | Date | null;
   discount?: number;
   brand?: string;
   currency: string; // e.g., 'USD'
+  trackInventory?: boolean;
   stock: number;
+  lowStockAlert?: boolean;
+  allowBackorders?: boolean;
+  groupCategory?: string;
   category: string;
+  subcategories?: string[];
   imageUrls: string[]; // Links to Cloud Storage
+  imageAltTexts?: Record<string, string>;
+  videoUrl?: string;
   tags?: string[];
+  labels?: string[];
   colors?: string[];
   sizes?: string[];
+  duration?: number; // Duration of the service in minutes
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
 }

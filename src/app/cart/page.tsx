@@ -112,7 +112,7 @@ export default function CartPage() {
       </h1>
 
       {userRole === 'admin' || userRole === 'merchant' ? (
-        <div className="border-2 border-error p-12 bg-red-50 text-center flex flex-col items-center justify-center max-w-[600px] mx-auto">
+        <div className="border-2 border-error p-12 bg-error-container text-center flex flex-col items-center justify-center max-w-[600px] mx-auto">
           <Icon name="block" className="text-5xl mb-4 text-error" />
           <h3 className="font-headline-md text-xl font-bold uppercase mb-2 text-error">Access Denied</h3>
           <p className="text-sm text-error mb-6 max-w-[300px]">Admins and Merchants cannot purchase items.</p>
@@ -129,7 +129,7 @@ export default function CartPage() {
           <p className="mt-4 font-bold text-sm tracking-widest text-secondary uppercase">Loading your cart...</p>
         </div>
       ) : items.length === 0 ? (
-        <div className="border-2 border-on-surface p-12 bg-white text-center flex flex-col items-center justify-center max-w-[600px] mx-auto">
+        <div className="border-2 border-on-surface p-12 bg-surface text-center flex flex-col items-center justify-center max-w-[600px] mx-auto">
           <Icon name="shopping_bag" className="text-5xl mb-4 text-secondary" />
           <h3 className="font-headline-md text-xl font-bold uppercase mb-2">Your cart is empty</h3>
           <p className="text-sm text-secondary mb-6 max-w-[300px]">Add some great items to get started!</p>
@@ -194,15 +194,15 @@ export default function CartPage() {
 
                     {/* Unit Price */}
                     <div className="hidden md:block col-span-1 md:col-span-2 text-center font-headline-md text-sm md:text-base font-extrabold">
-                      Kes. {unitPrice.toFixed(2)}
+                      Ksh {unitPrice.toFixed(2)}
                       {discount > 0 && (
-                        <div className="text-xs text-secondary line-through font-normal">Kes. {originalPrice.toFixed(2)}</div>
+                        <div className="text-xs text-secondary line-through font-normal">Ksh {originalPrice.toFixed(2)}</div>
                       )}
                     </div>
 
                     {/* Quantity Selectors */}
                     <div className="col-span-1 md:col-span-2 flex justify-start md:justify-center">
-                      <div className="flex border-2 border-on-surface bg-white">
+                      <div className="flex border-2 border-on-surface bg-surface">
                         <button 
                           onClick={() => handleQuantityChange(product.id, item.quantity, -1)}
                           className="px-3 py-1 font-bold hover:bg-surface-container active:bg-surface-dim transition-colors border-r-2 border-on-surface text-sm"
@@ -223,7 +223,7 @@ export default function CartPage() {
 
                     {/* Total Price */}
                     <div className="col-span-1 md:col-span-2 text-right font-headline-md text-base md:text-lg font-black text-primary-container">
-                      Kes. {itemTotal.toFixed(2)}
+                      Ksh {itemTotal.toFixed(2)}
                     </div>
                   </div>
                 );
@@ -232,7 +232,7 @@ export default function CartPage() {
           </div>
 
           {/* Checkout Column */}
-          <div className="w-full lg:max-w-md bg-white border-2 border-on-surface p-8">
+          <div className="w-full lg:max-w-md bg-surface border-2 border-on-surface p-8">
             <h3 className="font-headline-md text-lg font-extrabold mb-6 uppercase tracking-wider text-on-surface">
               Order Summary
             </h3>
@@ -240,7 +240,7 @@ export default function CartPage() {
             <div className="space-y-4">
               <div className="flex justify-between border-b border-surface-container pb-3 font-semibold text-sm">
                 <span className="text-secondary uppercase tracking-wider">Subtotal</span>
-                <span className="font-extrabold">Kes. {total.toFixed(2)}</span>
+                <span className="font-extrabold">Ksh {total.toFixed(2)}</span>
               </div>
               
               <div className="flex justify-between border-b border-surface-container pb-3 font-semibold text-sm">
@@ -250,7 +250,7 @@ export default function CartPage() {
 
               <div className="flex justify-between pb-3 pt-2 font-black text-lg">
                 <span className="uppercase tracking-widest text-on-surface">Total</span>
-                <span className="text-on-surface">Kes. {total.toFixed(2)}</span>
+                <span className="text-on-surface">Ksh {total.toFixed(2)}</span>
               </div>
             </div>
 

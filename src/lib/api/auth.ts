@@ -22,7 +22,7 @@ export interface User {
   role?: "customer" | "admin" | "merchant";
   merchantStatus?: "pending" | "approved" | "rejected" | "verified";
   storeName?: string;
-  businessCategory?: string;
+  businessCategories?: string[];
   businessType?: string;
 }
 
@@ -171,11 +171,32 @@ export const sendPasswordReset = async (email: string) => {
   }
 };
 
-export const applyForMerchantRole = async (uid: string, details: { storeName: string; location: string; businessCategory: string; businessType: string }) => {
+export const applyForMerchantRole = async (
+  uid: string, 
+  details: { 
+    storeName: string; 
+    location: string; 
+    businessCategories: string[]; 
+    businessType: string;
+    storeDescription?: string;
+    offeringType?: 'goods' | 'services' | 'both';
+    storeContactEmail?: string;
+    storeContactPhone?: string;
+    socialMediaLinks?: {
+      instagram?: string;
+      twitter?: string;
+      facebook?: string;
+      website?: string;
+    };
+    logoUrl?: string;
+    bannerUrl?: string;
+  }
+) => {
   try {
     const docRef = doc(db, 'users', uid);
     await setDoc(docRef, { 
       merchantStatus: 'pending',
+      onboardingComplete: true,
       ...details
     }, { merge: true });
     return true;
