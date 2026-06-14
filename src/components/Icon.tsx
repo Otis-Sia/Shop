@@ -101,7 +101,8 @@ export type IconName =
   | 'dark_mode'
   | 'menu'
   | 'smartphone'
-  | 'brightness_auto';
+  | 'brightness_auto'
+  | 'language';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName | string;
@@ -966,6 +967,15 @@ export default function Icon({ name, className = '', ...props }: IconProps) {
         <svg {...baseSvgProps}>
           <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
           <line x1="12" y1="18" x2="12.01" y2="18" />
+        </svg>
+      );
+
+    case 'language':
+      return (
+        <svg {...baseSvgProps}>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
         </svg>
       );
 
