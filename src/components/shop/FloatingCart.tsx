@@ -10,9 +10,6 @@ import { auth, db } from '@/lib/firebase';
 export default function FloatingCart() {
   const pathname = usePathname();
 
-  // Hide on the cart page itself to avoid redundancy
-  if (pathname === '/cart') return null;
-
   const [itemCount, setItemCount] = useState(0);
 
   useEffect(() => {
@@ -70,6 +67,8 @@ export default function FloatingCart() {
       window.removeEventListener('cartUpdated', handleCartUpdate);
     };
   }, []);
+
+  if (pathname === '/cart') return null;
 
   return (
     <Link

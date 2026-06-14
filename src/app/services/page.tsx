@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import Icon from '@/components/Icon';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -163,12 +164,12 @@ export default function ServicesPage() {
                     </div>
                   </div>
                   
-                  <button 
-                    onClick={() => alert(`Booking flow for ${service.name} coming soon!`)}
-                    className="w-full bg-primary-container text-on-primary-container font-black uppercase tracking-wider py-4 border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:bg-[#ffb05c] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all"
+                  <Link 
+                    href={`/services/${service.id}`}
+                    className="w-full inline-block text-center bg-primary-container text-on-primary-container font-black uppercase tracking-wider py-4 border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:bg-[#ffb05c] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all"
                   >
-                    Book Now
-                  </button>
+                    View Details
+                  </Link>
                 </div>
               </div>
             ))}
