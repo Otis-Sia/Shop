@@ -256,7 +256,90 @@ export default function ProductsPage() {
           className={`${isMobileFiltersOpen ? 'flex' : 'hidden'} lg:flex flex-col lg:flex-row lg:sticky lg:top-24 items-start shrink-0 z-30 w-full lg:w-auto`}
           onMouseLeave={() => setHoveredCategory(null)}
         >
-          <aside className="w-full lg:w-72 shrink-0 bg-surface border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)] space-y-6 z-20 relative">
+          {/* === MOBILE LAYOUT === */}
+          <div className="lg:hidden w-full space-y-4">
+            {/* Categories as horizontal scrollable chips */}
+            <div className="overflow-x-auto hide-scrollbar -mx-1 px-1 pb-2">
+              <div className="flex gap-2 w-max">
+                <button
+                  onClick={() => handleCategoryClick('')}
+                  className={`shrink-0 px-4 py-2 border-2 border-on-surface text-xs font-bold uppercase tracking-wider transition-all active:scale-95 ${
+                    category === ''
+                      ? 'bg-primary-container text-on-primary-container shadow-[3px_3px_0px_0px_var(--color-on-surface)]'
+                      : 'bg-surface text-on-surface hover:bg-surface-container'
+                  }`}
+                >
+                  All
+                </button>
+                {categories
+                  .filter(group => 
+                    availableCategories.includes(group.name) || 
+                    group.categories.some(c => 
+                      availableCategories.includes(c.name) || 
+                      c.subcategories?.some(sub => availableCategories.includes(sub))
+                    )
+                  )
+                  .map(group => (
+                  <button
+                    key={group.name}
+                    onClick={() => handleCategoryClick(group.name)}
+                    className={`shrink-0 px-4 py-2 border-2 border-on-surface text-xs font-bold uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 ${
+                      category === group.name
+                        ? 'bg-primary-container text-on-primary-container shadow-[3px_3px_0px_0px_var(--color-on-surface)]'
+                        : 'bg-surface text-on-surface hover:bg-surface-container'
+                    }`}
+                  >
+                    <Icon name={CATEGORY_ICONS[group.name] || 'label'} className="text-[14px]" />
+                    {group.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Search & Price side by side */}
+            <div className="flex gap-3">
+              <div className="flex-1 min-w-0">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  className="w-full h-10 px-3 border-2 border-on-surface rounded-none font-medium text-sm focus:ring-0 focus:border-primary-container"
+                />
+              </div>
+              <div className="w-28 shrink-0">
+                <input
+                  type="number"
+                  placeholder="Max Ksh"
+                  min="0"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  className="w-full h-10 px-3 border-2 border-on-surface rounded-none font-medium text-sm focus:ring-0 focus:border-primary-container"
+                />
+              </div>
+            </div>
+
+            {/* Action buttons side by side */}
+            <div className="flex gap-3">
+              <button 
+                onClick={handleApplyFilters}
+                className="flex-1 bg-primary-container text-on-primary-container py-2.5 font-bold uppercase tracking-wider text-xs border-2 border-on-surface shadow-[3px_3px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 transition-all"
+              >
+                Apply
+              </button>
+              <button 
+                onClick={handleClearFilters}
+                className="flex-1 bg-surface text-secondary py-2.5 font-bold uppercase tracking-wider text-xs border-2 border-on-surface hover:bg-surface-container active:scale-95 transition-all"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {/* === DESKTOP LAYOUT === */}
+          <aside className="hidden lg:block w-72 shrink-0 bg-surface border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)] space-y-6 z-20 relative">
           
           {/* Categories Menu */}
           <div>
@@ -314,7 +397,6 @@ export default function ProductsPage() {
           </h3>
           
           <div className="space-y-4">
-            {/* Search Input */}
             <div className="space-y-1">
               <label className="font-extrabold text-xs uppercase tracking-wider block text-on-surface">Search Products</label>
               <input
@@ -327,7 +409,6 @@ export default function ProductsPage() {
               />
             </div>
             
-            {/* Max Price */}
             <div className="space-y-1">
               <label className="font-extrabold text-xs uppercase tracking-wider block text-on-surface">Max Price (Ksh)</label>
               <input
@@ -340,8 +421,6 @@ export default function ProductsPage() {
                 className="w-full h-12 px-4 border-2 border-on-surface rounded-none font-medium text-sm transition-all focus:ring-0 focus:border-primary-container"
               />
             </div>
-
-
           </div>
 
           <div className="space-y-2 pt-2">
@@ -360,9 +439,9 @@ export default function ProductsPage() {
           </div>
         </aside>
 
-        {/* Subcategories Flyout Panel (In-Flow) */}
+        {/* Subcategories Flyout Panel (Desktop only) */}
         <div 
-           className={`overflow-hidden transition-[width,opacity,margin] duration-300 ease-in-out flex shrink-0 h-full ${hoveredCategory ? 'w-[450px] ml-6 opacity-100' : 'w-0 ml-0 opacity-0'}`}
+           className={`hidden lg:flex overflow-hidden transition-[width,opacity,margin] duration-300 ease-in-out shrink-0 h-full ${hoveredCategory ? 'w-[450px] ml-6 opacity-100' : 'w-0 ml-0 opacity-0'}`}
         >
           {hoveredCategory && (
             <div className="w-[450px] bg-surface border-2 border-on-surface shadow-[6px_6px_0px_0px_var(--color-on-surface)] z-50 p-6 min-h-full">
@@ -405,6 +484,7 @@ export default function ProductsPage() {
           )}
         </div>
       </div>
+
 
         {/* Products Grid Content */}
         <div className="flex-1 min-w-0 space-y-6 z-10">
