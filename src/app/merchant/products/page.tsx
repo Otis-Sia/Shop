@@ -359,7 +359,7 @@ export default function MerchantProducts() {
 
       let saveId = editingId;
       if (isAdding) {
-        saveId = products.length > 0 ? Math.max(...products.map(p => Number(p.id))) + 1 : 1;
+        saveId = Date.now();
         productData.createdAt = Timestamp.now();
       }
 

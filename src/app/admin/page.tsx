@@ -264,7 +264,7 @@ export default function AdminPage() {
   const handleSaveNew = async () => {
     setIsSaving(true);
     try {
-      const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+      const newId = Date.now();
       const cleanedImages = (editForm.additional_images || []).filter(url => url.trim() !== '');
       const allImages = [editForm.image_url || '', ...cleanedImages].filter(url => url.trim() !== '');
       
@@ -412,8 +412,8 @@ export default function AdminPage() {
       <aside className="fixed left-0 top-0 h-screen flex flex-col py-6 w-64 bg-surface border-r-2 border-on-surface z-40 hidden lg:flex">
         <div className="px-6 mb-10">
           <Link href="/" className="font-headline-md text-2xl font-black text-on-surface uppercase tracking-tighter hover:text-primary-container transition-colors flex items-center gap-2">
-            <Image src="/Logo.svg" alt="Logo" width={32} height={32} className="w-auto h-8" />
-            <Image src="/name.svg" alt="JUJ4" width={80} height={32} className="w-auto h-5" />
+            <Image src="/Logo.svg" alt="Logo" width={32} height={32} className="w-auto h-8 dark:invert dark:hue-rotate-180" />
+            <Image src="/name.svg" alt="JUJ4" width={80} height={32} className="w-auto h-5 dark:invert dark:hue-rotate-180" />
             <span className="ml-2">Admin</span>
           </Link>
           <p className="text-xs font-semibold text-secondary uppercase tracking-widest mt-1">System Management</p>

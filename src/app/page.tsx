@@ -24,7 +24,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════
           1. FULL-SCREEN HERO
          ═══════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-[90vh] flex items-center justify-center bg-on-surface text-surface overflow-hidden border-b-4 border-primary-container">
+      <section className="relative min-h-[90vh] flex items-center justify-center bg-[#1a1c1c] text-white overflow-hidden border-b-4 border-primary-container">
         {/* Animated geometric background */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-[10%] left-[5%] w-32 h-32 border-2 border-primary-container/30 rotate-45 animate-pulse" />
@@ -160,7 +160,7 @@ export default function HomePage() {
               { value: '24/7', label: 'Support', icon: 'headset_mic' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="w-12 h-12 bg-on-surface text-surface rounded-none flex items-center justify-center mx-auto mb-3 border-2 border-on-surface">
+                <div className="w-12 h-12 bg-[#1a1c1c] text-white rounded-none flex items-center justify-center mx-auto mb-3 border-2 border-[#1a1c1c]">
                   <Icon name={stat.icon} className="text-xl font-bold" />
                 </div>
                 <p className="font-headline-md text-3xl md:text-4xl font-black text-on-primary-container tracking-tighter">
@@ -263,7 +263,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════
           6. CALL TO ACTION BANNER
          ═══════════════════════════════════════════════════════════ */}
-      <section className="relative py-24 md:py-32 bg-on-surface text-surface overflow-hidden">
+      <section className="relative py-24 md:py-32 bg-[#1a1c1c] text-white overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[20%] left-[10%] w-40 h-40 border border-primary-container/20 rotate-45" />

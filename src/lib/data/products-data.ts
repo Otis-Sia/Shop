@@ -19,6 +19,7 @@ export interface Product {
   merchantInfo?: string;
   merchantStatus?: 'pending' | 'approved' | 'rejected' | 'verified';
   merchantCreatedAt?: any;
+  itemType?: string;
 }
 
 export const productsData: Product[] = productsJson as Product[];

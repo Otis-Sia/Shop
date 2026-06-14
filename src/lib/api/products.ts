@@ -8,6 +8,7 @@ export interface ProductFilters {
   limit?: number;
   category?: string;
   merchantId?: string;
+  itemType?: string;
 }
 
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -30,17 +31,22 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
         sizes: d.sizes || [],
         discount: d.discount || 0,
         brand: d.brand || '',
+        itemType: d.itemType || 'goods',
         image_url: d.imageUrls && d.imageUrls.length > 0 ? d.imageUrls[0] : (d.image_url || ''),
         additional_images: d.imageUrls && d.imageUrls.length > 1 ? d.imageUrls.slice(1) : (d.additional_images || []),
         merchantId: d.merchantId || 'admin'
       } as Product;
     });
 
-    if (products.length === 0) {
-      products = [...productsData];
-    } else {
-      products.sort((a, b) => b.id - a.id);
+    const dbProductIds = new Set(products.map(p => p.id));
+    
+    for (const p of productsData) {
+      if (!dbProductIds.has(p.id)) {
+        products.push(p);
+      }
     }
+    
+    products.sort((a, b) => b.id - a.id);
 
     // Fetch merchant profiles to populate merchantName
     const uniqueMerchantIds = Array.from(new Set(products.map(p => p.merchantId).filter(id => id && id !== 'admin'))) as string[];
@@ -93,6 +99,15 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
 
     if (filters.merchantId) {
       products = products.filter(p => p.merchantId === filters.merchantId);
+    }
+
+    if (filters.itemType) {
+      if (filters.itemType !== 'all') {
+        products = products.filter(p => p.itemType === filters.itemType);
+      }
+    } else {
+      // By default, exclude services from products list
+      products = products.filter(p => p.itemType !== 'service');
     }
 
     if (filters.limit) {

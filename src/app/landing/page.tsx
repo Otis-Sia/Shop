@@ -59,7 +59,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════
           1. HERO SECTION
          ═══════════════════════════════════════════════════════════ */}
-      <section className="relative bg-on-surface text-surface py-24 md:py-36 overflow-hidden border-b-4 border-primary-container">
+      <section className="relative bg-[#1a1c1c] text-white py-24 md:py-36 overflow-hidden border-b-4 border-primary-container">
         {/* JUJ4 watermark */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
           <span className="font-headline-md text-[150px] md:text-[250px] lg:text-[350px] font-black text-white/[0.03] tracking-tighter">
@@ -148,7 +148,7 @@ export default function LandingPage() {
             {/* Large feature card — New Arrivals */}
             <Link
               href="/products"
-              className="group bg-on-surface text-surface border-2 border-on-surface p-10 flex flex-col justify-between min-h-[350px] shadow-[6px_6px_0px_0px_rgba(255,140,0,1)] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_rgba(255,140,0,1)] transition-all relative overflow-hidden"
+              className="group bg-[#1a1c1c] text-white border-2 border-[#1a1c1c] p-10 flex flex-col justify-between min-h-[350px] shadow-[6px_6px_0px_0px_rgba(255,140,0,1)] hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_rgba(255,140,0,1)] transition-all relative overflow-hidden"
             >
               {/* Background decoration */}
               <div className="absolute top-4 right-4 w-32 h-32 border border-white/10 rotate-45 group-hover:rotate-[50deg] transition-transform duration-500" />
@@ -317,7 +317,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════
           6. NEWSLETTER / CTA
          ═══════════════════════════════════════════════════════════ */}
-      <section className="relative py-20 md:py-28 bg-on-surface text-surface overflow-hidden">
+      <section className="relative py-20 md:py-28 bg-[#1a1c1c] text-white overflow-hidden">
         {/* Background shapes */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[15%] left-[5%] w-32 h-32 border border-primary-container/20 rotate-45" />

@@ -103,7 +103,7 @@ export default function PrivacyPolicyPage() {
         </nav>
 
         {/* Page Header */}
-        <div className="bg-on-background text-white p-8 md:p-12 border-2 border-on-background mb-8">
+        <div className="bg-[#1a1c1c] text-white p-8 md:p-12 border-2 border-[#1a1c1c] mb-8">
           <span className="inline-block bg-primary-container text-on-primary-container font-extrabold text-xs px-3 py-1 mb-4 uppercase tracking-widest">
             Legal
           </span>

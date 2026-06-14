@@ -73,7 +73,7 @@ export default function MerchantStorePage() {
     <div className="bg-background flex-grow flex flex-col">
       {/* Merchant Header Hero */}
       <section 
-        className="text-surface py-12 md:py-20 border-b-4 border-primary-container relative overflow-hidden"
+        className="text-white py-12 md:py-20 border-b-4 border-primary-container relative overflow-hidden"
         style={{
           backgroundColor: m?.bannerUrl ? '#000' : '#1a1c1c', // bg-on-surface
           backgroundImage: m?.bannerUrl ? `url(${m.bannerUrl})` : 'none',
@@ -107,36 +107,36 @@ export default function MerchantStorePage() {
               {storeName}
             </h1>
             
-            <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm font-bold text-surface-dim mb-4">
+            <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm font-bold text-white/70 mb-4">
               {m?.businessCategories?.length ? (
                 m.businessCategories.map((cat, idx) => (
-                  <span key={idx} className="flex items-center gap-1 bg-surface/10 px-3 py-1 uppercase tracking-wider backdrop-blur-sm">
+                  <span key={idx} className="flex items-center gap-1 bg-white/10 px-3 py-1 uppercase tracking-wider backdrop-blur-sm">
                     <Icon name="store" className="text-[14px]" /> {cat}
                   </span>
                 ))
               ) : (m as any)?.businessCategory ? (
-                <span className="flex items-center gap-1 bg-surface/10 px-3 py-1 uppercase tracking-wider backdrop-blur-sm">
+                <span className="flex items-center gap-1 bg-white/10 px-3 py-1 uppercase tracking-wider backdrop-blur-sm">
                   <Icon name="store" className="text-[14px]" /> {(m as any).businessCategory}
                 </span>
               ) : null}
               {m?.offeringType && (
-                <span className="flex items-center gap-1 bg-surface/10 px-3 py-1 uppercase tracking-wider backdrop-blur-sm">
+                <span className="flex items-center gap-1 bg-white/10 px-3 py-1 uppercase tracking-wider backdrop-blur-sm">
                   <Icon name="shopping_bag" className="text-[14px]" /> {m.offeringType}
                 </span>
               )}
               {m?.location && (
-                <span className="flex items-center gap-1 bg-surface/10 px-3 py-1 uppercase tracking-wider backdrop-blur-sm">
+                <span className="flex items-center gap-1 bg-white/10 px-3 py-1 uppercase tracking-wider backdrop-blur-sm">
                   <Icon name="location_on" className="text-[14px]" /> {m.location}
                 </span>
               )}
               {m?.merchantStatus === 'verified' && (
-                <span className="flex items-center gap-1 bg-surface/10 px-3 py-1 uppercase tracking-wider text-primary-container backdrop-blur-sm border border-primary-container/30">
+                <span className="flex items-center gap-1 bg-white/10 px-3 py-1 uppercase tracking-wider text-primary-container backdrop-blur-sm border border-primary-container/30">
                   <Icon name="verified" className="text-[14px]" /> Verified Seller
                 </span>
               )}
             </div>
             
-            <p className="text-sm max-w-2xl text-surface/90 leading-relaxed font-medium mb-6">
+            <p className="text-sm max-w-2xl text-white/90 leading-relaxed font-medium mb-6">
               {m?.storeDescription || `Welcome to the official storefront for ${storeName}. Browse our entire catalog of premium items below.`}
             </p>
 
@@ -144,7 +144,7 @@ export default function MerchantStorePage() {
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-sm">
               {/* Contact Info */}
               {(m?.storeContactEmail || m?.storeContactPhone) && (
-                <div className="flex items-center gap-4 text-surface/80">
+                <div className="flex items-center gap-4 text-white/80">
                   {m?.storeContactEmail && (
                     <a href={`mailto:${m.storeContactEmail}`} className="flex items-center gap-1.5 hover:text-white transition-colors">
                       <Mail className="w-4 h-4" />
@@ -162,29 +162,29 @@ export default function MerchantStorePage() {
 
               {/* Separator if both exist */}
               {(m?.storeContactEmail || m?.storeContactPhone) && m?.socialMediaLinks && Object.values(m.socialMediaLinks).some(Boolean) && (
-                <div className="w-px h-4 bg-surface/20 hidden md:block"></div>
+                <div className="w-px h-4 bg-white/20 hidden md:block"></div>
               )}
 
               {/* Social Links */}
               {m?.socialMediaLinks && (
                 <div className="flex items-center gap-3">
                   {m.socialMediaLinks.instagram && (
-                    <a href={`https://instagram.com/${m.socialMediaLinks.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-surface/10 flex items-center justify-center hover:bg-primary-container hover:text-on-surface transition-colors font-black text-[10px]" title="Instagram">
+                    <a href={`https://instagram.com/${m.socialMediaLinks.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary-container hover:text-on-primary-container transition-colors font-black text-[10px]" title="Instagram">
                       IG
                     </a>
                   )}
                   {m.socialMediaLinks.twitter && (
-                    <a href={`https://twitter.com/${m.socialMediaLinks.twitter.replace('@', '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-surface/10 flex items-center justify-center hover:bg-primary-container hover:text-on-surface transition-colors font-black text-[10px]" title="Twitter">
+                    <a href={`https://twitter.com/${m.socialMediaLinks.twitter.replace('@', '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary-container hover:text-on-primary-container transition-colors font-black text-[10px]" title="Twitter">
                       X
                     </a>
                   )}
                   {m.socialMediaLinks.facebook && (
-                    <a href={m.socialMediaLinks.facebook.startsWith('http') ? m.socialMediaLinks.facebook : `https://${m.socialMediaLinks.facebook}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-surface/10 flex items-center justify-center hover:bg-primary-container hover:text-on-surface transition-colors font-black text-[10px]" title="Facebook">
+                    <a href={m.socialMediaLinks.facebook.startsWith('http') ? m.socialMediaLinks.facebook : `https://${m.socialMediaLinks.facebook}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary-container hover:text-on-primary-container transition-colors font-black text-[10px]" title="Facebook">
                       FB
                     </a>
                   )}
                   {m.socialMediaLinks.website && (
-                    <a href={m.socialMediaLinks.website.startsWith('http') ? m.socialMediaLinks.website : `https://${m.socialMediaLinks.website}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-surface/10 flex items-center justify-center hover:bg-primary-container hover:text-on-surface transition-colors" title="Website">
+                    <a href={m.socialMediaLinks.website.startsWith('http') ? m.socialMediaLinks.website : `https://${m.socialMediaLinks.website}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary-container hover:text-on-primary-container transition-colors" title="Website">
                       <Globe className="w-4 h-4" />
                     </a>
                   )}

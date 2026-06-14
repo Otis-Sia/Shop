@@ -41,8 +41,8 @@ export default function ForgotPasswordPage() {
         {/* Header */}
         <div className="bg-on-background text-background p-8 md:p-10">
           <Link href="/" className="inline-block mb-6 flex items-center gap-2">
-            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="w-auto h-10" />
-            <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6" />
+            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="w-auto h-10 invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0" style={{ width: 'auto' }} />
+            <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6 invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0" />
           </Link>
           <h1 className="font-headline-md text-2xl md:text-3xl font-black uppercase tracking-tight mb-2">
             Reset Password

@@ -194,7 +194,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
               </div>
 
               <button 
-                className="w-full h-14 bg-on-background text-white font-headline-md font-bold uppercase tracking-wider text-sm transition-all active:scale-[0.98] border-b-4 border-primary-container flex items-center justify-center hover:bg-neutral-800" 
+                className="w-full h-14 bg-on-background text-background font-headline-md font-bold uppercase tracking-wider text-sm transition-all active:scale-[0.98] border-b-4 border-primary-container flex items-center justify-center hover:bg-neutral-800" 
                 type="submit"
                 disabled={submitting}
               >
@@ -380,7 +380,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
               </p>
 
               <button 
-                className="w-full h-14 bg-on-background text-white font-headline-md font-bold uppercase tracking-wider text-sm transition-all active:scale-[0.98] border-b-4 border-primary-container flex items-center justify-center hover:bg-neutral-800" 
+                className="w-full h-14 bg-on-background text-background font-headline-md font-bold uppercase tracking-wider text-sm transition-all active:scale-[0.98] border-b-4 border-primary-container flex items-center justify-center hover:bg-neutral-800" 
                 type="submit"
                 disabled={submitting}
               >

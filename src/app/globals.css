@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 @theme {
   /* ─── BOLT Color Palette ─── */
   
@@ -65,6 +67,7 @@
     --color-on-surface: #f9f9f9;
     --color-surface-container: #222222;
     --color-surface-container-low: #1e1e1e;
+    --color-surface-container-lowest: #0a0a0a;
     --color-surface-container-highest: #333333;
     --color-surface-dim: #2a2a2a;
     --color-secondary: #a3a3a3;
