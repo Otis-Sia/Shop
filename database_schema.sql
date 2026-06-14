@@ -53,6 +53,7 @@ CREATE TABLE products (
     stock INTEGER NOT NULL DEFAULT 0,
     low_stock_alert BOOLEAN DEFAULT FALSE,
     allow_backorders BOOLEAN DEFAULT FALSE,
+    group_category VARCHAR(100),
     category VARCHAR(100) NOT NULL,
     subcategories TEXT[],
     image_urls TEXT[],
