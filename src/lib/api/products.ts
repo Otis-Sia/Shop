@@ -9,6 +9,7 @@ export interface ProductFilters {
   category?: string;
   merchantId?: string;
   itemType?: string;
+  newArrivals?: boolean;
 }
 
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -17,9 +18,9 @@ import { db } from '@/lib/firebase';
 export const getProducts = async (filters: ProductFilters = {}): Promise<Product[]> => {
   try {
     const snapshot = await getDocs(collection(db, 'products'));
-    let products: Product[] = snapshot.docs.map(docSnap => {
+    const productsPromises = snapshot.docs.map(async (docSnap) => {
       const d = docSnap.data();
-      return {
+      const product: Product = {
         id: Number(docSnap.id),
         name: d.name || '',
         price: d.price || 0,
@@ -34,9 +35,38 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
         itemType: d.itemType || 'goods',
         image_url: d.imageUrls && d.imageUrls.length > 0 ? d.imageUrls[0] : (d.image_url || ''),
         additional_images: d.imageUrls && d.imageUrls.length > 1 ? d.imageUrls.slice(1) : (d.additional_images || []),
-        merchantId: d.merchantId || 'admin'
-      } as Product;
+        merchantId: d.merchantId || 'admin',
+        allowMultiplePurchases: d.allowMultiplePurchases !== false,
+        hasVariants: d.hasVariants || false,
+        variants: [], // We will populate this below
+        createdAt: d.createdAt || null,
+        trackInventory: d.trackInventory !== false
+      };
+
+      if (product.hasVariants) {
+        try {
+          const variantsSnap = await getDocs(collection(db, 'products', docSnap.id, 'variants'));
+          if (variantsSnap.docs.length > 0) {
+            product.variants = variantsSnap.docs.map(vDoc => ({
+              id: vDoc.id,
+              productId: docSnap.id,
+              ...vDoc.data()
+            })) as any;
+          } else {
+            // Fallback to embedded variants for products saved before subcollection migration
+            product.variants = d.variants || [];
+          }
+        } catch (err) {
+          console.error(`Error fetching variants for product ${docSnap.id}:`, err);
+          product.variants = d.variants || [];
+        }
+      } else {
+        product.variants = d.variants || [];
+      }
+      return product;
     });
+
+    let products: Product[] = await Promise.all(productsPromises);
 
     const dbProductIds = new Set(products.map(p => p.id));
     
@@ -95,6 +125,21 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
 
     if (filters.category) {
       products = products.filter(p => p.category === filters.category);
+    }
+
+    if (filters.newArrivals) {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      products = products.filter(p => {
+        if (!p.createdAt) return false;
+        let date: Date;
+        if (p.createdAt.toDate) {
+          date = p.createdAt.toDate();
+        } else {
+          date = new Date(p.createdAt);
+        }
+        return date.getTime() >= oneWeekAgo.getTime();
+      });
     }
 
     if (filters.merchantId) {

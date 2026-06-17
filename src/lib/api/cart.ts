@@ -7,6 +7,9 @@ export interface CartItem {
   id: number | string;
   product_id: number | string;
   quantity: number;
+  selectedColor?: string;
+  selectedSize?: string;
+  selectedVariantIndex?: number;
   Product?: Product;
 }
 
@@ -65,6 +68,9 @@ export const getCart = async (): Promise<Cart> => {
           id: docSnap.id,
           product_id: data.productId,
           quantity: data.quantity,
+          selectedColor: data.selectedColor,
+          selectedSize: data.selectedSize,
+          selectedVariantIndex: data.selectedVariantIndex,
           Product: product
         });
       }
@@ -76,23 +82,32 @@ export const getCart = async (): Promise<Cart> => {
   }
 };
 
-export const addToCart = async (productId: number | string, quantity = 1) => {
+export const addToCart = async (productId: number | string, quantity = 1, selectedColor?: string, selectedSize?: string, selectedVariantIndex?: number) => {
   const user = auth.currentUser;
 
   if (!user) {
     const items = getLocalCart();
-    const existing = items.find(i => i.product_id == productId);
+    const existing = items.find(i => 
+      i.product_id == productId && 
+      i.selectedColor == selectedColor && 
+      i.selectedSize == selectedSize &&
+      i.selectedVariantIndex == selectedVariantIndex
+    );
     if (existing) {
       existing.quantity += quantity;
     } else {
-      items.push({ id: Date.now(), product_id: productId, quantity });
+      items.push({ id: Date.now(), product_id: productId, quantity, selectedColor, selectedSize, selectedVariantIndex });
     }
     saveLocalCart(items);
     return { message: 'Item added to local cart' };
   }
 
   try {
-    const cartDocRef = doc(db, 'users', user.uid, 'cart', productId.toString());
+    const colorPart = selectedColor ? `_${selectedColor.replace(/[^a-zA-Z0-9]/g, '')}` : '';
+    const sizePart = selectedSize ? `_${selectedSize.replace(/[^a-zA-Z0-9]/g, '')}` : '';
+    const variantPart = selectedVariantIndex !== undefined && selectedVariantIndex !== null ? `_v${selectedVariantIndex}` : '';
+    const cartDocId = `${productId}${colorPart}${sizePart}${variantPart}`;
+    const cartDocRef = doc(db, 'users', user.uid, 'cart', cartDocId);
     const docSnap = await getDoc(cartDocRef);
 
     if (docSnap.exists()) {
@@ -100,12 +115,18 @@ export const addToCart = async (productId: number | string, quantity = 1) => {
       await setDoc(cartDocRef, {
         productId: productId.toString(),
         quantity: existingData.quantity + quantity,
+        selectedColor: selectedColor || null,
+        selectedSize: selectedSize || null,
+        selectedVariantIndex: selectedVariantIndex !== undefined ? selectedVariantIndex : null,
         addedAt: Timestamp.now()
       }, { merge: true });
     } else {
       await setDoc(cartDocRef, {
         productId: productId.toString(),
         quantity: quantity,
+        selectedColor: selectedColor || null,
+        selectedSize: selectedSize || null,
+        selectedVariantIndex: selectedVariantIndex !== undefined ? selectedVariantIndex : null,
         addedAt: Timestamp.now()
       });
     }
@@ -118,18 +139,18 @@ export const addToCart = async (productId: number | string, quantity = 1) => {
   }
 };
 
-export const removeFromCart = async (productId: number | string) => {
+export const removeFromCart = async (cartItemId: number | string) => {
   const user = auth.currentUser;
   
   if (!user) {
     let items = getLocalCart();
-    items = items.filter(i => i.product_id != productId);
+    items = items.filter(i => i.id != cartItemId);
     saveLocalCart(items);
     return { message: 'Item removed from local cart' };
   }
 
   try {
-    await deleteDoc(doc(db, 'users', user.uid, 'cart', productId.toString()));
+    await deleteDoc(doc(db, 'users', user.uid, 'cart', cartItemId.toString()));
     dispatchCartUpdate();
     return { message: 'Item removed from cloud cart' };
   } catch (error) {
@@ -138,12 +159,12 @@ export const removeFromCart = async (productId: number | string) => {
   }
 };
 
-export const updateCartItem = async (productId: number | string, quantity: number) => {
+export const updateCartItem = async (cartItemId: number | string, quantity: number) => {
   const user = auth.currentUser;
   
   if (!user) {
     const items = getLocalCart();
-    const existing = items.find(i => i.product_id == productId);
+    const existing = items.find(i => i.id == cartItemId);
     if (existing) {
       existing.quantity = quantity;
       saveLocalCart(items);
@@ -152,7 +173,7 @@ export const updateCartItem = async (productId: number | string, quantity: numbe
   }
 
   try {
-    await setDoc(doc(db, 'users', user.uid, 'cart', productId.toString()), {
+    await setDoc(doc(db, 'users', user.uid, 'cart', cartItemId.toString()), {
       quantity: quantity
     }, { merge: true });
     dispatchCartUpdate();
@@ -191,7 +212,11 @@ export const syncLocalCartToFirestore = async (userId: string) => {
 
   try {
     for (const item of localItems) {
-      const cartDocRef = doc(db, 'users', userId, 'cart', item.product_id.toString());
+      const colorPart = item.selectedColor ? `_${item.selectedColor.replace(/[^a-zA-Z0-9]/g, '')}` : '';
+      const sizePart = item.selectedSize ? `_${item.selectedSize.replace(/[^a-zA-Z0-9]/g, '')}` : '';
+      const variantPart = item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null ? `_v${item.selectedVariantIndex}` : '';
+      const cartDocId = `${item.product_id}${colorPart}${sizePart}${variantPart}`;
+      const cartDocRef = doc(db, 'users', userId, 'cart', cartDocId);
       const docSnap = await getDoc(cartDocRef);
 
       if (docSnap.exists()) {
@@ -199,12 +224,18 @@ export const syncLocalCartToFirestore = async (userId: string) => {
         await setDoc(cartDocRef, {
           productId: item.product_id.toString(),
           quantity: existingData.quantity + item.quantity,
+          selectedColor: item.selectedColor || null,
+          selectedSize: item.selectedSize || null,
+          selectedVariantIndex: item.selectedVariantIndex !== undefined ? item.selectedVariantIndex : null,
           updatedAt: Timestamp.now()
         }, { merge: true });
       } else {
         await setDoc(cartDocRef, {
           productId: item.product_id.toString(),
           quantity: item.quantity,
+          selectedColor: item.selectedColor || null,
+          selectedSize: item.selectedSize || null,
+          selectedVariantIndex: item.selectedVariantIndex !== undefined ? item.selectedVariantIndex : null,
           addedAt: Timestamp.now()
         });
       }

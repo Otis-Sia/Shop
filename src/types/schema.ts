@@ -50,11 +50,25 @@ export interface UserDocument {
   updatedAt: Timestamp | Date;
 }
 
+export interface ProductVariant {
+  id: string; // Document ID in the subcollection
+  productId?: string;
+  size?: string;
+  color?: string;
+  price: number;
+  stock: number | null;
+  imageUrl?: string;
+  createdAt?: Timestamp | Date;
+  updatedAt?: Timestamp | Date;
+}
+
 // 2. Cart Item Subcollection (Under Users)
 // Path: users/{userId}/cart/{productId}
 export interface CartItem {
   productId: string;
   quantity: number;
+  selectedColor?: string;
+  selectedSize?: string;
   addedAt: Timestamp | Date;
 }
 
@@ -76,7 +90,7 @@ export interface Product {
   brand?: string;
   currency: string; // e.g., 'USD'
   trackInventory?: boolean;
-  stock: number;
+  stock: number | null;
   lowStockAlert?: boolean;
   allowBackorders?: boolean;
   groupCategory?: string;
@@ -84,11 +98,14 @@ export interface Product {
   subcategories?: string[];
   imageUrls: string[]; // Links to Cloud Storage
   imageAltTexts?: Record<string, string>;
+  allowMultiplePurchases?: boolean;
   videoUrl?: string;
   tags?: string[];
   labels?: string[];
   colors?: string[];
   sizes?: string[];
+  hasVariants?: boolean;
+  variants?: ProductVariant[];
   duration?: number; // Duration of the service in minutes
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
@@ -124,6 +141,12 @@ export interface OrderItem {
   name: string;
   price: number;
   quantity: number;
+  selectedColor?: string;
+  selectedSize?: string;
+  variantName?: string | null;
+  color?: string | null;
+  size?: string | null;
+  imageUrl?: string | null;
 }
 
 // 4. Orders Collection

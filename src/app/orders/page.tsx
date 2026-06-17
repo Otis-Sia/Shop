@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Order, OrderStatus } from '@/types/schema';
 import Icon from '@/components/Icon';
@@ -46,6 +46,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [productImages, setProductImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -72,6 +73,37 @@ export default function OrdersPage() {
             return timeB - timeA;
           });
           setOrders(fetched);
+
+          // Get product images for items without stored imageUrl
+          const missingProductIds = new Set<string>();
+          fetched.forEach(order => {
+            order.items?.forEach(item => {
+              if (item.productId && !item.imageUrl) {
+                missingProductIds.add(item.productId);
+              }
+            });
+          });
+
+          if (missingProductIds.size > 0) {
+            const images: Record<string, string> = {};
+            await Promise.all(
+              Array.from(missingProductIds).map(async (pid) => {
+                try {
+                  const prodSnap = await getDoc(doc(db, 'products', pid));
+                  if (prodSnap.exists()) {
+                    const data = prodSnap.data();
+                    const url = data.image_url || (data.imageUrls && data.imageUrls[0]) || '';
+                    if (url) {
+                      images[pid] = url;
+                    }
+                  }
+                } catch (e) {
+                  console.error('Failed to fetch image for product:', pid, e);
+                }
+              })
+            );
+            setProductImages(images);
+          }
         } catch (err) {
           console.error('Error fetching orders:', err);
         } finally {
@@ -245,22 +277,39 @@ export default function OrdersPage() {
                           Items Ordered
                         </h4>
                         <div className="space-y-3">
-                          {order.items.map((item, idx) => (
-                            <div
-                              key={`${item.productId}-${idx}`}
-                              className="flex justify-between items-center py-2 border-b border-surface-container last:border-0"
-                            >
-                              <div>
-                                <p className="text-sm font-bold text-on-surface">{item.name}</p>
-                                <p className="text-xs text-secondary font-semibold">
-                                  Qty: {item.quantity} × Ksh {item.price.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
-                                </p>
+                          {order.items.map((item, idx) => {
+                            const imgUrl = item.imageUrl || productImages[item.productId] || 'https://via.placeholder.com/60';
+                            return (
+                              <div
+                                key={`${item.productId}-${idx}`}
+                                className="flex justify-between items-center py-3 border-b border-surface-container last:border-0 gap-4"
+                              >
+                                <div className="flex gap-3 items-center">
+                                  <div className="w-16 h-16 shrink-0 border border-surface-dim bg-surface-container-low overflow-hidden rounded">
+                                    <img 
+                                      src={imgUrl} 
+                                      alt={item.name} 
+                                      className="w-full h-full object-cover" 
+                                    />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-on-surface">{item.name}</p>
+                                    <div className="text-[10px] font-black text-secondary uppercase tracking-widest mt-1 space-y-0.5">
+                                      {item.variantName && <p>Variant: {item.variantName}</p>}
+                                      {(item.size || item.selectedSize) && <p>Size: {item.size || item.selectedSize}</p>}
+                                      {(item.color || item.selectedColor) && <p>Color: {item.color || item.selectedColor}</p>}
+                                    </div>
+                                    <p className="text-xs text-secondary font-semibold mt-0.5">
+                                      Qty: {item.quantity} × Ksh {item.price.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className="font-headline-md text-sm font-black text-on-surface shrink-0">
+                                  Ksh {(item.quantity * item.price).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                                </span>
                               </div>
-                              <span className="font-headline-md text-sm font-black text-on-surface">
-                                Ksh {(item.quantity * item.price).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
-                              </span>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
 

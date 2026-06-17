@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getProducts, getCategories, getAvailableTags } from '@/lib/api/products';
 import { useCategories } from '@/hooks/useCategories';
@@ -74,21 +74,17 @@ const formatSellerAge = (createdAt: any): string => {
   return `${diffYears} YEARS SELLER`;
 };
 
-export default function ProductsPage() {
+function ProductsPageContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const { categories } = useCategories();
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
-  const [keyword, setKeyword] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return new URLSearchParams(window.location.search).get('search') || '';
-    }
-    return '';
-  });
+  const [keyword, setKeyword] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [wishlistedIds, setWishlistedIds] = useState<Set<number>>(new Set());
   const [category, setCategory] = useState('');
+  const [newArrivalsOnly, setNewArrivalsOnly] = useState(false);
   const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
@@ -97,8 +93,9 @@ export default function ProductsPage() {
   const [userRole, setUserRole] = useState<'customer' | 'admin' | 'merchant' | 'guest'>('guest');
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const fetchProducts = async (filters: { keyword?: string; maxPrice?: number; category?: string } = {}) => {
+  const fetchProducts = async (filters: { keyword?: string; maxPrice?: number; category?: string; newArrivals?: boolean } = {}) => {
     setLoading(true);
     try {
       const data = await getProducts(filters);
@@ -110,10 +107,23 @@ export default function ProductsPage() {
     }
   };
 
+  useEffect(() => {
+    const searchVal = searchParams.get('search') || '';
+    const catVal = searchParams.get('category') || '';
+    const newArrivalsVal = searchParams.get('filter') === 'new-arrivals' || searchParams.get('newArrivals') === 'true';
 
+    setKeyword(searchVal);
+    setCategory(catVal);
+    setNewArrivalsOnly(newArrivalsVal);
+
+    fetchProducts({ 
+      keyword: searchVal || undefined, 
+      category: catVal || undefined, 
+      newArrivals: newArrivalsVal || undefined 
+    });
+  }, [searchParams]);
 
   useEffect(() => {
-    fetchProducts({ keyword: keyword || undefined });
 
     const fetchCats = async () => {
       try {
@@ -178,6 +188,7 @@ export default function ProductsPage() {
       keyword: keyword || undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       category: category || undefined,
+      newArrivals: newArrivalsOnly || undefined,
     });
   };
 
@@ -188,6 +199,7 @@ export default function ProductsPage() {
       keyword: keyword || undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       category: targetCategory || undefined,
+      newArrivals: newArrivalsOnly || undefined,
     });
   };
 
@@ -196,6 +208,7 @@ export default function ProductsPage() {
     setMaxPrice('');
     setCategory('');
     setSortBy('default');
+    setNewArrivalsOnly(false);
     fetchProducts();
   };
 
@@ -226,10 +239,10 @@ export default function ProductsPage() {
       <header className="mb-12">
         <p className="font-extrabold text-xs text-primary-container uppercase tracking-widest mb-1.5">Catalog</p>
         <h1 className="font-headline-md text-3xl md:text-5xl font-black uppercase tracking-tighter text-on-surface">
-          Shop All Products
+          {newArrivalsOnly ? 'New Arrivals' : 'Shop All Products'}
         </h1>
         <p className="font-body-md text-sm text-secondary uppercase font-semibold mt-2">
-          Discover our curated collection of premium high-velocity items.
+          {newArrivalsOnly ? 'Products added within the last week.' : 'Discover our curated collection of premium high-velocity items.'}
         </p>
       </header>
 
@@ -319,6 +332,20 @@ export default function ProductsPage() {
                   className="w-full h-10 px-3 border-2 border-on-surface rounded-none font-medium text-sm focus:ring-0 focus:border-primary-container"
                 />
               </div>
+            </div>
+
+            {/* New Arrivals Switch */}
+            <div className="flex items-center gap-3 py-1.5 px-1">
+              <input
+                type="checkbox"
+                id="mobileNewArrivalsOnly"
+                checked={newArrivalsOnly}
+                onChange={(e) => setNewArrivalsOnly(e.target.checked)}
+                className="w-5 h-5 border-2 border-on-surface bg-surface text-primary-container focus:ring-0 rounded-none cursor-pointer"
+              />
+              <label htmlFor="mobileNewArrivalsOnly" className="font-extrabold text-xs uppercase tracking-wider text-on-surface cursor-pointer select-none">
+                New Arrivals Only
+              </label>
             </div>
 
             {/* Action buttons side by side */}
@@ -420,6 +447,19 @@ export default function ProductsPage() {
                 onKeyDown={handleKeyPress}
                 className="w-full h-12 px-4 border-2 border-on-surface rounded-none font-medium text-sm transition-all focus:ring-0 focus:border-primary-container"
               />
+            </div>
+
+            <div className="flex items-center gap-3 py-1">
+              <input
+                type="checkbox"
+                id="newArrivalsOnly"
+                checked={newArrivalsOnly}
+                onChange={(e) => setNewArrivalsOnly(e.target.checked)}
+                className="w-5 h-5 border-2 border-on-surface bg-surface text-primary-container focus:ring-0 rounded-none cursor-pointer"
+              />
+              <label htmlFor="newArrivalsOnly" className="font-extrabold text-xs uppercase tracking-wider text-on-surface cursor-pointer select-none">
+                New Arrivals Only
+              </label>
             </div>
           </div>
 
@@ -649,7 +689,7 @@ export default function ProductsPage() {
                         <div className="flex-1">
                            <ProductRatingBadge productId={product.id} />
                         </div>
-                        {(userRole === 'customer' || userRole === 'guest') && (
+                        {(userRole === 'customer' || userRole === 'guest') && !(product.hasVariants || (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)) && (
                           <button
                             onClick={(e) => handleAddToCart(e, product.id)}
                             disabled={addingToCart[product.id]}
@@ -670,5 +710,20 @@ export default function ProductsPage() {
       </div>
 
     </main>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <main className="max-w-[1440px] mx-auto px-6 md:px-16 py-16 flex-grow flex flex-col items-center justify-center min-h-[500px]">
+        <Icon name="sync" className="text-4xl animate-spin text-primary-container" />
+        <p className="mt-4 font-bold text-sm tracking-widest text-secondary uppercase">
+          Loading Catalog...
+        </p>
+      </main>
+    }>
+      <ProductsPageContent />
+    </Suspense>
   );
 }

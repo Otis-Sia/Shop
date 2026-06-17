@@ -7,12 +7,13 @@ export interface Product {
   description: string;
   image_url: string;
   category: string;
-  stock: number;
+  stock: number | null;
   tags: string[];
   colors: string[];
   sizes: string[];
   discount?: number;
   additional_images?: string[];
+  imageUrls?: string[];
   brand?: string;
   merchantId?: string;
   merchantName?: string;
@@ -20,6 +21,11 @@ export interface Product {
   merchantStatus?: 'pending' | 'approved' | 'rejected' | 'verified';
   merchantCreatedAt?: any;
   itemType?: string;
+  hasVariants?: boolean;
+  variants?: any[];
+  allowMultiplePurchases?: boolean;
+  createdAt?: any;
+  trackInventory?: boolean;
 }
 
 export const productsData: Product[] = productsJson as Product[];

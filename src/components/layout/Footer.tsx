@@ -65,7 +65,7 @@ export default function Footer() {
             <ul className="space-y-3">
               {[
                 { label: 'All Products', href: '/products' },
-                { label: 'New Arrivals', href: '/products?category=Fashion' },
+                { label: 'New Arrivals', href: '/products?filter=new-arrivals' },
                 { label: 'Services', href: '/services' },
                 { label: 'My Wishlist', href: '/wishlist' },
                 { label: 'My Cart', href: '/cart' },

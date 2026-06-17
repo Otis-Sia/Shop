@@ -376,7 +376,7 @@ export default function AdminPage() {
   });
 
   // Calculate dynamic stats
-  const totalStockAlerts = products.filter(p => p.stock <= 5).length;
+  const totalStockAlerts = products.filter(p => (p.stock ?? 0) <= 5).length;
   const categoriesList = Array.from(new Set(products.map(p => p.category || 'Apparel')));
   const brandsList = Array.from(new Set(products.map(p => p.brand).filter(Boolean)));
   
@@ -393,7 +393,7 @@ export default function AdminPage() {
   }, [categories]);
 
   // Total inventory value
-  const totalInventoryValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
+  const totalInventoryValue = products.reduce((sum, p) => sum + (p.price * (p.stock ?? 0)), 0);
 
   return (
     <div className="bg-background min-h-screen text-on-surface selection:bg-primary-container selection:text-on-primary-container">
@@ -924,7 +924,7 @@ export default function AdminPage() {
                         const originalPrice = Number(product.price);
                         const discount = product.discount || 0;
                         const unitPrice = discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
-                        const isLowStock = product.stock <= 5;
+                        const isLowStock = (product.stock ?? 0) <= 5;
 
                         return (
                           <tr key={product.id} className="hover:bg-secondary-container/50 transition-colors">

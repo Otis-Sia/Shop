@@ -58,12 +58,26 @@ CREATE TABLE products (
     subcategories TEXT[],
     image_urls TEXT[],
     image_alt_texts JSONB,
+    allow_multiple_purchases BOOLEAN DEFAULT TRUE,
     video_url VARCHAR(255),
     tags TEXT[],
     labels TEXT[],
     colors TEXT[],
     sizes TEXT[],
+    has_variants BOOLEAN DEFAULT FALSE,
     duration INTEGER, -- For services
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+-- Variants Subcollection (Under Products)
+CREATE TABLE product_variants (
+    id VARCHAR(255) PRIMARY KEY,
+    product_id VARCHAR(255) NOT NULL REFERENCES products(id),
+    size VARCHAR(100),
+    color VARCHAR(100),
+    price DECIMAL(10, 2) NOT NULL,
+    stock INTEGER NOT NULL DEFAULT 0,
+    image_url VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -84,6 +98,8 @@ CREATE TABLE user_cart_items (
     user_id VARCHAR(255) NOT NULL REFERENCES users(uid),
     product_id VARCHAR(255) NOT NULL REFERENCES products(id),
     quantity INTEGER NOT NULL DEFAULT 1,
+    selected_color VARCHAR(100),
+    selected_size VARCHAR(100),
     added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Initialize the S3 client using environment variables
@@ -10,13 +10,6 @@ const s3Client = new S3Client({
   },
 });
 
-/**
- * Generates a pre-signed URL for uploading a file to S3.
- *
- * @param fileName - The unique name of the file to save in the bucket
- * @param fileType - The MIME type of the file
- * @returns An object containing the pre-signed upload URL and the final accessible URL
- */
 export async function generatePresignedUploadUrl(fileName: string, fileType: string) {
   const bucketName = process.env.APP_AWS_S3_BUCKET_NAME;
 
@@ -30,13 +23,62 @@ export async function generatePresignedUploadUrl(fileName: string, fileType: str
     ContentType: fileType,
   });
 
-  // URL expires in 60 seconds
   const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 60 });
 
   return {
     signedUrl,
-    // Note: If your bucket is public, this URL can be used to view the file.
-    // If not, you'll need to generate download pre-signed URLs or use CloudFront.
     fileUrl: `https://${bucketName}.s3.${process.env.APP_AWS_REGION || 'us-east-1'}.amazonaws.com/${fileName}`,
   };
+}
+
+export async function deleteFileFromS3(fileUrl: string) {
+  const bucketName = process.env.APP_AWS_S3_BUCKET_NAME;
+  if (!bucketName) throw new Error('APP_AWS_S3_BUCKET_NAME not defined.');
+
+  try {
+    const urlObj = new URL(fileUrl);
+    // Keys usually start after the slash
+    const key = urlObj.pathname.substring(1); 
+    
+    if (!key) return;
+
+    const delCmd = new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+    });
+
+    await s3Client.send(delCmd);
+  } catch (error) {
+    console.error(`Failed to delete S3 file ${fileUrl}:`, error);
+  }
+}
+
+export async function listAllS3Files(): Promise<string[]> {
+  const bucketName = process.env.APP_AWS_S3_BUCKET_NAME;
+  if (!bucketName) throw new Error('APP_AWS_S3_BUCKET_NAME not defined.');
+
+  const files: string[] = [];
+  let isTruncated = true;
+  let continuationToken: string | undefined = undefined;
+
+  while (isTruncated) {
+    const listCmd: any = new ListObjectsV2Command({
+      Bucket: bucketName,
+      ContinuationToken: continuationToken,
+    });
+    const response = await s3Client.send(listCmd) as any;
+    
+    if (response.Contents) {
+      response.Contents.forEach((item: any) => {
+        if (item.Key) {
+          files.push(`https://${bucketName}.s3.${process.env.APP_AWS_REGION || 'us-east-1'}.amazonaws.com/${item.Key}`);
+        }
+      });
+    }
+
+    isTruncated = response.IsTruncated ?? false;
+    continuationToken = response.NextContinuationToken;
+  }
+
+  return files;
 }

@@ -102,7 +102,15 @@ export type IconName =
   | 'menu'
   | 'smartphone'
   | 'brightness_auto'
-  | 'language';
+  | 'language'
+  | 'cloud_upload'
+  | 'auto_awesome'
+  | 'design_services'
+  | 'build'
+  | 'error_outline'
+  | 'store'
+  | 'save'
+  | 'edit';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName | string;
@@ -976,6 +984,72 @@ export default function Icon({ name, className = '', ...props }: IconProps) {
           <circle cx="12" cy="12" r="10" />
           <line x1="2" y1="12" x2="22" y2="12" />
           <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+      );
+
+    case 'cloud_upload':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.36 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
+        </svg>
+      );
+
+    case 'auto_awesome':
+      return (
+        <svg {...baseSvgProps} fill="currentColor" stroke="none">
+          <path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5 5.5-2.5-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z" />
+        </svg>
+      );
+
+    case 'design_services':
+      return (
+        <svg {...baseSvgProps}>
+          <path d="M17 3a2.82 2.82 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+          <path d="m15 5 4 4" />
+          <path d="m5 19 3-3" />
+          <path d="m19 17-5-5" />
+        </svg>
+      );
+
+    case 'build':
+      return (
+        <svg {...baseSvgProps}>
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+        </svg>
+      );
+
+    case 'error_outline':
+      return (
+        <svg {...baseSvgProps}>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      );
+
+    case 'store':
+      return (
+        <svg {...baseSvgProps}>
+          <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z" />
+          <path d="M1 3h22l-2 6H3L1 3Z" />
+          <path d="M12 9v12" />
+        </svg>
+      );
+
+    case 'save':
+      return (
+        <svg {...baseSvgProps}>
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+          <polyline points="17 21 17 13 7 13 7 21" />
+          <polyline points="7 3 7 8 15 8" />
+        </svg>
+      );
+
+    case 'edit':
+      return (
+        <svg {...baseSvgProps}>
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
       );
 

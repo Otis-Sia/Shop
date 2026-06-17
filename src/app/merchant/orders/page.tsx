@@ -144,11 +144,21 @@ export default function MerchantOrders() {
                             <div>
                               <h4 className="font-bold uppercase text-sm border-b-2 border-on-surface pb-1 mb-4">Order Items</h4>
                               <div className="space-y-4">
-                                {order.items.map((item: { name: string; quantity: number; price: number }, idx: number) => (
+                                {order.items.map((item: any, idx: number) => (
                                   <div key={idx} className="flex justify-between items-center border-b border-on-surface pb-2">
-                                    <div>
-                                      <p className="font-bold text-sm">{item.name}</p>
-                                      <p className="text-xs text-secondary">Qty: {item.quantity}</p>
+                                    <div className="flex gap-4 items-center">
+                                      {item.imageUrl && (
+                                        <img src={item.imageUrl} alt={item.name} className="w-16 h-16 object-cover border-2 border-on-surface shrink-0" />
+                                      )}
+                                      <div>
+                                        <p className="font-bold text-sm">{item.name}</p>
+                                        <div className="text-[10px] font-black text-secondary uppercase tracking-widest mt-1 space-y-0.5">
+                                          <p>Variant name: {item.variantName || 'null'}</p>
+                                          <p>Size: {item.size || item.selectedSize || 'null'}</p>
+                                          <p>Color: {item.color || item.selectedColor || 'null'}</p>
+                                        </div>
+                                        <p className="text-xs text-secondary mt-0.5 font-bold">Qty: {item.quantity}</p>
+                                      </div>
                                     </div>
                                     <p className="font-bold text-sm">Ksh {(item.price * item.quantity).toFixed(2)}</p>
                                   </div>

@@ -5,6 +5,7 @@ import { collection, query, where, getDocs, doc, setDoc, deleteDoc, Timestamp, g
 import { auth, db } from "@/lib/firebase";
 import { Product } from "@/types/schema";
 import { useCategories } from '@/hooks/useCategories';
+import Icon from '@/components/Icon';
 
 export default function MerchantProducts() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -12,6 +13,8 @@ export default function MerchantProducts() {
   
   const [offeringType, setOfferingType] = useState<'goods' | 'services' | 'both'>('goods');
   const [activeTab, setActiveTab] = useState<'products' | 'services'>('products');
+  const [isDragging, setIsDragging] = useState(false);
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
 
   const [isAdding, setIsAdding] = useState(false);
   const { categories } = useCategories();
@@ -36,7 +39,22 @@ export default function MerchantProducts() {
 
         const productsQuery = query(collection(db, "products"), where("merchantId", "==", user.uid));
         const snapshot = await getDocs(productsQuery);
-        const productsList = snapshot.docs.map(docSnap => ({ id: Number(docSnap.id), ...docSnap.data() } as unknown as Product));
+        const productsListPromises = snapshot.docs.map(async (docSnap) => {
+          const productData = { id: Number(docSnap.id), ...docSnap.data() } as unknown as Product;
+          if (productData.hasVariants) {
+            try {
+              const variantsSnap = await getDocs(collection(db, "products", docSnap.id, "variants"));
+              if (variantsSnap.docs.length > 0) {
+                productData.variants = variantsSnap.docs.map(vDoc => ({ id: vDoc.id, ...vDoc.data() })) as any;
+              }
+              // If subcollection is empty, keep whatever embedded variants exist on productData
+            } catch (err) {
+              console.error("Error fetching variants for product", docSnap.id, err);
+            }
+          }
+          return productData;
+        });
+        const productsList = await Promise.all(productsListPromises);
         productsList.sort((a, b) => Number(b.id) - Number(a.id));
         setProducts(productsList);
       } catch (error) {
@@ -73,6 +91,10 @@ export default function MerchantProducts() {
       subcategories: '',
       tags: '',
       labels: '',
+      colors: '',
+      sizes: '',
+      hasVariants: false,
+      variants: [],
       
       imageUrls: [''],
       imageAltTexts: {},
@@ -84,7 +106,7 @@ export default function MerchantProducts() {
       saleEndDate: '',
       
       trackInventory: true,
-      stock: activeTab === 'services' ? 0 : 10,
+      stock: activeTab === 'services' ? 0 : '',
       lowStockAlert: false,
       allowBackorders: false,
       duration: activeTab === 'services' ? 60 : undefined,
@@ -115,17 +137,45 @@ export default function MerchantProducts() {
       imageUrls: product.imageUrls || [''],
       tags: product.tags?.join(', ') || '',
       labels: product.labels?.join(', ') || '',
+      colors: product.colors?.join(', ') || '',
+      sizes: product.sizes?.join(', ') || '',
+      hasVariants: product.hasVariants || false,
+      variants: product.variants || [],
       subcategories: product.subcategories?.join(', ') || '',
       saleStartDate: formattedStartDate,
       saleEndDate: formattedEndDate,
     });
+    setImagesToDelete([]);
   };
 
   const handleDelete = async (productId: number) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
     try {
+      const productToDelete = products.find(p => Number(p.id) === productId);
+      
       await deleteDoc(doc(db, 'products', productId.toString()));
       setProducts(products.filter(p => Number(p.id) !== productId));
+
+      if (productToDelete) {
+        const urlsToDel = new Set<string>();
+        if ((productToDelete as any).image_url) urlsToDel.add((productToDelete as any).image_url);
+        if (productToDelete.imageUrls) productToDelete.imageUrls.forEach((u: string) => urlsToDel.add(u));
+        if ((productToDelete as any).additional_images) (productToDelete as any).additional_images.forEach((u: string) => urlsToDel.add(u));
+        if (productToDelete.variants) {
+          productToDelete.variants.forEach((v: any) => {
+            if (v.imageUrl) urlsToDel.add(v.imageUrl);
+          });
+        }
+        
+        const urlsArray = Array.from(urlsToDel).filter(u => u && u.includes('amazonaws.com'));
+        if (urlsArray.length > 0) {
+          fetch('/api/upload', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileUrls: urlsArray }),
+          }).catch(err => console.error('Failed to delete S3 images for product', err));
+        }
+      }
     } catch (err) {
       console.error(err);
       alert('Failed to delete product.');
@@ -170,7 +220,117 @@ export default function MerchantProducts() {
     }));
   };
 
+  const handleRemoveImage = (indexToRemove: number) => {
+    setEditForm((prev: any) => {
+      const currentUrls = [...(prev.imageUrls || [])];
+      const removedUrl = currentUrls[indexToRemove];
+      if (removedUrl) {
+        setImagesToDelete(prevImages => [...prevImages, removedUrl]);
+      }
+      currentUrls.splice(indexToRemove, 1);
+      return { ...prev, imageUrls: currentUrls };
+    });
+  };
+
+  const handleMultipleFilesUpload = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
+    
+    setIsUploading(true);
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+          }),
+        });
+        if (!response.ok) throw new Error('Failed to get upload URL');
+        const { signedUrl, fileUrl } = await response.json();
+        const uploadResponse = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+        if (!uploadResponse.ok) throw new Error('Failed to upload file to S3');
+        return fileUrl;
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      
+      setEditForm((prev: any) => {
+        let currentUrls = [...(prev.imageUrls || [])];
+        // Remove trailing empty strings before adding new ones
+        while(currentUrls.length > 0 && currentUrls[currentUrls.length - 1] === '') {
+          currentUrls.pop();
+        }
+        return { ...prev, imageUrls: [...currentUrls, ...uploadedUrls] };
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Failed to upload one or more images.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, index?: number) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    if (typeof index === 'number') {
+      const file = e.target.files[0];
+      setIsUploading(true);
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+        });
+        if (!response.ok) throw new Error('Failed to get upload URL');
+        const { signedUrl, fileUrl } = await response.json();
+        const uploadResponse = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+        if (!uploadResponse.ok) throw new Error('Failed to upload file to S3');
+        
+        setEditForm((prev: any) => {
+          const currentUrls = [...(prev.imageUrls || [])];
+          currentUrls[index] = fileUrl;
+          return { ...prev, imageUrls: currentUrls };
+        });
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        alert("Failed to upload image.");
+      } finally {
+        setIsUploading(false);
+      }
+    } else {
+      await handleMultipleFilesUpload(e.target.files);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await handleMultipleFilesUpload(e.dataTransfer.files);
+    }
+  };
+
+  const handleVariantImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, variantIndex: number) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
     
@@ -179,43 +339,112 @@ export default function MerchantProducts() {
       const response = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-        }),
+        body: JSON.stringify({ fileName: file.name, fileType: file.type }),
       });
-
       if (!response.ok) throw new Error('Failed to get upload URL');
-
       const { signedUrl, fileUrl } = await response.json();
-
       const uploadResponse = await fetch(signedUrl, {
         method: 'PUT',
         headers: { 'Content-Type': file.type },
         body: file,
       });
-
       if (!uploadResponse.ok) throw new Error('Failed to upload file to S3');
       
       setEditForm((prev: any) => {
-        const currentUrls = [...(prev.imageUrls || [])];
-        if (typeof index === 'number') {
-          currentUrls[index] = fileUrl;
-        } else {
-          if (currentUrls.length > 0 && currentUrls[currentUrls.length - 1] === '') {
-            currentUrls[currentUrls.length - 1] = fileUrl;
-          } else {
-            currentUrls.push(fileUrl);
-          }
+        const variants = [...(prev.variants || [])];
+        variants[variantIndex] = { ...variants[variantIndex], imageUrl: fileUrl };
+        
+        let currentUrls = [...(prev.imageUrls || [])];
+        if (!currentUrls.includes(fileUrl)) {
+           while(currentUrls.length > 0 && currentUrls[currentUrls.length - 1] === '') currentUrls.pop();
+           currentUrls.push(fileUrl);
         }
-        return { ...prev, imageUrls: currentUrls };
+        return { ...prev, variants, imageUrls: currentUrls };
       });
     } catch (error) {
-      console.error("Error uploading image:", error);
-      alert("Failed to upload image.");
+      console.error("Error uploading variant image:", error);
+      alert("Failed to upload variant image.");
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleAddVariant = () => {
+    setEditForm((prev: any) => ({
+      ...prev,
+      variants: [...(prev.variants || []), { id: Date.now().toString(), price: 0, stock: 0, size: '', color: '' }]
+    }));
+  };
+
+  const [bulkSizes, setBulkSizes] = useState('');
+  const [bulkColors, setBulkColors] = useState('');
+  const [bulkPrice, setBulkPrice] = useState(0);
+  const [bulkStock, setBulkStock] = useState(0);
+
+  const handleGenerateVariants = () => {
+    const sizes = bulkSizes.split(',').map(s => s.trim()).filter(Boolean);
+    const colors = bulkColors.split(',').map(c => c.trim()).filter(Boolean);
+
+    if (sizes.length === 0 && colors.length === 0) {
+      alert('Enter at least one size or color to generate variants.');
+      return;
+    }
+
+    const newVariants: any[] = [];
+    const existingVariants = editForm.variants || [];
+
+    // Build a set of existing combos to avoid duplicates
+    const existingCombos = new Set(
+      existingVariants.map((v: any) => `${(v.size || '').toLowerCase()}|${(v.color || '').toLowerCase()}`)
+    );
+
+    const effectiveSizes = sizes.length > 0 ? sizes : [''];
+    const effectiveColors = colors.length > 0 ? colors : [''];
+
+    for (const size of effectiveSizes) {
+      for (const color of effectiveColors) {
+        const combo = `${size.toLowerCase()}|${color.toLowerCase()}`;
+        if (!existingCombos.has(combo)) {
+          newVariants.push({
+            id: Date.now().toString() + Math.floor(Math.random() * 10000),
+            size: size || '',
+            color: color || '',
+            price: bulkPrice || editForm.price || 0,
+            stock: bulkStock || 0,
+          });
+          existingCombos.add(combo);
+        }
+      }
+    }
+
+    if (newVariants.length === 0) {
+      alert('All those combinations already exist as variants.');
+      return;
+    }
+
+    setEditForm((prev: any) => ({
+      ...prev,
+      variants: [...(prev.variants || []), ...newVariants],
+    }));
+
+    setBulkSizes('');
+    setBulkColors('');
+  };
+
+  const handleVariantChange = (index: number, field: string, value: any) => {
+    setEditForm((prev: any) => {
+      const updated = [...(prev.variants || [])];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, variants: updated };
+    });
+  };
+
+  const handleRemoveVariant = (index: number) => {
+    setEditForm((prev: any) => {
+      const updated = [...(prev.variants || [])];
+      updated.splice(index, 1);
+      return { ...prev, variants: updated };
+    });
   };
 
   const handleNextStep = (e: React.FormEvent) => {
@@ -336,7 +565,13 @@ export default function MerchantProducts() {
         subcategories: Array.isArray(editForm.subcategories) ? editForm.subcategories : (typeof editForm.subcategories === 'string' ? editForm.subcategories.split(',').map((t: string) => t.trim()).filter(Boolean) : []),
         tags: typeof editForm.tags === 'string' ? editForm.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.tags || []),
         labels: typeof editForm.labels === 'string' ? editForm.labels.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.labels || []),
+        colors: typeof editForm.colors === 'string' ? editForm.colors.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.colors || []),
+        sizes: typeof editForm.sizes === 'string' ? editForm.sizes.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.sizes || []),
         
+        hasVariants: editForm.hasVariants || false,
+        // We do not save variants embedded in the product document anymore
+        // variants: editForm.hasVariants ? (editForm.variants || []) : [],
+
         itemType: editForm.itemType || 'goods',
         imageUrls: cleanedImages,
         imageAltTexts: editForm.imageAltTexts || {},
@@ -348,7 +583,7 @@ export default function MerchantProducts() {
         saleEndDate: endTimestamp,
         
         trackInventory: editForm.trackInventory ?? true,
-        stock: editForm.stock || 0,
+        stock: (editForm.trackInventory ?? true) ? (editForm.stock || 0) : null,
         lowStockAlert: editForm.lowStockAlert ?? false,
         allowBackorders: editForm.allowBackorders ?? false,
         duration: editForm.duration || 0,
@@ -363,9 +598,43 @@ export default function MerchantProducts() {
         productData.createdAt = Timestamp.now();
       }
 
-      await setDoc(doc(db, 'products', saveId!.toString()), productData, { merge: true });
+      const productDocRef = doc(db, 'products', saveId!.toString());
+      await setDoc(productDocRef, productData, { merge: true });
 
-      const newProduct = { ...productData, id: saveId } as unknown as Product;
+      // Handle variants subcollection
+      if (editForm.hasVariants && editForm.variants && editForm.variants.length > 0) {
+        const variantsRef = collection(productDocRef, 'variants');
+        // Fetch existing variants to delete ones that were removed
+        const existingVariantsSnap = await getDocs(variantsRef);
+        const existingVariantIds = new Set(existingVariantsSnap.docs.map(d => d.id));
+        
+        const currentVariantIds = new Set();
+        
+        for (const variant of editForm.variants) {
+          const variantId = variant.id?.toString() || Date.now().toString() + Math.floor(Math.random()*1000);
+          currentVariantIds.add(variantId);
+          await setDoc(doc(variantsRef, variantId), {
+            ...variant,
+            updatedAt: Timestamp.now()
+          }, { merge: true });
+        }
+
+        // Delete removed variants
+        for (const id of existingVariantIds) {
+          if (!currentVariantIds.has(id)) {
+            await deleteDoc(doc(variantsRef, id));
+          }
+        }
+      } else {
+        // If hasVariants is false or variants array is empty, we should ideally clear the variants subcollection
+        const variantsRef = collection(productDocRef, 'variants');
+        const existingVariantsSnap = await getDocs(variantsRef);
+        for (const d of existingVariantsSnap.docs) {
+          await deleteDoc(d.ref);
+        }
+      }
+
+      const newProduct = { ...productData, id: saveId, variants: editForm.hasVariants ? editForm.variants : [] } as unknown as Product;
       
       if (isAdding) {
         setProducts([newProduct, ...products]);
@@ -376,6 +645,15 @@ export default function MerchantProducts() {
       setEditingId(null);
       setIsAdding(false);
       setCurrentStep(1);
+
+      if (imagesToDelete.length > 0) {
+        fetch('/api/upload', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileUrls: imagesToDelete.filter(u => u.includes('amazonaws.com')) }),
+        }).catch(err => console.error('Failed to delete removed images', err));
+        setImagesToDelete([]);
+      }
     } catch (error) {
       console.error("Error saving product:", error);
       alert('An error occurred while saving.');
@@ -583,6 +861,14 @@ export default function MerchantProducts() {
                 <label className="font-bold text-sm uppercase">Labels (comma separated)</label>
                 <input name="labels" value={editForm.labels || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" placeholder="e.g. New Arrival, Bestseller" />
               </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="font-bold text-sm uppercase">Available Colors (comma separated)</label>
+                <input name="colors" value={editForm.colors || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" placeholder="e.g. Red, Blue, #FFFFFF" />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="font-bold text-sm uppercase">Available Sizes (comma separated)</label>
+                <input name="sizes" value={editForm.sizes || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" placeholder="e.g. S, M, L, XL, 10, 11" />
+              </div>
             </div>
           )}
 
@@ -597,7 +883,7 @@ export default function MerchantProducts() {
                 {(editForm.imageUrls || ['']).map((url: string, index: number) => (
                   <div key={index} className="flex flex-col md:flex-row gap-2 mb-4 p-4 border-2 border-on-surface bg-surface relative">
                     {index === 0 && <span className="absolute -top-3 -left-2 bg-primary-container text-on-surface text-[10px] font-black px-2 py-1 uppercase border-2 border-on-surface">Main Image</span>}
-                    <div className="flex-1 space-y-2">
+                    <div className="flex-1 space-y-2 relative">
                       <div className="flex w-full gap-2 items-center">
                         <input 
                           required={index === 0}
@@ -617,12 +903,20 @@ export default function MerchantProducts() {
                         </label>
                       </div>
                       <input 
-                        required={!!url}
+                        required={index === 0 && !!url}
                         value={(editForm.imageAltTexts && editForm.imageAltTexts[url]) || ''} 
                         onChange={(e) => handleImageAltChange(url, e.target.value)} 
-                        placeholder="Alternative text (required for accessibility)"
+                        placeholder={index === 0 ? "Alternative text (required for main image)" : "Alternative text (optional)"}
                         className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
                       />
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveImage(index)} 
+                        className="absolute -top-4 -right-4 bg-error text-white w-6 h-6 flex items-center justify-center font-bold border-2 border-on-surface hover:scale-110 transition-transform"
+                        title="Remove Image"
+                      >
+                        ×
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -631,16 +925,28 @@ export default function MerchantProducts() {
                 </button>
               </div>
 
-              <div className="mt-4 p-4 border-2 border-dashed border-on-surface bg-surface md:col-span-2">
-                <p className="text-sm font-bold uppercase mb-2">Upload Image</p>
+              <div 
+                className={`mt-4 p-8 border-4 border-dashed transition-colors flex flex-col items-center justify-center text-center cursor-pointer md:col-span-2 ${
+                  isDragging ? 'border-primary-container bg-primary-container/10' : 'border-on-surface/40 bg-surface hover:bg-surface-container-low'
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById('multi-file-upload')?.click()}
+              >
+                <Icon name="cloud_upload" className="text-4xl mb-2 text-secondary" />
+                <p className="text-sm font-bold uppercase mb-1">Drag & Drop images here</p>
+                <p className="text-xs text-secondary mb-4 uppercase tracking-wider">or click to browse</p>
                 <input 
+                  id="multi-file-upload"
                   type="file" 
-                  accept="image/*" 
+                  accept="image/*"
+                  multiple 
                   onChange={(e) => handleFileUpload(e)} 
                   disabled={isUploading}
-                  className="text-sm w-full"
+                  className="hidden"
                 />
-                {isUploading && <p className="text-sm font-bold mt-2 animate-pulse text-primary-container">Uploading image...</p>}
+                {isUploading && <p className="text-sm font-bold mt-2 animate-pulse text-primary-container">Uploading images...</p>}
               </div>
 
               <div className="space-y-2 md:col-span-2 mt-4">
@@ -657,6 +963,141 @@ export default function MerchantProducts() {
                 <h3 className="font-black text-xl uppercase border-b-2 border-on-surface/20 pb-2 mb-4">Pricing & Inventory</h3>
               </div>
               
+              {/* VARIANTS */}
+              <div className="space-y-4 md:col-span-2 mb-2 p-4 border-2 border-on-surface bg-surface-container-low">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" name="hasVariants" checked={editForm.hasVariants || false} onChange={handleChange} className="w-5 h-5 accent-primary-container" />
+                  <span className="font-bold text-sm uppercase">Enable Product Variants (Different prices/stock by Size/Color)</span>
+                </label>
+                {(editForm.hasVariants) && (
+                  <div className="mt-4 space-y-4 border-t-2 border-on-surface/20 pt-4">
+                    {/* Bulk Variant Generator */}
+                    <div className="p-4 border-2 border-primary-container bg-surface space-y-3">
+                      <h4 className="font-black text-xs uppercase tracking-widest flex items-center gap-2">
+                        <Icon name="auto_awesome" className="text-primary-container text-base" />
+                        Quick Generate Variants
+                      </h4>
+                      <p className="text-[10px] text-secondary font-semibold uppercase">
+                        Enter comma-separated values to auto-generate all combinations. Duplicates are skipped.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-secondary">Sizes (comma separated)</label>
+                          <input
+                            type="text"
+                            value={bulkSizes}
+                            onChange={(e) => setBulkSizes(e.target.value)}
+                            placeholder="e.g. S, M, L, XL, XXL"
+                            className="w-full border-2 border-on-surface p-2 text-sm outline-none focus:border-primary-container transition-colors"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-secondary">Colors (comma separated)</label>
+                          <input
+                            type="text"
+                            value={bulkColors}
+                            onChange={(e) => setBulkColors(e.target.value)}
+                            placeholder="e.g. Red, Blue, Black, White"
+                            className="w-full border-2 border-on-surface p-2 text-sm outline-none focus:border-primary-container transition-colors"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-secondary">Default Price (Ksh)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={bulkPrice || ''}
+                            onChange={(e) => setBulkPrice(Number(e.target.value))}
+                            placeholder="Falls back to Regular Price"
+                            className="w-full border-2 border-on-surface p-2 text-sm outline-none focus:border-primary-container transition-colors"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-secondary">Default Stock per variant</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={bulkStock || ''}
+                            onChange={(e) => setBulkStock(Number(e.target.value))}
+                            placeholder="e.g. 10"
+                            className="w-full border-2 border-on-surface p-2 text-sm outline-none focus:border-primary-container transition-colors"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleGenerateVariants}
+                          className="bg-primary-container text-on-primary-container border-2 border-on-surface px-5 py-2 text-xs font-black uppercase tracking-wider shadow-[3px_3px_0px_0px_var(--color-on-surface)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-[1px_1px_0px_0px_var(--color-on-surface)] transition-all inline-flex items-center gap-2"
+                        >
+                          <Icon name="auto_awesome" className="text-sm" />
+                          Generate Variants
+                        </button>
+                        {bulkSizes && bulkColors && (
+                          <span className="text-[10px] text-secondary font-bold uppercase">
+                            {bulkSizes.split(',').filter(s => s.trim()).length * bulkColors.split(',').filter(c => c.trim()).length} combinations
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Existing Variants List */}
+                    <p className="text-xs text-secondary font-semibold uppercase">
+                      {(editForm.variants || []).length > 0 
+                        ? `${(editForm.variants || []).length} variant(s) configured. Edit individual prices, stock and images below.`
+                        : 'No variants yet. Use the generator above or add manually.'}
+                    </p>
+                    {(editForm.variants || []).map((v: any, index: number) => (
+                      <div key={v.id || index} className="flex flex-wrap items-center gap-2 border-2 border-on-surface p-3 bg-surface">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-bold uppercase text-secondary">Style/Name</label>
+                          <input type="text" placeholder="e.g. Artwork A" value={v.name || ''} onChange={(e) => handleVariantChange(index, 'name', e.target.value)} className="w-24 border-2 border-on-surface p-1.5 text-sm outline-none" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-bold uppercase text-secondary">Size</label>
+                          <input type="text" placeholder="e.g. M" value={v.size || ''} onChange={(e) => handleVariantChange(index, 'size', e.target.value)} className="w-16 border-2 border-on-surface p-1.5 text-sm outline-none" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-bold uppercase text-secondary">Color</label>
+                          <input type="text" placeholder="e.g. Red" value={v.color || ''} onChange={(e) => handleVariantChange(index, 'color', e.target.value)} className="w-24 border-2 border-on-surface p-1.5 text-sm outline-none" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-bold uppercase text-secondary">Price (Ksh)</label>
+                          <input type="number" min="0" step="0.01" placeholder="Price" value={v.price === 0 && !v.price.toString().match(/^0$/) ? '' : v.price} onChange={(e) => handleVariantChange(index, 'price', Number(e.target.value))} className="w-24 border-2 border-on-surface p-1.5 text-sm outline-none" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-bold uppercase text-secondary">Stock</label>
+                          <input type="number" min="0" placeholder="Stock" value={v.stock === 0 && !v.stock.toString().match(/^0$/) ? '' : v.stock} onChange={(e) => handleVariantChange(index, 'stock', Number(e.target.value))} className="w-20 border-2 border-on-surface p-1.5 text-sm outline-none" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-bold uppercase text-secondary">Image</label>
+                          <div className="flex gap-2 items-center">
+                            {v.imageUrl && <img src={v.imageUrl} className="w-8 h-8 object-cover border border-on-surface" alt="Variant" />}
+                            <select 
+                              value={v.imageUrl || ''} 
+                              onChange={(e) => handleVariantChange(index, 'imageUrl', e.target.value)}
+                              className="w-24 border-2 border-on-surface p-1.5 text-[10px] outline-none"
+                            >
+                              <option value="">No Image</option>
+                              {(editForm.imageUrls || []).filter(Boolean).map((url: string, i: number) => (
+                                <option key={i} value={url}>Gallery {i + 1}</option>
+                              ))}
+                            </select>
+                            <label className="cursor-pointer text-[10px] font-bold uppercase bg-primary-container text-on-surface border-2 border-on-surface px-2 py-1 shadow-[2px_2px_0px_0px_var(--color-on-surface)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-[1px_1px_0px_0px_var(--color-on-surface)] transition-all">
+                              Upload
+                              <input type="file" className="hidden" accept="image/*" onChange={(e) => handleVariantImageUpload(e, index)} disabled={isUploading} />
+                            </label>
+                          </div>
+                        </div>
+                        <button type="button" onClick={() => handleRemoveVariant(index)} className="text-error font-bold uppercase text-xs hover:underline ml-auto mt-4 p-1">Remove</button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={handleAddVariant} className="text-sm font-bold border-2 border-on-surface px-4 py-2 hover:bg-surface-container uppercase inline-flex items-center gap-1"><span className="text-lg">+</span> Add Single Variant</button>
+                  </div>
+                )}
+              </div>
+
               {/* PRICING */}
               <div className="space-y-2">
                 <label className="font-bold text-sm uppercase">Regular Price (Ksh) *</label>
@@ -679,8 +1120,12 @@ export default function MerchantProducts() {
               {editForm.itemType !== 'service' && (
                 <>
                   <div className="space-y-4 md:col-span-2 mt-6 p-6 border-2 border-on-surface bg-surface">
-                    <h4 className="font-bold text-lg uppercase mb-2">Inventory Management</h4>
+                    <h4 className="font-bold text-lg uppercase mb-2">Inventory & Purchasing</h4>
                     
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" name="allowMultiplePurchases" checked={editForm.allowMultiplePurchases !== false} onChange={handleChange} className="w-5 h-5 accent-primary-container" />
+                      <span className="font-bold text-sm uppercase">Allow Multiple Purchases Per Order</span>
+                    </label>
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input type="checkbox" name="trackInventory" checked={editForm.trackInventory ?? true} onChange={handleChange} className="w-5 h-5 accent-primary-container" />
                       <span className="font-bold text-sm uppercase">Track Inventory</span>
@@ -715,7 +1160,7 @@ export default function MerchantProducts() {
             </div>
           )}
 
-          <div className="flex justify-between pt-8 mt-8 border-t-2 border-on-surface/20">
+          <div className="flex flex-col-reverse md:flex-row md:justify-between gap-4 pt-8 mt-8 border-t-2 border-on-surface/20">
             <button 
               type="button" 
               onClick={() => {
@@ -724,9 +1169,10 @@ export default function MerchantProducts() {
                 } else {
                   setIsAdding(false); 
                   setEditingId(null);
+                  setImagesToDelete([]);
                 }
               }}
-              className="bg-surface text-on-surface border-4 border-on-surface px-6 py-2 font-bold uppercase hover:bg-surface-dim transition-colors"
+              className="w-full md:w-auto bg-surface text-on-surface border-4 border-on-surface px-6 py-2 font-bold uppercase hover:bg-surface-dim transition-colors"
             >
               {currentStep > 1 ? 'Back' : 'Cancel'}
             </button>
@@ -734,15 +1180,15 @@ export default function MerchantProducts() {
             <button 
               type="submit" 
               disabled={isSaving || isUploading}
-              className="bg-primary-container text-on-surface border-4 border-on-surface px-8 py-2 font-bold uppercase shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_var(--color-on-surface)] transition-all disabled:opacity-50"
+              className="w-full md:w-auto bg-primary-container text-on-surface border-4 border-on-surface px-8 py-2 font-bold uppercase shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_var(--color-on-surface)] transition-all disabled:opacity-50"
             >
               {isSaving ? 'Saving...' : currentStep < 4 ? 'Next Step' : 'Save Product'}
             </button>
           </div>
         </form>
       ) : (
-        <div className="bg-surface border-4 border-on-surface overflow-hidden">
-          <table className="w-full text-left border-collapse">
+        <div className="bg-surface border-4 border-on-surface overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="bg-on-surface text-surface uppercase font-bold text-sm">
                 <th className="p-4 border-b-4 border-on-surface">Image</th>

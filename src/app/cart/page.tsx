@@ -30,7 +30,10 @@ export default function CartPage() {
   const calculateTotal = (cartItems: CartItem[]) => {
     const t = cartItems.reduce((sum, item) => {
       if (!item.Product) return sum;
-      const price = parseFloat(String(item.Product.price));
+      let price = parseFloat(String(item.Product.price));
+      if (item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null && item.Product.variants && item.Product.variants[item.selectedVariantIndex]) {
+        price = parseFloat(String(item.Product.variants[item.selectedVariantIndex].price));
+      }
       const discount = item.Product.discount || 0;
       const finalPrice = discount > 0 ? price * (1 - discount / 100) : price;
       return sum + finalPrice * item.quantity;
@@ -66,22 +69,18 @@ export default function CartPage() {
     return () => unsubscribe();
   }, []);
 
-  const handleQuantityChange = async (productId: number | string, currentQty: number, change: number) => {
-    const newQty = currentQty + change;
+  const handleQuantityChange = async (cartItemId: number | string, newQty: number) => {
     if (newQty < 1) return;
     
     // Optimistic state update
-    const updatedItems = items.map(item => {
-      if (item.product_id == productId) {
-        return { ...item, quantity: newQty };
-      }
-      return item;
-    });
+    const updatedItems = items.map(item => 
+      item.id == cartItemId ? { ...item, quantity: newQty } : item
+    );
     setItems(updatedItems);
     calculateTotal(updatedItems);
 
     try {
-      await updateCartItem(productId, newQty);
+      await updateCartItem(cartItemId, newQty);
     } catch (err) {
       console.error('Error updating quantity:', err);
       // Revert if error
@@ -89,15 +88,15 @@ export default function CartPage() {
     }
   };
 
-  const handleRemove = async (productId: number | string) => {
+  const handleRemove = async (cartItemId: number | string) => {
     if (confirm('Remove this item from your cart?')) {
       // Optimistic state update
-      const filtered = items.filter(item => item.product_id != productId);
+      const filtered = items.filter(item => item.id != cartItemId);
       setItems(filtered);
       calculateTotal(filtered);
 
       try {
-        await removeFromCart(productId);
+        await removeFromCart(cartItemId);
       } catch (err) {
         console.error('Error removing item:', err);
         loadCart();
@@ -157,9 +156,27 @@ export default function CartPage() {
               {items.map(item => {
                 const product = item.Product;
                 if (!product) return null;
-                const originalPrice = parseFloat(String(product.price));
+                let basePrice = parseFloat(String(product.price));
+                let variantImageUrl = '';
+                if (product.hasVariants && product.variants) {
+                  let matchingVariant;
+                  if (item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null) {
+                    matchingVariant = product.variants[item.selectedVariantIndex];
+                  } else {
+                    matchingVariant = product.variants.find((v: any) => {
+                      const matchSize = v.size ? v.size === item.selectedSize : true;
+                      const matchColor = v.color ? v.color === item.selectedColor : true;
+                      return matchSize && matchColor;
+                    });
+                  }
+                  
+                  if (matchingVariant) {
+                    basePrice = matchingVariant.price;
+                    variantImageUrl = matchingVariant.imageUrl || '';
+                  }
+                }
                 const discount = product.discount || 0;
-                const unitPrice = discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
+                const unitPrice = discount > 0 ? basePrice * (1 - discount / 100) : basePrice;
                 const itemTotal = unitPrice * item.quantity;
 
                 return (
@@ -168,26 +185,44 @@ export default function CartPage() {
                     className="grid grid-cols-1 md:grid-cols-12 items-center py-6 gap-6 hover:border-on-surface transition-all duration-300"
                   >
                     {/* Item Details */}
-                    <div className="col-span-1 md:col-span-6 flex gap-4">
-                      <div className="w-20 md:w-24 bg-surface-container-high overflow-hidden border border-on-surface flex-shrink-0">
+                    <div className="flex flex-col sm:flex-row items-start gap-4 flex-grow col-span-1 md:col-span-6">
+                      <div className="w-24 h-24 bg-surface-container-low border-2 border-on-surface flex-shrink-0 flex items-center justify-center p-2 relative overflow-hidden">
                         <img 
-                          alt={product.name} 
-                          className="w-full h-auto object-contain" 
-                          src={product.image_url || 'https://via.placeholder.com/150'}
+                          src={variantImageUrl || product.image_url || '/placeholder.png'} 
+                          alt={product.name || 'Product'} 
+                          className="w-full h-full object-contain"
                         />
                       </div>
-                      <div className="flex flex-col justify-center">
-                        <h3 className="font-headline-md text-sm md:text-base font-extrabold uppercase text-on-surface">
-                          {product.name}
-                        </h3>
-                        <p className="text-xs text-secondary uppercase font-semibold mt-1">
-                          Category: {product.category || 'Apparel'}
-                        </p>
+                      <div className="flex flex-col gap-1 w-full max-w-xs">
+                        <span className="bg-surface-container text-on-surface border border-on-surface text-[9px] font-black uppercase px-2 py-0.5 self-start">
+                          {product.category || 'Apparel'}
+                        </span>
+                        <Link href={`/products/${item.product_id}`} className="font-headline-md font-bold text-lg hover:text-primary-container transition-colors truncate">
+                          {product.name || 'Unknown Product'}
+                        </Link>
+                        {item.selectedColor && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">Color:</span>
+                            <span className="text-xs font-bold px-2 py-0.5 border border-on-surface bg-surface-container-low">{item.selectedColor}</span>
+                          </div>
+                        )}
+                        {item.selectedSize && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">Size:</span>
+                            <span className="text-xs font-bold px-2 py-0.5 border border-on-surface bg-surface-container-low">{item.selectedSize}</span>
+                          </div>
+                        )}
+                        {!item.selectedColor && !item.selectedSize && item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">Variant:</span>
+                            <span className="text-xs font-bold px-2 py-0.5 border border-on-surface bg-surface-container-low">Custom</span>
+                          </div>
+                        )}
                         <button 
-                          onClick={() => handleRemove(product.id)}
-                          className="text-left text-xs font-bold text-error underline mt-3 uppercase tracking-wider hover:text-red-700"
+                          onClick={() => handleRemove(item.id)}
+                          className="text-xs font-bold text-error uppercase tracking-wider flex items-center gap-1 mt-2 hover:opacity-80 self-start"
                         >
-                          Remove
+                          <Icon name="delete" className="text-sm" /> Remove
                         </button>
                       </div>
                     </div>
@@ -196,7 +231,7 @@ export default function CartPage() {
                     <div className="hidden md:block col-span-1 md:col-span-2 text-center font-headline-md text-sm md:text-base font-extrabold">
                       Ksh {unitPrice.toFixed(2)}
                       {discount > 0 && (
-                        <div className="text-xs text-secondary line-through font-normal">Ksh {originalPrice.toFixed(2)}</div>
+                        <div className="text-xs text-secondary line-through font-normal">Ksh {basePrice.toFixed(2)}</div>
                       )}
                     </div>
 
@@ -204,8 +239,8 @@ export default function CartPage() {
                     <div className="col-span-1 md:col-span-2 flex justify-start md:justify-center">
                       <div className="flex border-2 border-on-surface bg-surface">
                         <button 
-                          onClick={() => handleQuantityChange(product.id, item.quantity, -1)}
-                          className="px-3 py-1 font-bold hover:bg-surface-container active:bg-surface-dim transition-colors border-r-2 border-on-surface text-sm"
+                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                          className="w-8 h-8 flex items-center justify-center border-r-2 border-on-surface hover:bg-surface-container active:scale-95"
                         >
                           -
                         </button>
@@ -213,8 +248,8 @@ export default function CartPage() {
                           {item.quantity}
                         </span>
                         <button 
-                          onClick={() => handleQuantityChange(product.id, item.quantity, 1)}
-                          className="px-3 py-1 font-bold hover:bg-surface-container active:bg-surface-dim transition-colors border-l-2 border-on-surface text-sm"
+                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                          className="w-8 h-8 flex items-center justify-center border-l-2 border-on-surface hover:bg-surface-container active:scale-95"
                         >
                           +
                         </button>

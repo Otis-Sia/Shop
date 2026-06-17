@@ -75,6 +75,8 @@
     --color-on-surface-variant: #e2e2e2;
     --color-primary-container: #ff8c00;
     --color-on-primary-container: #1a1c1c;
+    --color-secondary-container: #333333;
+    --color-on-secondary-container: #f9f9f9;
     --color-error: #ff5252;
     --color-error-container: #5c0000;
     --color-on-error-container: #ffdad6;

@@ -268,13 +268,15 @@ export default function LandingPage() {
                           )}
                         </div>
 
-                        <button
-                          onClick={() => handleAddToCart(product.id)}
-                          disabled={addingToCart[product.id]}
-                          className={`px-4 py-2 border-2 border-on-surface bg-primary-container text-on-primary-container font-headline-md font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 disabled:opacity-50 ${addedToCart[product.id] ? '!bg-green-600 !text-white' : ''}`}
-                        >
-                          {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added ✓' : 'Adding...') : 'Add To Cart'}
-                        </button>
+                        {!(product.hasVariants || (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)) && (
+                          <button
+                            onClick={() => handleAddToCart(product.id)}
+                            disabled={addingToCart[product.id]}
+                            className={`px-4 py-2 border-2 border-on-surface bg-primary-container text-on-primary-container font-headline-md font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 disabled:opacity-50 ${addedToCart[product.id] ? '!bg-green-600 !text-white' : ''}`}
+                          >
+                            {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added ✓' : 'Adding...') : 'Add To Cart'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </article>

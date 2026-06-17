@@ -33,6 +33,7 @@ export default function ProductDetailPage() {
   const [error, setError] = useState(false);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [cartStatus, setCartStatus] = useState<'idle' | 'adding' | 'added' | 'error'>('idle');
   const [activeImage, setActiveImage] = useState<string | null>(null);
@@ -50,8 +51,6 @@ export default function ProductDetailPage() {
         const data = await getProduct(productId);
         setProduct(data);
         setActiveImage(data.image_url);
-        if (data.colors && data.colors.length > 0) setSelectedColor(data.colors[0]);
-        if (data.sizes && data.sizes.length > 0) setSelectedSize(data.sizes[0]);
         
         const wishlisted = await isInWishlist(productId);
         setIsWishlisted(wishlisted);
@@ -64,11 +63,58 @@ export default function ProductDetailPage() {
     loadProduct();
   }, [productId]);
 
+  // When a variant is selected, only show that variant's colors/sizes.
+  // When no variant is selected, show all available colors/sizes from the product + all variants.
+  const selectedVariant = (product?.hasVariants && product?.variants && selectedVariantIndex !== null)
+    ? product.variants[selectedVariantIndex]
+    : null;
+
+  const parseCommaSeparated = (val: string | undefined): string[] => {
+    if (!val) return [];
+    return val.split(',').map(s => s.trim()).filter(Boolean);
+  };
+
+  const availableColors = selectedVariant
+    ? parseCommaSeparated(selectedVariant.color)
+    : Array.from(new Set([
+        ...(product?.colors || []),
+        ...(product?.variants || []).flatMap((v: any) => parseCommaSeparated(v.color))
+      ]));
+
+  const availableSizes = selectedVariant
+    ? parseCommaSeparated(selectedVariant.size)
+    : Array.from(new Set([
+        ...(product?.sizes || []),
+        ...(product?.variants || []).flatMap((v: any) => parseCommaSeparated(v.size))
+      ]));
+
   const handleAddToCart = async () => {
     if (!product) return;
+
+    if (availableColors.length > 0 && !selectedColor) {
+      alert("Please select a color.");
+      return;
+    }
+    
+    if (availableSizes.length > 0 && !selectedSize) {
+      alert("Please select a size.");
+      return;
+    }
+
+    if (product.hasVariants && product.variants && product.variants.length > 0 && selectedVariantIndex === null) {
+      alert("Please select a specific variant.");
+      return;
+    }
+
     setCartStatus('adding');
     try {
-      await addToCart(product.id, quantity);
+      await addToCart(
+        product.id, 
+        quantity, 
+        selectedColor || undefined, 
+        selectedSize || undefined, 
+        selectedVariantIndex !== null ? selectedVariantIndex : undefined
+      );
       setCartStatus('added');
       setTimeout(() => setCartStatus('idle'), 2000);
     } catch (err: any) {
@@ -120,9 +166,19 @@ export default function ProductDetailPage() {
     );
   }
 
+  let currentStock = (product.trackInventory === false || product.stock === null) ? 99999 : (product.stock || 0);
+  let basePrice = parseFloat(String(product.price || 0));
+
+  if (product.hasVariants && product.variants && selectedVariantIndex !== null) {
+    const matchingVariant = product.variants[selectedVariantIndex];
+    if (matchingVariant) {
+      basePrice = matchingVariant.price;
+      currentStock = (product.trackInventory === false || matchingVariant.stock === null) ? 99999 : (matchingVariant.stock || 0);
+    }
+  }
+
   const discount = product.discount || 0;
-  const originalPrice = parseFloat(String(product.price));
-  const finalPrice = discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
+  const finalPrice = discount > 0 ? basePrice * (1 - discount / 100) : basePrice;
 
   return (
     <main className="max-w-[1440px] mx-auto px-6 md:px-16 py-12 flex-grow space-y-8">
@@ -203,7 +259,12 @@ export default function ProductDetailPage() {
             <div className="flex items-center gap-3 pt-1">
               <span className="font-headline-md text-2xl font-black text-on-surface">Ksh {finalPrice.toFixed(2)}</span>
               {discount > 0 && (
-                <span className="text-sm font-bold text-secondary line-through">Ksh {originalPrice.toFixed(2)}</span>
+                <span className="text-secondary line-through font-bold text-sm">Ksh {basePrice.toFixed(2)}</span>
+              )}
+              {currentStock > 0 && currentStock !== 99999 && (
+                <span className="bg-surface-container text-on-surface border border-on-surface text-[10px] font-black uppercase px-2 py-0.5 tracking-wider ml-auto">
+                  {currentStock} in stock
+                </span>
               )}
               <ProductRatingBadge productId={product.id} />
             </div>
@@ -237,14 +298,60 @@ export default function ProductDetailPage() {
 
           {/* Option Settings */}
           <div className="space-y-4 border-t-2 border-surface-container pt-4">
-            {/* Colors */}
-            {product.colors && product.colors.length > 0 && (
+            {/* Variants List */}
+            {product.hasVariants && product.variants && product.variants.length > 0 && (
               <div className="space-y-2">
                 <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">
-                  Select Color: <span className="text-on-surface font-black uppercase">{selectedColor}</span>
+                  Select Variant: {selectedVariantIndex !== null ? <span className="text-on-surface font-black uppercase">{product.variants[selectedVariantIndex]?.name || product.variants[selectedVariantIndex]?.color || product.variants[selectedVariantIndex]?.size || `Option ${selectedVariantIndex + 1}`}</span> : <span className="text-error font-black uppercase">Required</span>}
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {product.variants.map((v: any, idx: number) => {
+                    const priceStr = v.price ? v.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0';
+                    const isSelected = selectedVariantIndex === idx;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setSelectedVariantIndex(idx);
+                          setSelectedColor(null);
+                          setSelectedSize(null);
+                          if (v.imageUrl) setActiveImage(v.imageUrl);
+                          // Auto-select color/size if the variant only has one option
+                          const parsedColors = parseCommaSeparated(v.color);
+                          if (parsedColors.length === 1) setSelectedColor(parsedColors[0]);
+                          const parsedSizes = parseCommaSeparated(v.size);
+                          if (parsedSizes.length === 1) setSelectedSize(parsedSizes[0]);
+                        }}
+                        className={`text-left p-2.5 border-2 text-xs font-bold transition-all flex items-center justify-between gap-2 ${
+                          isSelected 
+                            ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                            : 'bg-surface text-on-surface border-surface-dim hover:border-on-surface hover:bg-surface-container'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          {v.imageUrl && (
+                            <img src={v.imageUrl} alt={`${v.color || ''} ${v.size || ''}`} className="w-16 h-16 object-cover border-2 border-on-surface shrink-0" />
+                          )}
+                          <span className="truncate uppercase">
+                            {[v.name, v.color, v.size].filter(Boolean).join(' • ') || `Option ${idx + 1}`}
+                          </span>
+                        </div>
+                        <span className="font-black shrink-0">KSh {priceStr}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Colors */}
+            {availableColors.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">
+                  Select Color: {selectedColor ? <span className="text-on-surface font-black uppercase">{selectedColor}</span> : <span className="text-error font-black uppercase">Required</span>}
                 </label>
                 <div className="flex gap-2">
-                  {product.colors.map(color => (
+                  {availableColors.map(color => (
                     <button
                       key={color}
                       onClick={() => setSelectedColor(color)}
@@ -260,13 +367,13 @@ export default function ProductDetailPage() {
             )}
 
             {/* Sizes */}
-            {product.sizes && product.sizes.length > 0 && (
+            {availableSizes.length > 0 && (
               <div className="space-y-2 pt-2">
                 <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">
-                  Select Size: <span className="text-on-surface font-black">{selectedSize}</span>
+                  Select Size: {selectedSize ? <span className="text-on-surface font-black">{selectedSize}</span> : <span className="text-error font-black uppercase">Required</span>}
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.map(size => (
+                  {availableSizes.map(size => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
@@ -288,26 +395,28 @@ export default function ProductDetailPage() {
           <div className="space-y-4 border-t-2 border-surface-container pt-6">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
               {/* Quantity Box */}
-              <div className="space-y-1.5">
-                <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">Qty</label>
-                <div className="flex border-2 border-on-surface bg-surface w-32">
-                  <button 
-                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                    className="px-3 py-2 font-bold hover:bg-surface-container active:bg-surface-dim transition-colors border-r-2 border-on-surface text-sm flex-1"
-                  >
-                    -
-                  </button>
-                  <span className="px-4 py-2 font-extrabold flex items-center justify-center text-sm min-w-[40px]">
-                    {quantity}
-                  </span>
-                  <button 
-                    onClick={() => setQuantity(q => Math.min(10, q + 1))}
-                    className="px-3 py-2 font-bold hover:bg-surface-container active:bg-surface-dim transition-colors border-l-2 border-on-surface text-sm flex-1"
-                  >
-                    +
-                  </button>
+              {product.allowMultiplePurchases !== false && (
+                <div className="space-y-1.5">
+                  <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">Qty</label>
+                  <div className="flex border-2 border-on-surface bg-surface w-32">
+                    <button 
+                      onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                      className="px-3 py-2 font-bold hover:bg-surface-container active:bg-surface-dim transition-colors border-r-2 border-on-surface text-sm flex-1"
+                    >
+                      -
+                    </button>
+                    <span className="px-4 py-2 font-extrabold flex items-center justify-center text-sm min-w-[40px]">
+                      {quantity}
+                    </span>
+                    <button 
+                      onClick={() => setQuantity(q => Math.min(currentStock, q + 1))}
+                      className="px-3 py-2 font-bold hover:bg-surface-container active:bg-surface-dim transition-colors border-l-2 border-on-surface text-sm flex-1"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Add Button */}
               <div className="flex-1 w-full pt-5 flex gap-2">

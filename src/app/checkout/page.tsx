@@ -46,7 +46,10 @@ export default function CheckoutPage() {
         const t = cart.CartItems.reduce(
           (sum: number, item: CartItem) => {
             if (!item.Product) return sum;
-            const price = parseFloat(String(item.Product.price));
+            let price = parseFloat(String(item.Product.price));
+            if (item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null && item.Product.variants && item.Product.variants[item.selectedVariantIndex]) {
+              price = parseFloat(String(item.Product.variants[item.selectedVariantIndex].price));
+            }
             const discount = item.Product.discount || 0;
             const finalPrice = discount > 0 ? price * (1 - discount / 100) : price;
             return sum + finalPrice * item.quantity;
@@ -88,13 +91,47 @@ export default function CheckoutPage() {
         method: 'FREE EXPRESS',
         cost: 0,
       },
-      items: cartItems.map(item => ({
-        productId: item.product_id.toString(),
-        name: item.Product?.name || 'Unknown',
-        price: item.Product?.price ? parseFloat(String(item.Product.price)) : 0,
-        quantity: item.quantity,
-        merchantId: item.Product?.merchantId || 'admin',
-      }))
+      items: cartItems.map(item => {
+        let basePrice = item.Product?.price ? parseFloat(String(item.Product.price)) : 0;
+        let variantName;
+        let imageUrl = item.Product?.image_url || null;
+        
+        if (item.Product?.variants) {
+          let matchingVariant;
+          if (item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null) {
+            matchingVariant = item.Product.variants[item.selectedVariantIndex];
+          } else {
+            matchingVariant = item.Product.variants.find((v: any) => {
+              const matchSize = v.size ? v.size === item.selectedSize : true;
+              const matchColor = v.color ? v.color === item.selectedColor : true;
+              return matchSize && matchColor;
+            });
+          }
+
+          if (matchingVariant) {
+            basePrice = parseFloat(String(matchingVariant.price));
+            variantName = matchingVariant.name;
+            if (matchingVariant.imageUrl) {
+              imageUrl = matchingVariant.imageUrl;
+            }
+          }
+        }
+        
+        const discount = item.Product?.discount || 0;
+        const finalPrice = discount > 0 ? basePrice * (1 - discount / 100) : basePrice;
+
+        return {
+          productId: item.product_id.toString(),
+          name: item.Product?.name || 'Unknown',
+          price: finalPrice,
+          quantity: item.quantity,
+          merchantId: item.Product?.merchantId || 'admin',
+          variantName: variantName || null,
+          color: item.selectedColor || null,
+          size: item.selectedSize || null,
+          imageUrl: imageUrl || null,
+        };
+      })
     };
 
     setSubmitting(true);
@@ -195,6 +232,7 @@ export default function CheckoutPage() {
                   id="phone"
                   name="phone"
                   defaultValue={userProfile?.phone || ''}
+                  required
                   className="w-full h-14 px-4 border-2 border-on-surface rounded-none font-medium bg-surface text-on-surface transition-all focus:border-primary-container focus:ring-0"
                 />
               </div>
@@ -285,6 +323,36 @@ export default function CheckoutPage() {
                 <span className="text-secondary font-bold uppercase tracking-wider">Items in Cart</span>
                 <span className="font-extrabold text-on-surface">{itemCount} {itemCount === 1 ? 'Item' : 'Items'}</span>
               </div>
+
+              {/* Product List */}
+              {cartItems.length > 0 && (
+                <div className="space-y-4 max-h-60 overflow-y-auto border-b border-surface-container pb-3 pt-3">
+                  {cartItems.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-sm gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-on-surface truncate">{item.Product?.name || 'Unknown Item'}</p>
+                        <p className="text-xs text-secondary">
+                          Qty: {item.quantity}
+                          {item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null && item.Product?.variants?.[item.selectedVariantIndex] ? ` • ${item.Product.variants[item.selectedVariantIndex].name}` : ''}
+                          {item.selectedColor ? ` • ${item.selectedColor}` : ''}
+                          {item.selectedSize ? ` • ${item.selectedSize}` : ''}
+                        </p>
+                      </div>
+                      <span className="font-bold text-on-surface whitespace-nowrap">
+                        Ksh {(() => {
+                          let basePrice = item.Product?.price ? parseFloat(String(item.Product.price)) : 0;
+                          if (item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null && item.Product?.variants?.[item.selectedVariantIndex]) {
+                            basePrice = parseFloat(String(item.Product.variants[item.selectedVariantIndex].price));
+                          }
+                          const discount = item.Product?.discount || 0;
+                          const finalPrice = discount > 0 ? basePrice * (1 - discount / 100) : basePrice;
+                          return (finalPrice * item.quantity).toFixed(2);
+                        })()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="flex justify-between border-b border-surface-container pb-3 text-sm">
                 <span className="text-secondary font-bold uppercase tracking-wider">Shipping</span>

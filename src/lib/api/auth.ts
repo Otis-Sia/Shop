@@ -26,7 +26,7 @@ export interface User {
   businessType?: string;
 }
 
-export const register = async (userData: { email: string; password: string; first_name: string; last_name: string; role?: 'customer' | 'merchant' }) => {
+export const register = async (userData: { email: string; password: string; first_name: string; last_name: string; role?: 'customer' | 'merchant'; phone?: string }) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
     const user = userCredential.user;
@@ -37,6 +37,7 @@ export const register = async (userData: { email: string; password: string; firs
       last_name: userData.last_name,
       email: userData.email,
       role: role,
+      phone: userData.phone || '',
       createdAt: new Date().toISOString()
     };
 

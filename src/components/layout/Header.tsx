@@ -150,11 +150,11 @@ export default function Header() {
         </Link>
 
         {/* Desktop Links */}
-        <div className="hidden lg:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
+        <div className="hidden lg:flex items-center gap-6 xl:gap-8 justify-center flex-1 mx-4">
           <Link href="/products" className="text-on-surface font-semibold hover:text-primary-container transition-colors duration-200">
             Shop All
           </Link>
-          <Link href="/products?category=Fashion" className="text-on-surface font-semibold hover:text-primary-container transition-colors duration-200">
+          <Link href="/products?filter=new-arrivals" className="text-on-surface font-semibold hover:text-primary-container transition-colors duration-200">
             New Arrivals
           </Link>
           <Link href="/services" className="text-on-surface font-semibold hover:text-primary-container transition-colors duration-200">

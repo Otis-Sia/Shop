@@ -222,7 +222,7 @@ export default function WishlistPage() {
                         )}
                       </div>
 
-                      {(userRole === 'customer' || userRole === 'guest') && (
+                      {(userRole === 'customer' || userRole === 'guest') && !(product.hasVariants || (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)) && (
                         <button
                           onClick={(e) => handleAddToCart(e, product.id)}
                           disabled={addingToCart[product.id]}

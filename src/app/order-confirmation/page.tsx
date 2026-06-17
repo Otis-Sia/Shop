@@ -166,6 +166,28 @@ function OrderConfirmationContent() {
               </span>
             </div>
 
+            {/* Items List */}
+            {order.items && order.items.length > 0 && (
+              <div className="p-4 space-y-4 border-t-2 border-on-surface border-dashed">
+                {order.items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-sm gap-2">
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="font-bold text-on-surface truncate">{item.name}</p>
+                      <p className="text-xs text-secondary">
+                        Qty: {item.quantity}
+                        {item.variantName ? ` • ${item.variantName}` : ''}
+                        {item.color ? ` • ${item.color}` : ''}
+                        {item.size ? ` • ${item.size}` : ''}
+                      </p>
+                    </div>
+                    <span className="font-bold text-on-surface whitespace-nowrap">
+                      Ksh {(item.price * item.quantity).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Shipping Method */}
             <div className="flex justify-between items-center p-4">
               <span className="font-extrabold text-xs uppercase tracking-wider text-secondary">

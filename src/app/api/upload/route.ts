@@ -32,3 +32,21 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { fileUrls } = await request.json();
+    if (!fileUrls || !Array.isArray(fileUrls)) {
+      return NextResponse.json({ error: 'Missing or invalid fileUrls array' }, { status: 400 });
+    }
+
+    const { deleteFileFromS3 } = await import('@/lib/s3');
+    
+    await Promise.all(fileUrls.map(url => deleteFileFromS3(url)));
+
+    return NextResponse.json({ message: 'Files deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting S3 files:', error);
+    return NextResponse.json({ error: 'Failed to delete files' }, { status: 500 });
+  }
+}

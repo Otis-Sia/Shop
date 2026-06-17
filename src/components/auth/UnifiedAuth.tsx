@@ -18,6 +18,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [role, setRole] = useState<'customer' | 'merchant'>('customer');
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -77,6 +78,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
         password,
         first_name: firstName,
         last_name: lastName,
+        phone: phone,
         role: role
       });
       await syncLocalCartToFirestore(user.uid);
@@ -327,6 +329,21 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                     autoComplete="family-name"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="font-bold text-xs tracking-wider block text-on-background uppercase" htmlFor="phone">
+                  Phone Number
+                </label>
+                <input 
+                  className="w-full h-14 px-4 border border-on-background rounded-none font-medium transition-all bg-surface text-on-surface" 
+                  id="phone" 
+                  placeholder="e.g. +254 700 000 000" 
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  autoComplete="tel"
+                />
               </div>
 
               <div className="space-y-2">
