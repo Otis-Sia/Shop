@@ -83,6 +83,17 @@
   }
 }
 
+/* Root scaling for responsive typography and spacing */
+html {
+  font-size: 14px; /* Scaled down for mobile */
+}
+
+@media (min-width: 640px) {
+  html {
+    font-size: 16px; /* Standard for desktop/tablet */
+  }
+}
+
 body {
   font-family: 'Inter', sans-serif;
   background-color: var(--color-background);

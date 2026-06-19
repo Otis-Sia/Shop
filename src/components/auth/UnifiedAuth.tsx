@@ -135,13 +135,13 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
             />
           </div>
           <div className="relative z-10">
-            <span className="inline-block bg-primary-container text-on-primary-container font-extrabold text-xs px-3 py-1 mb-4 uppercase tracking-widest">
+            <span className="inline-block bg-primary-container text-on-primary-container font-extrabold text-[10px] md:text-xs px-2 py-1 md:px-3 md:py-1 mb-4 uppercase tracking-widest">
               Join Us
             </span>
-            <h1 className="font-headline-md text-3xl md:text-4xl font-black mb-6 leading-tight uppercase tracking-tight text-white">
+            <h1 className="font-headline-md text-2xl md:text-4xl font-black mb-4 md:mb-6 leading-tight uppercase tracking-tight text-white">
               Member Access Only.
             </h1>
-            <p className="font-body-md text-sm md:text-base text-surface-container max-w-[400px] mb-8 leading-relaxed text-gray-300">
+            <p className="font-body-md text-xs md:text-base text-surface-container max-w-[400px] mb-6 md:mb-8 leading-relaxed text-gray-300">
               Unlock high-velocity retail experiences, priority shipping, and exclusive product drops. The journey to excellence starts here.
             </p>
             <div className="flex flex-col gap-4">
@@ -167,27 +167,28 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
           <div className="mb-8">
             {step === 'email' && (
               <>
-                <h2 className="font-headline-md text-2xl font-black uppercase text-on-background mb-2">Welcome</h2>
-                <p className="text-secondary text-sm">Enter your email to sign in or create an account.</p>
+                <h2 className="font-headline-md text-xl md:text-2xl font-black uppercase text-on-background mb-2">Welcome</h2>
+                <p className="text-secondary text-xs md:text-sm">Enter your email to sign in or create an account.</p>
               </>
             )}
             {step === 'login' && (
               <>
-                <h2 className="font-headline-md text-2xl font-black uppercase text-on-background mb-2">Welcome Back</h2>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-secondary">{email}</span>
-                  <button type="button" onClick={() => setStep('email')} className="text-xs uppercase font-bold text-primary-container hover:underline">Edit</button>
+                <h2 className="font-headline-md text-xl md:text-2xl font-black uppercase text-on-background mb-2">Welcome Back</h2>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="font-bold text-xs md:text-sm text-secondary">{email}</span>
+                  <button type="button" onClick={() => setStep('email')} className="text-[10px] md:text-xs uppercase font-bold text-primary-container hover:underline">Edit</button>
                 </div>
+                <p className="text-secondary text-xs md:text-sm">Please enter your password to continue.</p>
               </>
             )}
             {step === 'signup' && (
               <>
-                <h2 className="font-headline-md text-2xl font-black uppercase text-on-background mb-2">Create Account</h2>
+                <h2 className="font-headline-md text-xl md:text-2xl font-black uppercase text-on-background mb-2">Create Account</h2>
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="font-bold text-sm text-secondary">{email}</span>
-                  <button type="button" onClick={() => setStep('email')} className="text-xs uppercase font-bold text-primary-container hover:underline">Edit</button>
+                  <span className="font-bold text-xs md:text-sm text-secondary">{email}</span>
+                  <button type="button" onClick={() => setStep('email')} className="text-[10px] md:text-xs uppercase font-bold text-primary-container hover:underline">Edit</button>
                 </div>
-                <p className="text-secondary text-sm">It looks like you are new here. Let's get you set up.</p>
+                <p className="text-secondary text-xs md:text-sm">It looks like you are new here. Let's get you set up.</p>
               </>
             )}
           </div>
