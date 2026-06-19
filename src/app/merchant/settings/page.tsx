@@ -1,5 +1,5 @@
 "use client";
-
+import { useToast } from '@/components/providers/ToastProvider';
 import { useEffect, useState } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -7,6 +7,7 @@ import { UserDocument } from "@/types/schema";
 import S3Uploader from "@/components/S3Uploader";
 
 export default function MerchantSettings() {
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<Partial<UserDocument>>({});
@@ -72,10 +73,10 @@ export default function MerchantSettings() {
         bannerUrl: profile.bannerUrl || "",
         socialMediaLinks: profile.socialMediaLinks || {},
       });
-      alert("Business profile updated successfully!");
+      showToast("Business profile updated successfully!", 'success');
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("Failed to update profile.");
+      showToast("Failed to update profile.", 'error');
     } finally {
       setSaving(false);
     }

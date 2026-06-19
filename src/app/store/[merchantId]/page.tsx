@@ -10,6 +10,7 @@ import Icon from '@/components/Icon';
 import ProductRatingBadge from '@/components/shop/ProductRatingBadge';
 import { Globe, Mail, Phone } from 'lucide-react';
 import { UserDocument } from '@/types/schema';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 export default function MerchantStorePage() {
   const params = useParams();
@@ -248,7 +249,7 @@ export default function MerchantStorePage() {
                   
                   <div className="p-4 flex-1 flex flex-col">
                     <p className="text-primary-container font-extrabold text-xl mb-1">
-                      Ksh {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      {CURRENCY_CONFIG.symbol} {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </p>
                     
                     <Link href={`/products/${product.id}`}>

@@ -10,6 +10,7 @@ export interface ProductFilters {
   merchantId?: string;
   itemType?: string;
   newArrivals?: boolean;
+  includeUnapproved?: boolean;
 }
 
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -109,14 +110,28 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
       return p;
     });
 
-    if (filters.keyword) {
-      const keyword = filters.keyword.toLowerCase();
-      products = products.filter(p =>
-        p.name.toLowerCase().includes(keyword) ||
-        p.description.toLowerCase().includes(keyword) ||
-        (p.category && p.category.toLowerCase().includes(keyword)) ||
-        (p.tags && p.tags.some(tag => tag.toLowerCase().includes(keyword)))
+    // Only allow products from merchants who are 'approved' or 'verified' (or admin)
+    if (!filters.includeUnapproved) {
+      products = products.filter(p => 
+        p.merchantId === 'admin' || 
+        p.merchantStatus === 'approved' || 
+        p.merchantStatus === 'verified'
       );
+    }
+
+    if (filters.keyword) {
+      const searchTerms = filters.keyword.toLowerCase().split(/\s+/).filter(Boolean);
+      products = products.filter(p => {
+        const searchableText = [
+          p.name,
+          p.description,
+          p.category || '',
+          p.brand || '',
+          ...(p.tags || [])
+        ].join(' ').toLowerCase();
+
+        return searchTerms.every(term => searchableText.includes(term));
+      });
     }
 
     if (filters.maxPrice) {
@@ -154,6 +169,13 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
       // By default, exclude services from products list
       products = products.filter(p => p.itemType !== 'service');
     }
+
+    // Sort verified merchants' products to appear first
+    products.sort((a, b) => {
+      const aVerified = a.merchantStatus === 'verified' ? 1 : 0;
+      const bVerified = b.merchantStatus === 'verified' ? 1 : 0;
+      return bVerified - aVerified;
+    });
 
     if (filters.limit) {
       products = products.slice(0, filters.limit);

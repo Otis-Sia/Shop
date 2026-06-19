@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase';
 import { Order } from '@/types/schema';
 import Icon from '@/components/Icon';
 import { Timestamp } from 'firebase/firestore';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 function formatDate(date: Timestamp | Date | undefined): string {
   if (!date) return '—';
@@ -152,7 +153,7 @@ function OrderConfirmationContent() {
                 Total Amount
               </span>
               <span className="font-headline-md text-lg font-black text-on-surface">
-                Ksh {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                {CURRENCY_CONFIG.symbol} {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
               </span>
             </div>
 
@@ -181,7 +182,7 @@ function OrderConfirmationContent() {
                       </p>
                     </div>
                     <span className="font-bold text-on-surface whitespace-nowrap">
-                      Ksh {(item.price * item.quantity).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                      {CURRENCY_CONFIG.symbol} {(item.price * item.quantity).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 ))}

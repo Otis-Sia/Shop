@@ -1,16 +1,21 @@
-'use client';
-
+"use client";
+import { useToast } from '@/components/providers/ToastProvider';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getProduct } from '@/lib/api/products';
 import { addToCart } from '@/lib/api/cart';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { getUserProfile } from '@/lib/api/auth';
+import { canAddToCartRole } from '@/lib/access';
 import { addToWishlist, removeFromWishlist, isInWishlist } from '@/lib/api/wishlist';
 import { Product } from '@/lib/data/products-data';
 import Icon from '@/components/Icon';
 import ProductReviews from '@/components/shop/ProductReviews';
 import ProductRatingBadge from '@/components/shop/ProductRatingBadge';
 import './detail.css';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 const mapColorToCss = (name: string): string => {
   const lower = name.toLowerCase();
@@ -25,6 +30,7 @@ const mapColorToCss = (name: string): string => {
 };
 
 export default function ProductDetailPage() {
+  const { showToast } = useToast();
   const params = useParams();
   const productId = params.id as string;
 
@@ -39,6 +45,7 @@ export default function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [userRole, setUserRole] = useState<'customer' | 'admin' | 'merchant' | 'guest'>('guest');
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -50,7 +57,7 @@ export default function ProductDetailPage() {
       try {
         const data = await getProduct(productId);
         setProduct(data);
-        setActiveImage(data.image_url);
+        setActiveImage(data.image_url || data.additional_images?.[0] || data.variants?.find((variant: any) => variant?.imageUrl)?.imageUrl || null);
         
         const wishlisted = await isInWishlist(productId);
         setIsWishlisted(wishlisted);
@@ -63,6 +70,24 @@ export default function ProductDetailPage() {
     loadProduct();
   }, [productId]);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const profile = await getUserProfile(user.uid);
+          setUserRole(profile?.role || 'customer');
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          setUserRole('customer');
+        }
+      } else {
+        setUserRole('guest');
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // When a variant is selected, only show that variant's colors/sizes.
   // When no variant is selected, show all available colors/sizes from the product + all variants.
   const selectedVariant = (product?.hasVariants && product?.variants && selectedVariantIndex !== null)
@@ -74,6 +99,21 @@ export default function ProductDetailPage() {
     return val.split(',').map(s => s.trim()).filter(Boolean);
   };
 
+  const getVariantSizes = (variant: any) => {
+    const variantSizes = parseCommaSeparated(variant?.size);
+    return variantSizes.length > 0 ? variantSizes : (product?.sizes || []);
+  };
+
+  const getVariantPrice = (variant: any) => {
+    const rawPrice = variant?.price;
+    if (rawPrice === '' || rawPrice === null || rawPrice === undefined || Number(rawPrice) === 0) {
+      return Number(product?.price || 0);
+    }
+
+    const variantPrice = Number(rawPrice);
+    return Number.isFinite(variantPrice) ? variantPrice : Number(product?.price || 0);
+  };
+
   const availableColors = selectedVariant
     ? parseCommaSeparated(selectedVariant.color)
     : Array.from(new Set([
@@ -82,27 +122,45 @@ export default function ProductDetailPage() {
       ]));
 
   const availableSizes = selectedVariant
-    ? parseCommaSeparated(selectedVariant.size)
+    ? getVariantSizes(selectedVariant)
     : Array.from(new Set([
         ...(product?.sizes || []),
         ...(product?.variants || []).flatMap((v: any) => parseCommaSeparated(v.size))
       ]));
 
+  const galleryEntries: [string, { src: string; label: string }][] = [];
+  if (product?.image_url) {
+    galleryEntries.push([product.image_url, { src: product.image_url, label: 'Main image' }]);
+  }
+  (product?.additional_images || []).filter(Boolean).forEach((src, index) => {
+    galleryEntries.push([src, { src, label: `Gallery ${index + 1}` }]);
+  });
+  (product?.variants || [])
+    .filter((variant: any) => variant?.imageUrl)
+    .forEach((variant: any, index: number) => {
+      galleryEntries.push([
+        variant.imageUrl,
+        { src: variant.imageUrl, label: variant.name || variant.color || variant.size || `Variant ${index + 1}` }
+      ]);
+    });
+  const galleryItems = Array.from(new Map(galleryEntries).values());
+
   const handleAddToCart = async () => {
     if (!product) return;
+    if (!canAddToCartRole(userRole)) return;
 
     if (availableColors.length > 0 && !selectedColor) {
-      alert("Please select a color.");
+      showToast("Please select a color.", 'warning');
       return;
     }
     
     if (availableSizes.length > 0 && !selectedSize) {
-      alert("Please select a size.");
+      showToast("Please select a size.", 'warning');
       return;
     }
 
     if (product.hasVariants && product.variants && product.variants.length > 0 && selectedVariantIndex === null) {
-      alert("Please select a specific variant.");
+      showToast("Please select a specific variant.", 'warning');
       return;
     }
 
@@ -172,7 +230,7 @@ export default function ProductDetailPage() {
   if (product.hasVariants && product.variants && selectedVariantIndex !== null) {
     const matchingVariant = product.variants[selectedVariantIndex];
     if (matchingVariant) {
-      basePrice = matchingVariant.price;
+      basePrice = getVariantPrice(matchingVariant);
       currentStock = (product.trackInventory === false || matchingVariant.stock === null) ? 99999 : (matchingVariant.stock || 0);
     }
   }
@@ -220,25 +278,26 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Additional Images Roll */}
-          {product.additional_images && product.additional_images.length > 0 && (
+          {galleryItems.length > 0 && (
             <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
               <button 
-                onClick={() => setActiveImage(product.image_url)}
+                onClick={() => setActiveImage(product.image_url || galleryItems[0]?.src || null)}
                 className={`w-16 h-20 md:w-20 md:h-24 bg-surface-container-low border-2 overflow-hidden flex-shrink-0 active:scale-95 transition-all ${
-                  activeImage === product.image_url ? 'border-primary-container' : 'border-on-surface'
+                  activeImage === (product.image_url || galleryItems[0]?.src) ? 'border-primary-container' : 'border-on-surface'
                 }`}
               >
-                <img src={product.image_url} alt="Base main" className="w-full h-auto object-contain" />
+                <img src={product.image_url || galleryItems[0]?.src || ''} alt="Base main" className="w-full h-auto object-contain" />
               </button>
-              {product.additional_images.map((img, idx) => (
+              {galleryItems.filter(item => item.src !== (product.image_url || galleryItems[0]?.src)).map((item, idx) => (
                 <button 
-                  key={idx}
-                  onClick={() => setActiveImage(img)}
+                  key={`${item.src}-${idx}`}
+                  onClick={() => setActiveImage(item.src)}
                   className={`w-16 h-20 md:w-20 md:h-24 bg-surface-container-low border-2 overflow-hidden flex-shrink-0 active:scale-95 transition-all ${
-                    activeImage === img ? 'border-primary-container' : 'border-on-surface'
+                    activeImage === item.src ? 'border-primary-container' : 'border-on-surface'
                   }`}
+                  title={item.label}
                 >
-                  <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-auto object-contain" />
+                  <img src={item.src} alt={item.label} className="w-full h-auto object-contain" />
                 </button>
               ))}
             </div>
@@ -255,11 +314,17 @@ export default function ProductDetailPage() {
             <h1 className="font-headline-md text-2xl md:text-3xl font-black uppercase tracking-tight text-on-surface">
               {product.name}
             </h1>
+
+            {product.brand && (
+              <p className="text-[11px] font-bold uppercase tracking-wider text-secondary">
+                Brand: {product.brand}
+              </p>
+            )}
             
             <div className="flex items-center gap-3 pt-1">
-              <span className="font-headline-md text-2xl font-black text-on-surface">Ksh {finalPrice.toFixed(2)}</span>
+              <span className="font-headline-md text-2xl font-black text-on-surface">{CURRENCY_CONFIG.symbol} {finalPrice.toFixed(2)}</span>
               {discount > 0 && (
-                <span className="text-secondary line-through font-bold text-sm">Ksh {basePrice.toFixed(2)}</span>
+                <span className="text-secondary line-through font-bold text-sm">{CURRENCY_CONFIG.symbol} {basePrice.toFixed(2)}</span>
               )}
               {currentStock > 0 && currentStock !== 99999 && (
                 <span className="bg-surface-container text-on-surface border border-on-surface text-[10px] font-black uppercase px-2 py-0.5 tracking-wider ml-auto">
@@ -306,7 +371,8 @@ export default function ProductDetailPage() {
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {product.variants.map((v: any, idx: number) => {
-                    const priceStr = v.price ? v.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0';
+                    const priceStr = getVariantPrice(v).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    const variantSizes = getVariantSizes(v);
                     const isSelected = selectedVariantIndex === idx;
                     return (
                       <button
@@ -319,7 +385,7 @@ export default function ProductDetailPage() {
                           // Auto-select color/size if the variant only has one option
                           const parsedColors = parseCommaSeparated(v.color);
                           if (parsedColors.length === 1) setSelectedColor(parsedColors[0]);
-                          const parsedSizes = parseCommaSeparated(v.size);
+                          const parsedSizes = getVariantSizes(v);
                           if (parsedSizes.length === 1) setSelectedSize(parsedSizes[0]);
                         }}
                         className={`text-left p-2.5 border-2 text-xs font-bold transition-all flex items-center justify-between gap-2 ${
@@ -333,10 +399,10 @@ export default function ProductDetailPage() {
                             <img src={v.imageUrl} alt={`${v.color || ''} ${v.size || ''}`} className="w-16 h-16 object-cover border-2 border-on-surface shrink-0" />
                           )}
                           <span className="truncate uppercase">
-                            {[v.name, v.color, v.size].filter(Boolean).join(' • ') || `Option ${idx + 1}`}
+                            {[v.name, v.color, variantSizes.join(', ')].filter(Boolean).join(' • ') || `Option ${idx + 1}`}
                           </span>
                         </div>
-                        <span className="font-black shrink-0">KSh {priceStr}</span>
+                        <span className="font-black shrink-0">{CURRENCY_CONFIG.symbol} {priceStr}</span>
                       </button>
                     )
                   })}
@@ -420,18 +486,20 @@ export default function ProductDetailPage() {
 
               {/* Add Button */}
               <div className="flex-1 w-full pt-5 flex gap-2">
-                <button
-                  onClick={handleAddToCart}
-                  disabled={cartStatus === 'adding'}
-                  className={`flex-1 h-12 bg-primary-container text-on-primary-container font-headline-md font-bold uppercase tracking-wider text-xs border-2 border-on-surface transition-transform active:scale-95 shadow-[4px_4px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 disabled:opacity-50 flex items-center justify-center gap-2 ${
-                    cartStatus === 'added' ? '!bg-green-600 !text-white' : ''
-                  }`}
-                >
-                  <Icon name={cartStatus === 'added' ? 'check' : 'shopping_cart'} className="text-sm font-black" />
-                  <span>
-                    {cartStatus === 'adding' ? 'Adding to Cart...' : cartStatus === 'added' ? 'Added successfully ✓' : cartStatus === 'error' ? 'Pipeline error' : 'Add to Shopping Cart'}
-                  </span>
-                </button>
+                {canAddToCartRole(userRole) && (
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={cartStatus === 'adding'}
+                    className={`flex-1 h-12 bg-primary-container text-on-primary-container font-headline-md font-bold uppercase tracking-wider text-xs border-2 border-on-surface transition-transform active:scale-95 shadow-[4px_4px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 disabled:opacity-50 flex items-center justify-center gap-2 ${
+                      cartStatus === 'added' ? '!bg-green-600 !text-white' : ''
+                    }`}
+                  >
+                    <Icon name={cartStatus === 'added' ? 'check' : 'shopping_cart'} className="text-sm font-black" />
+                    <span>
+                      {cartStatus === 'adding' ? 'Adding to Cart...' : cartStatus === 'added' ? 'Added successfully ✓' : cartStatus === 'error' ? 'Pipeline error' : 'Add to Shopping Cart'}
+                    </span>
+                  </button>
+                )}
                 <button
                   onClick={handleToggleWishlist}
                   disabled={wishlistLoading}
@@ -451,13 +519,7 @@ export default function ProductDetailPage() {
 
           {/* Delivery & Return Policies Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t-2 border-surface-container pt-6">
-            <div className="flex gap-3 items-start p-3 bg-surface border border-on-surface-variant">
-              <Icon name="local_shipping" className="text-primary-container text-2xl font-bold" />
-              <div>
-                <h4 className="font-extrabold text-[10px] uppercase text-on-surface">Free Delivery</h4>
-                <p className="text-[9px] text-secondary font-semibold uppercase mt-0.5">Complimentary for orders over Ksh 150</p>
-              </div>
-            </div>
+
             <div className="flex gap-3 items-start p-3 bg-surface border border-on-surface-variant">
               <Icon name="swap_horiz" className="text-primary-container text-2xl font-bold" />
               <div>

@@ -7,6 +7,7 @@ import Icon from '@/components/Icon';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Product } from '@/types/schema';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 interface ServiceWithMerchant extends Product {
   storeName: string;
@@ -159,7 +160,7 @@ export default function ServicesPage() {
                     <div>
                       <span className="block text-xs uppercase font-bold text-secondary mb-1">Starting At</span>
                       <div className="flex items-center gap-2 font-black text-primary-container text-xl">
-                        Ksh {service.price.toFixed(2)}
+                        {CURRENCY_CONFIG.symbol} {service.price.toFixed(2)}
                       </div>
                     </div>
                   </div>

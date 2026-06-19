@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import Icon from '@/components/Icon';
+import { STORE_CONFIG } from '@/lib/config/store';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 export default function TermsOfServicePage() {
   return (
@@ -23,7 +25,7 @@ export default function TermsOfServicePage() {
               1. Acceptance of Terms
             </h2>
             <p className="font-body-md text-sm text-secondary font-medium leading-relaxed">
-              By accessing and using JUJ4's website and services, you accept and agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.
+              By accessing and using {STORE_CONFIG.name}'s website and services, you accept and agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.
             </p>
           </div>
 
@@ -43,7 +45,7 @@ export default function TermsOfServicePage() {
               3. Products & Pricing
             </h2>
             <p className="font-body-md text-sm text-secondary font-medium leading-relaxed">
-              All prices are displayed in Kenyan Shillings (Ksh) unless otherwise noted. We reserve the right to modify prices, products, and services without prior notice. We make every effort to display product colors and images accurately.
+              All prices are displayed in {CURRENCY_CONFIG.code} ({CURRENCY_CONFIG.symbol}) unless otherwise noted. We reserve the right to modify prices, products, and services without prior notice. We make every effort to display product colors and images accurately.
             </p>
           </div>
 
@@ -63,7 +65,7 @@ export default function TermsOfServicePage() {
               5. Intellectual Property
             </h2>
             <p className="font-body-md text-sm text-secondary font-medium leading-relaxed">
-              All content on this site, including text, graphics, logos, images, and software, is the property of JUJ4 and protected by international copyright laws.
+              All content on this site, including text, graphics, logos, images, and software, is the property of {STORE_CONFIG.name} and protected by international copyright laws.
             </p>
           </div>
 
@@ -73,7 +75,7 @@ export default function TermsOfServicePage() {
               6. Limitation of Liability
             </h2>
             <p className="font-body-md text-sm text-secondary font-medium leading-relaxed">
-              JUJ4 shall not be liable for any direct, indirect, incidental, special, or consequential damages resulting from the use or inability to use our services or products.
+              {STORE_CONFIG.name} shall not be liable for any direct, indirect, incidental, special, or consequential damages resulting from the use or inability to use our services or products.
             </p>
           </div>
         </div>

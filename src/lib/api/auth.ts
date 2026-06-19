@@ -196,7 +196,7 @@ export const applyForMerchantRole = async (
   try {
     const docRef = doc(db, 'users', uid);
     await setDoc(docRef, { 
-      merchantStatus: 'pending',
+      merchantStatus: 'approved',
       onboardingComplete: true,
       ...details
     }, { merge: true });

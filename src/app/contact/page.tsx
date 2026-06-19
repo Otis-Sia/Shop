@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Icon from '@/components/Icon';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { STORE_CONFIG } from '@/lib/config/store';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -156,7 +157,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h4 className="font-extrabold text-xs uppercase tracking-wider text-on-surface">Email Us</h4>
-                  <a href="mailto:support@juj4.com" className="font-body-md text-sm font-medium text-secondary hover:text-primary-container transition-colors">support@juj4.com</a>
+                  <a href={`mailto:${STORE_CONFIG.email}`} className="font-body-md text-sm font-medium text-secondary hover:text-primary-container transition-colors">{STORE_CONFIG.email}</a>
                 </div>
               </li>
               <li className="flex items-start gap-4">
@@ -165,7 +166,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h4 className="font-extrabold text-xs uppercase tracking-wider text-on-surface">Call Us</h4>
-                  <p className="font-body-md text-sm font-medium text-secondary">+254 700 000 000</p>
+                  <p className="font-body-md text-sm font-medium text-secondary">{STORE_CONFIG.phone}</p>
                 </div>
               </li>
               <li className="flex items-start gap-4">
@@ -174,7 +175,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h4 className="font-extrabold text-xs uppercase tracking-wider text-on-surface">Location</h4>
-                  <p className="font-body-md text-sm font-medium text-secondary">Nairobi, Kenya<br/>PO BOX 12345-00100</p>
+                  <p className="font-body-md text-sm font-medium text-secondary">{STORE_CONFIG.address}<br/>{STORE_CONFIG.poBox}</p>
                 </div>
               </li>
               <li className="flex items-start gap-4">
@@ -183,7 +184,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h4 className="font-extrabold text-xs uppercase tracking-wider text-on-surface">Business Hours</h4>
-                  <p className="font-body-md text-sm font-medium text-secondary">Monday - Friday: 9am - 6pm (EAT)<br/>Saturday: 10am - 4pm</p>
+                  <p className="font-body-md text-sm font-medium text-secondary whitespace-pre-line">{STORE_CONFIG.businessHours}</p>
                 </div>
               </li>
             </ul>

@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import { STORE_CONFIG } from '@/lib/config/store';
 
+export default function PrivacyPolicyPage() {
 const sections = [
   {
     title: '1. Information We Collect',
@@ -73,7 +75,7 @@ const sections = [
     content: [
       {
         subtitle: '',
-        text: 'You have the right to: access the personal data we hold about you; request correction of inaccurate information; request deletion of your account and personal data; opt out of marketing communications at any time; request a portable copy of your data. To exercise any of these rights, please contact us at support@juj4.com.',
+        text: `You have the right to: access the personal data we hold about you; request correction of inaccurate information; request deletion of your account and personal data; opt out of marketing communications at any time; request a portable copy of your data. To exercise any of these rights, please contact us at ${STORE_CONFIG.email}.`,
       },
     ],
   },
@@ -83,13 +85,12 @@ const sections = [
     content: [
       {
         subtitle: '',
-        text: 'If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at: Email: support@juj4.com. We will respond to your inquiry within 48 business hours.',
+        text: `If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at: Email: ${STORE_CONFIG.email}. We will respond to your inquiry within 48 business hours.`,
       },
     ],
   },
 ];
 
-export default function PrivacyPolicyPage() {
   return (
     <main className="min-h-screen bg-background py-12 px-4 md:px-16">
       <div className="max-w-4xl mx-auto">
@@ -111,7 +112,7 @@ export default function PrivacyPolicyPage() {
             Privacy Policy
           </h1>
           <p className="font-body-md text-sm text-gray-300 leading-relaxed max-w-2xl">
-            Your privacy matters to us. This policy explains how JUJ4 collects, uses, and protects your personal information when you use our platform.
+            Your privacy matters to us. This policy explains how {STORE_CONFIG.name} collects, uses, and protects your personal information when you use our platform.
           </p>
           <p className="font-body-md text-xs text-gray-400 mt-4 uppercase tracking-wider font-bold">
             Last Updated: May 31, 2026
@@ -152,7 +153,7 @@ export default function PrivacyPolicyPage() {
         {/* Footer Note */}
         <div className="mt-8 p-6 bg-surface-container border-2 border-on-surface text-center">
           <p className="font-body-md text-xs text-secondary uppercase tracking-wider font-bold">
-            By using JUJ4, you agree to this Privacy Policy.
+            By using {STORE_CONFIG.name}, you agree to this Privacy Policy.
           </p>
           <div className="flex justify-center gap-6 mt-4">
             <Link

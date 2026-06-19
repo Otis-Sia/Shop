@@ -9,29 +9,20 @@ import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserProfile } from '@/lib/api/auth';
 import Icon from '@/components/Icon';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
+import { useToast } from '@/components/providers/ToastProvider';
 
-interface Toast {
-  id: number;
-  message: string;
-  type: 'success' | 'info';
-}
+
 
 export default function WishlistPage() {
+  const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [addingToCart, setAddingToCart] = useState<Record<number, boolean>>({});
   const [addedToCart, setAddedToCart] = useState<Record<number, boolean>>({});
   const [userRole, setUserRole] = useState<'customer' | 'admin' | 'merchant' | 'guest'>('guest');
-  const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = (message: string, type: 'success' | 'info' = 'success') => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3000);
-  };
 
   const fetchWishlist = async () => {
     setLoading(true);
@@ -213,11 +204,11 @@ export default function WishlistPage() {
                     <div className="mt-auto space-y-3">
                       <div className="flex flex-col">
                         <span className="font-headline-md text-base font-black text-on-surface">
-                          Ksh {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {CURRENCY_CONFIG.symbol} {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                         {discount > 0 && (
                           <span className="text-[10px] text-secondary line-through font-bold">
-                            Ksh {originalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {CURRENCY_CONFIG.symbol} {originalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         )}
                       </div>
@@ -240,26 +231,6 @@ export default function WishlistPage() {
           </div>
         </>
       )}
-
-      {/* Toast Notifications */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`pointer-events-auto px-5 py-3 border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] font-bold text-xs uppercase tracking-wider flex items-center gap-2 animate-[slideInRight_0.3s_ease-out] ${
-              toast.type === 'success'
-                ? 'bg-surface-container text-green-500 dark:text-green-400'
-                : 'bg-surface-container text-on-surface'
-            }`}
-          >
-            <Icon
-              name={toast.type === 'success' ? 'check_circle' : 'info'}
-              className="text-base"
-            />
-            {toast.message}
-          </div>
-        ))}
-      </div>
 
       {/* Inline animation keyframes */}
       <style jsx>{`

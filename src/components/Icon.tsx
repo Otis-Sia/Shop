@@ -110,7 +110,8 @@ export type IconName =
   | 'error_outline'
   | 'store'
   | 'save'
-  | 'edit';
+  | 'edit'
+  | 'archive';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName | string;
@@ -1050,6 +1051,15 @@ export default function Icon({ name, className = '', ...props }: IconProps) {
         <svg {...baseSvgProps}>
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
           <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      );
+
+    case 'archive':
+      return (
+        <svg {...baseSvgProps}>
+          <polyline points="21 8 21 21 3 21 3 8" />
+          <rect x="1" y="3" width="22" height="5" />
+          <line x1="10" y1="12" x2="14" y2="12" />
         </svg>
       );
 

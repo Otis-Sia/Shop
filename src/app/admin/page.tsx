@@ -14,6 +14,7 @@ import { Order } from '@/types/schema';
 import { getSystemCategories, seedCategories, createSystemCategory, updateSystemCategory, deleteSystemCategory } from '@/lib/api/categories';
 import { SystemCategory, CategoryNode } from '@/types/schema';
 import CategoryManager from '@/components/admin/CategoryManager';
+import MerchantDetailsPanel from '@/components/admin/MerchantDetailsPanel';
 
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -26,7 +27,8 @@ export default function AdminPage() {
   const [merchantsLoading, setMerchantsLoading] = useState(false);
   const [categories, setCategories] = useState<SystemCategory[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'orders' | 'customers' | 'merchants' | 'categories' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'orders' | 'customers' | 'merchants' | 'categories' | 'settings' | 'merchant_details'>('overview');
+  const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'merchant' | 'customer' | null>(null);
   
   // Orders state
@@ -102,6 +104,7 @@ export default function AdminPage() {
     loadProducts();
     loadOrders();
     loadCustomers();
+    loadMerchants();
   }, []);
 
   const loadCustomers = async () => {
@@ -198,9 +201,6 @@ export default function AdminPage() {
   useEffect(() => {
     if (activeTab === 'customers' && customers.length === 0 && !customersLoading) {
       loadCustomers();
-    }
-    if (activeTab === 'merchants') {
-      loadMerchants();
     }
     if (activeTab === 'categories') {
       loadCategories();
@@ -477,7 +477,7 @@ export default function AdminPage() {
               <button 
                 onClick={() => setActiveTab('merchants')}
                 className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
-                  activeTab === 'merchants' 
+                  activeTab === 'merchants' || activeTab === 'merchant_details'
                     ? 'bg-primary-container text-on-primary-container border-on-surface' 
                     : 'text-secondary hover:bg-secondary-container hover:text-on-surface border-transparent'
                 }`}
@@ -561,7 +561,7 @@ export default function AdminPage() {
           </button>
           <button 
             onClick={() => setActiveTab('merchants')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'merchants' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
+            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'merchants' || activeTab === 'merchant_details' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
           >
             Merchants
           </button>
@@ -649,6 +649,7 @@ export default function AdminPage() {
                     <tr className="bg-on-surface text-surface uppercase text-[10px] tracking-widest font-black">
                       <th className="p-4 border-b border-on-surface">Order ID</th>
                       <th className="p-4 border-b border-on-surface">Customer</th>
+                      <th className="p-4 border-b border-on-surface">Merchant</th>
                       <th className="p-4 border-b border-on-surface">Status</th>
                       <th className="p-4 border-b border-on-surface">Amount</th>
                       <th className="p-4 border-b border-on-surface">Date</th>
@@ -658,13 +659,13 @@ export default function AdminPage() {
                   <tbody className="divide-y-2 divide-surface-container-highest text-sm">
                     {ordersLoading ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-secondary font-bold text-xs uppercase tracking-widest">
+                        <td colSpan={7} className="p-8 text-center text-secondary font-bold text-xs uppercase tracking-widest">
                           Loading orders...
                         </td>
                       </tr>
                     ) : orders.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-secondary font-bold text-xs uppercase tracking-widest">
+                        <td colSpan={7} className="p-8 text-center text-secondary font-bold text-xs uppercase tracking-widest">
                           No recent orders.
                         </td>
                       </tr>
@@ -681,6 +682,12 @@ export default function AdminPage() {
                         const initials = order.contactInformation?.fullName 
                           ? order.contactInformation.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
                           : 'GT';
+                          
+                        const orderMerchant = merchants.find(m => m.id === order.merchantId);
+                        const merchantName = orderMerchant?.storeName || 
+                                             (orderMerchant?.first_name ? `${orderMerchant.first_name} ${orderMerchant.last_name || ''}` : null) || 
+                                             order.merchantId || 
+                                             'Unknown';
 
                         return (
                           <tr key={order.id} className="hover:bg-secondary-container transition-colors cursor-pointer group">
@@ -694,6 +701,14 @@ export default function AdminPage() {
                                   {order.contactInformation?.fullName || 'Guest'}
                                 </span>
                               </div>
+                            </td>
+                            <td className="p-4">
+                              <button 
+                                onClick={() => { setActiveTab('merchant_details'); setSelectedMerchantId(order.merchantId); }}
+                                className="font-bold text-primary-container bg-primary-container/10 px-2 py-1 rounded-sm text-xs hover:bg-primary-container/20 transition-colors"
+                              >
+                                {merchantName}
+                              </button>
                             </td>
                             <td className="p-4">
                               {currentUserRole === 'admin' ? (
@@ -1028,6 +1043,7 @@ export default function AdminPage() {
                     <tr className="bg-on-surface text-surface uppercase text-[10px] tracking-widest font-black">
                       <th className="p-4">Order ID</th>
                       <th className="p-4">Customer</th>
+                      <th className="p-4">Merchant</th>
                       <th className="p-4">Delivery Status</th>
                       <th className="p-4">Items Count</th>
                       <th className="p-4">Total Amount</th>
@@ -1038,13 +1054,13 @@ export default function AdminPage() {
                   <tbody className="divide-y-2 divide-surface-container-highest text-sm">
                     {ordersLoading ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-secondary font-bold text-xs uppercase tracking-widest">
+                        <td colSpan={8} className="p-8 text-center text-secondary font-bold text-xs uppercase tracking-widest">
                           Loading orders...
                         </td>
                       </tr>
                     ) : orders.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-secondary font-bold text-xs uppercase tracking-widest">
+                        <td colSpan={8} className="p-8 text-center text-secondary font-bold text-xs uppercase tracking-widest">
                           No orders found.
                         </td>
                       </tr>
@@ -1053,6 +1069,12 @@ export default function AdminPage() {
                         // Calculate items count
                         const itemsCount = order.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0;
                         
+                        const orderMerchant = merchants.find(m => m.id === order.merchantId);
+                        const merchantName = orderMerchant?.storeName || 
+                                             (orderMerchant?.first_name ? `${orderMerchant.first_name} ${orderMerchant.last_name || ''}` : null) || 
+                                             order.merchantId || 
+                                             'Unknown';
+
                         // Status color mapping
                         const statusColors: Record<string, string> = {
                           pending: 'bg-surface-container-highest text-on-surface border-on-surface',
@@ -1070,6 +1092,14 @@ export default function AdminPage() {
                               <td className="p-4">
                                 {order.contactInformation?.fullName || 'Guest'} 
                                 {order.contactInformation?.email ? ` (${order.contactInformation.email})` : ''}
+                              </td>
+                              <td className="p-4">
+                                <button 
+                                  onClick={() => { setActiveTab('merchant_details'); setSelectedMerchantId(order.merchantId); }}
+                                  className="font-bold text-primary-container bg-primary-container/10 px-2 py-1 rounded-sm text-xs hover:bg-primary-container/20 transition-colors"
+                                >
+                                  {merchantName}
+                                </button>
                               </td>
                               <td className="p-4">
                                 {currentUserRole === 'admin' ? (
@@ -1247,8 +1277,13 @@ export default function AdminPage() {
                         <tr key={merchant.id} className="hover:bg-secondary-container transition-colors">
                           <td className="p-4 font-medium text-secondary">{merchant.email}</td>
                           <td className="p-4">
-                            <div className="flex flex-col">
-                              <span className="font-bold text-on-surface">{merchant.storeName || 'N/A'}</span>
+                            <div className="flex flex-col items-start">
+                              <button 
+                                onClick={() => { setActiveTab('merchant_details'); setSelectedMerchantId(merchant.id); }}
+                                className="font-bold text-primary-container hover:underline text-left"
+                              >
+                                {merchant.storeName || 'N/A'}
+                              </button>
                               <span className="text-xs text-secondary">{merchant.location || 'N/A'}</span>
                               <p className="font-medium text-secondary truncate mt-0.5">
                                 {merchant.businessCategories?.join(', ') || (merchant as any).businessCategory || 'N/A'} • {merchant.businessType || 'N/A'}
@@ -1381,6 +1416,21 @@ export default function AdminPage() {
                 Save Registry Settings
               </button>
             </section>
+          </div>
+        )}
+        
+        {/* ─── TAB: MERCHANT DETAILS ─── */}
+        {activeTab === 'merchant_details' && selectedMerchantId && (
+          <div className="animate-in fade-in duration-300">
+            <MerchantDetailsPanel 
+              key={selectedMerchantId}
+              merchant={merchants.find(m => m.id === selectedMerchantId) || { id: selectedMerchantId, storeName: 'Unknown Merchant' }}
+              onBack={() => { setActiveTab('merchants'); setSelectedMerchantId(null); }}
+              onUpdateMerchant={async (merchantId, updates) => {
+                await updateDoc(doc(db, 'users', merchantId), updates);
+                setMerchants(prev => prev.map(m => m.id === merchantId ? { ...m, ...updates } : m));
+              }}
+            />
           </div>
         )}
       </main>

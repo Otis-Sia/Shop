@@ -10,10 +10,12 @@ import { addToWishlist, removeFromWishlist, getWishlist } from '@/lib/api/wishli
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserProfile, User } from '@/lib/api/auth';
+import { canAddToCartRole } from '@/lib/access';
 import { Product } from '@/lib/data/products-data';
 import Icon from '@/components/Icon';
 import ProductRatingBadge from '@/components/shop/ProductRatingBadge';
 import './products.css';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Electronics": "devices",
@@ -218,6 +220,7 @@ function ProductsPageContent() {
 
   const handleAddToCart = async (e: React.MouseEvent, productId: number) => {
     e.preventDefault();
+    if (!canAddToCartRole(userRole)) return;
     setAddingToCart(prev => ({ ...prev, [productId]: true }));
     try {
       await addToCart(productId, 1);
@@ -324,7 +327,7 @@ function ProductsPageContent() {
               <div className="w-28 shrink-0">
                 <input
                   type="number"
-                  placeholder="Max Ksh"
+                  placeholder={`Max ${CURRENCY_CONFIG.symbol}`}
                   min="0"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
@@ -437,7 +440,7 @@ function ProductsPageContent() {
             </div>
             
             <div className="space-y-1">
-              <label className="font-extrabold text-xs uppercase tracking-wider block text-on-surface">Max Price (Ksh)</label>
+              <label className="font-extrabold text-xs uppercase tracking-wider block text-on-surface">Max Price ({CURRENCY_CONFIG.symbol})</label>
               <input
                 type="number"
                 placeholder="e.g., 500"
@@ -543,6 +546,8 @@ function ProductsPageContent() {
                 className="h-10 px-3 border border-surface-dim rounded font-bold text-xs uppercase bg-surface cursor-pointer"
               >
                 <option value="default">Sort By: Default</option>
+                <option value="date-desc">Newest First</option>
+                <option value="date-asc">Oldest First</option>
                 <option value="price-asc">Price: Low to High</option>
                 <option value="price-desc">Price: High to Low</option>
                 <option value="name-asc">Name: A to Z</option>
@@ -590,7 +595,13 @@ function ProductsPageContent() {
 
                 const priceA = a.discount ? a.price * (1 - a.discount / 100) : a.price;
                 const priceB = b.discount ? b.price * (1 - b.discount / 100) : b.price;
+
+                const timeA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime()) : a.id;
+                const timeB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime()) : b.id;
+
                 switch (sortBy) {
+                  case 'date-desc': return timeB - timeA;
+                  case 'date-asc': return timeA - timeB;
                   case 'price-asc': return priceA - priceB;
                   case 'price-desc': return priceB - priceA;
                   case 'name-asc': return a.name.localeCompare(b.name);
@@ -644,7 +655,7 @@ function ProductsPageContent() {
                       </button>
                       
                       <p className="text-primary-container font-extrabold text-lg mb-1">
-                        Ksh {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        {CURRENCY_CONFIG.symbol} {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </p>
 
                       {product.category && (
@@ -656,6 +667,12 @@ function ProductsPageContent() {
                               <span className="truncate">{product.tags.join(' > ')}</span>
                             </>
                           )}
+                        </p>
+                      )}
+
+                      {product.brand && (
+                        <p className="text-[10px] text-secondary/80 font-semibold uppercase tracking-wide mb-1 truncate">
+                          Brand: {product.brand}
                         </p>
                       )}
                       
@@ -689,7 +706,7 @@ function ProductsPageContent() {
                         <div className="flex-1">
                            <ProductRatingBadge productId={product.id} />
                         </div>
-                        {(userRole === 'customer' || userRole === 'guest') && !(product.hasVariants || (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)) && (
+                        {canAddToCartRole(userRole) && !(product.hasVariants || (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)) && (
                           <button
                             onClick={(e) => handleAddToCart(e, product.id)}
                             disabled={addingToCart[product.id]}

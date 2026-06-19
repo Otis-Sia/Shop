@@ -13,8 +13,10 @@ import {
   ArrowUpRight, 
   Plus, 
   Settings, 
-  Store 
+  Store,
+  Eye
 } from "lucide-react";
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 export default function MerchantDashboard() {
   const [profile, setProfile] = useState<any>(null);
@@ -244,7 +246,7 @@ export default function MerchantDashboard() {
           </div>
           <div className="mt-6">
             <h3 className="font-extrabold text-xs uppercase tracking-wider text-on-surface/80">Total Sales</h3>
-            <p className="text-3xl font-black mt-1 tracking-tight">Ksh {stats.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-3xl font-black mt-1 tracking-tight">{CURRENCY_CONFIG.symbol} {stats.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
         </div>
 
@@ -327,7 +329,7 @@ export default function MerchantDashboard() {
                         </td>
                         <td className="p-4 text-xs font-medium text-on-surface/75">{orderDate}</td>
                         <td className="p-4 text-right font-black">
-                          Ksh {order.totalAmount?.toFixed(2)}
+                          {CURRENCY_CONFIG.symbol} {order.totalAmount?.toFixed(2)}
                         </td>
                       </tr>
                     );

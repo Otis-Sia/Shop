@@ -1,7 +1,9 @@
 import { getProduct } from './products';
+import { getUserProfile } from './auth';
 import { Product } from '@/lib/data/products-data';
 import { auth, db } from '@/lib/firebase';
 import { collection, doc, getDocs, getDoc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { canAddToCartRole } from '@/lib/access';
 
 export interface CartItem {
   id: number | string;
@@ -84,6 +86,13 @@ export const getCart = async (): Promise<Cart> => {
 
 export const addToCart = async (productId: number | string, quantity = 1, selectedColor?: string, selectedSize?: string, selectedVariantIndex?: number) => {
   const user = auth.currentUser;
+
+  if (user) {
+    const profile = await getUserProfile(user.uid);
+    if (!canAddToCartRole(profile?.role)) {
+      throw new Error('Admins and merchants cannot add products to cart.');
+    }
+  }
 
   if (!user) {
     const items = getLocalCart();

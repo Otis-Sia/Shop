@@ -1,11 +1,13 @@
 "use client";
-
+import { useToast } from '@/components/providers/ToastProvider';
 import React, { useEffect, useState } from "react";
 import { collection, query, where, getDocs, doc, updateDoc, Timestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { Order } from "@/types/schema";
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 export default function MerchantOrders() {
+  const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export default function MerchantOrders() {
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus as any } : o));
     } catch (err) {
       console.error('Error updating order status:', err);
-      alert('Failed to update order status.');
+      showToast('Failed to update order status.', 'error');
     }
   };
 
@@ -116,7 +118,7 @@ export default function MerchantOrders() {
                           <option value="cancelled">CANCELLED</option>
                         </select>
                       </td>
-                      <td className="p-4 font-bold">Ksh {order.totalAmount.toFixed(2)}</td>
+                      <td className="p-4 font-bold">{CURRENCY_CONFIG.symbol} {order.totalAmount.toFixed(2)}</td>
                       <td className="p-4 text-right">
                         <button 
                           onClick={() => order.id && toggleDetails(order.id)}
@@ -160,12 +162,12 @@ export default function MerchantOrders() {
                                         <p className="text-xs text-secondary mt-0.5 font-bold">Qty: {item.quantity}</p>
                                       </div>
                                     </div>
-                                    <p className="font-bold text-sm">Ksh {(item.price * item.quantity).toFixed(2)}</p>
+                                    <p className="font-bold text-sm">{CURRENCY_CONFIG.symbol} {(item.price * item.quantity).toFixed(2)}</p>
                                   </div>
                                 ))}
                                 <div className="flex justify-between items-center pt-2">
                                   <p className="font-black uppercase text-sm">Order Total</p>
-                                  <p className="font-black text-lg">Ksh {order.totalAmount.toFixed(2)}</p>
+                                  <p className="font-black text-lg">{CURRENCY_CONFIG.symbol} {order.totalAmount.toFixed(2)}</p>
                                 </div>
                               </div>
                             </div>

@@ -6,14 +6,24 @@ service cloud.firestore {
     // Products: Anyone can read. Merchants can create and update their own. Admins can delete, Merchants can delete their own.
     match /products/{productId} {
       allow read: if true;
-      allow create: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && request.resource.data.merchantId == request.auth.uid);
-      allow update: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid);
+      allow create: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && request.resource.data.merchantId == request.auth.uid)
+        && request.resource.data.price is number && request.resource.data.price >= 0
+        && request.resource.data.stock is number && request.resource.data.stock >= 0;
+      allow update: if request.auth != null && (
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['merchantId', 'createdAt']))
+          && request.resource.data.price is number && request.resource.data.price >= 0
+          && request.resource.data.stock is number && request.resource.data.stock >= 0
+        ) ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isHidden']))
+      );
       allow delete: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid));
       
       // Reviews: Anyone can read, authenticated users can create (one per user), users can delete own reviews
       match /reviews/{reviewId} {
         allow read: if true;
-        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid
+          && request.resource.data.rating is number && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
         allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
         allow update: if false;
       }
@@ -25,11 +35,18 @@ service cloud.firestore {
       allow update: if request.auth != null && request.auth.uid == userId && 
         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) && 
         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['merchantStatus']) || request.resource.data.merchantStatus == 'pending');
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId && (request.resource.data.role == 'customer' || !('role' in request.resource.data));
       allow delete: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
       
-      // Allow admins full access to write user profiles
-      allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Allow admins to update user profiles, but restrict editing business and personal information
+      allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'store_name', 'storeName', 'store_description', 'storeDescription', 'business_categories', 'businessCategories',
+          'business_type', 'businessType', 'offering_type', 'offeringType', 'industry', 
+          'store_contact_email', 'storeContactEmail', 'store_contact_phone', 'storeContactPhone', 
+          'social_media_links', 'socialMediaLinks', 'logo_url', 'logoUrl', 'banner_url', 'bannerUrl', 
+          'location', 'display_name', 'displayName', 'first_name', 'firstName', 'last_name', 'lastName', 'username'
+        ]));
       // Allow admins to read all user profiles
       allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       
@@ -48,7 +65,11 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow read: if request.auth != null && (resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid));
-      allow update: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid));
+      allow update: if request.auth != null && (
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') || 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' && resource.data.merchantId == request.auth.uid 
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt', 'totalAmount', 'items', 'id', 'cartId', 'checkoutId'])))
+      );
       allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 

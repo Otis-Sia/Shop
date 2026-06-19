@@ -10,6 +10,7 @@ import { getWishlistCount } from '@/lib/api/wishlist';
 import Icon from '@/components/Icon';
 import ProfileModal from '@/components/auth/ProfileModal';
 import ThemeSelector from '@/components/layout/ThemeSelector';
+import { STORE_CONFIG } from '@/lib/config/store';
 
 export default function Header() {
   const router = useRouter();
@@ -102,7 +103,7 @@ export default function Header() {
         <nav className="flex justify-between items-center w-full px-6 md:px-16 py-4 max-w-[1440px] mx-auto">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="hidden sm:block w-auto h-10 dark:invert dark:hue-rotate-180" style={{ width: 'auto' }} />
-            <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6 dark:invert dark:hue-rotate-180" />
+            <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={40} className="w-auto h-6 dark:invert dark:hue-rotate-180" />
           </Link>
         </nav>
       </header>
@@ -146,7 +147,7 @@ export default function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="hidden sm:block w-auto h-10 dark:invert dark:hue-rotate-180" style={{ width: 'auto' }} />
-          <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-6 dark:invert dark:hue-rotate-180" />
+          <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={40} className="w-auto h-6 dark:invert dark:hue-rotate-180" />
         </Link>
 
         {/* Desktop Links */}
@@ -180,23 +181,27 @@ export default function Header() {
             <Icon name="search" className="text-2xl" />
           </button>
 
-          <Link href="/wishlist" className="relative scale-95 active:scale-90 transition-transform flex items-center" title="Wishlist">
-            <Icon name="favorite_border" className="text-2xl text-on-surface hover:text-primary-container" />
-            {wishlistCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-error text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-surface">
-                {wishlistCount > 99 ? '99+' : wishlistCount}
-              </span>
-            )}
-          </Link>
+          {(!user || (user.role !== 'admin' && user.role !== 'merchant')) && (
+            <>
+              <Link href="/wishlist" className="relative scale-95 active:scale-90 transition-transform flex items-center" title="Wishlist">
+                <Icon name="favorite_border" className="text-2xl text-on-surface hover:text-primary-container" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-error text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-surface">
+                    {wishlistCount > 99 ? '99+' : wishlistCount}
+                  </span>
+                )}
+              </Link>
 
-          <Link href="/cart" className="relative scale-95 active:scale-90 transition-transform flex items-center" title="Shopping Cart">
-            <Icon name="shopping_cart" className="text-2xl text-on-surface hover:text-primary-container" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-error text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-surface">
-                {cartCount > 99 ? '99+' : cartCount}
-              </span>
-            )}
-          </Link>
+              <Link href="/cart" className="relative scale-95 active:scale-90 transition-transform flex items-center" title="Shopping Cart">
+                <Icon name="shopping_cart" className="text-2xl text-on-surface hover:text-primary-container" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-error text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-surface">
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                )}
+              </Link>
+            </>
+          )}
 
           {user ? (
             <div className="hidden md:flex items-center gap-4">
@@ -254,7 +259,7 @@ export default function Header() {
           <Link href="/products" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-lg border-b-2 border-surface-container pb-2">
             Shop All
           </Link>
-          <Link href="/products?category=Fashion" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-lg border-b-2 border-surface-container pb-2">
+          <Link href="/products?filter=new-arrivals" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-lg border-b-2 border-surface-container pb-2">
             New Arrivals
           </Link>
           <Link href="/services" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-lg border-b-2 border-surface-container pb-2">

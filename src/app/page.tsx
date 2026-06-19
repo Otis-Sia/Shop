@@ -1,20 +1,53 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from '@/components/Icon';
 import Countdown from '@/components/Countdown';
+import { STORE_CONFIG } from '@/lib/config/store';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, getCountFromServer } from 'firebase/firestore';
 
 export default function HomePage() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [stats, setStats] = useState({ products: '500+', customers: '200+', reviews: '4.9★', countries: '30+' });
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const prodCount = await getCountFromServer(collection(db, 'products'));
+        const userCount = await getCountFromServer(collection(db, 'users'));
+        
+        const roundToNext100 = (num: number) => Math.ceil(num / 100) * 100;
+        
+        setStats({
+          products: `${roundToNext100(prodCount.data().count || 0)}+`,
+          customers: `${roundToNext100(userCount.data().count || 0)}+`,
+          reviews: '4.9★', // hardcoded for now or fetch avg review
+          countries: '1+', // Default since we only do Kenya currently
+        });
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
-      setSubscribed(true);
-      setEmail('');
-      setTimeout(() => setSubscribed(false), 3000);
+      try {
+        await addDoc(collection(db, 'subscribers'), {
+          email,
+          createdAt: new Date()
+        });
+        setSubscribed(true);
+        setEmail('');
+        setTimeout(() => setSubscribed(false), 3000);
+      } catch (err) {
+        console.error("Failed to subscribe", err);
+      }
     }
   };
 
@@ -35,10 +68,10 @@ export default function HomePage() {
           <div className="absolute top-[5%] right-[40%] w-20 h-20 bg-surface/5 rotate-12 animate-bounce" style={{ animationDuration: '10s' }} />
         </div>
 
-        {/* JUJ4 watermark */}
+        {/* Store watermark */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
           <span className="font-headline-md text-[180px] md:text-[300px] font-black text-white/[0.03] tracking-tighter">
-            JUJ4
+            {STORE_CONFIG.name}
           </span>
         </div>
 
@@ -54,7 +87,7 @@ export default function HomePage() {
           </h1>
 
           <p className="font-body-md text-base md:text-lg text-white/70 max-w-xl mb-10 leading-relaxed font-medium">
-            JUJ4 redefines the online shopping experience. Premium products, seamless checkout, and unmatched quality — all in one place.
+            {STORE_CONFIG.name} redefines the online shopping experience. Premium products, seamless checkout, and unmatched quality — all in one place.
           </p>
 
           <div className="mb-10 w-full max-w-3xl">
@@ -101,7 +134,7 @@ export default function HomePage() {
                 <span className="text-primary-container">SHOPPER</span>
               </h2>
               <p className="font-body-md text-sm text-secondary leading-relaxed font-medium mb-6 max-w-lg">
-                JUJ4 was born from a simple idea: shopping should be effortless, enjoyable, and accessible to everyone. We curate only the finest products from trusted brands worldwide, ensuring every purchase meets our rigorous quality standards.
+                {STORE_CONFIG.name} was born from a simple idea: shopping should be effortless, enjoyable, and accessible to everyone. We curate only the finest products from trusted brands worldwide, ensuring every purchase meets our rigorous quality standards.
               </p>
               <p className="font-body-md text-sm text-secondary leading-relaxed font-medium mb-8 max-w-lg">
                 From cutting-edge electronics to timeless fashion, our catalog spans every category imaginable. With lightning-fast delivery, secure payments, and a dedicated support team, we&apos;re redefining what it means to shop online.
@@ -122,16 +155,16 @@ export default function HomePage() {
                     <Icon name="storefront" className="text-on-primary-container text-3xl font-bold" />
                   </div>
                   <div>
-                    <h3 className="font-headline-md text-lg font-black uppercase text-on-surface">JUJ4 Marketplace</h3>
-                    <p className="text-xs text-secondary font-semibold uppercase tracking-wider">Est. 2024</p>
+                    <h3 className="font-headline-md text-lg font-black uppercase text-on-surface">{STORE_CONFIG.name} Marketplace</h3>
+                    <p className="text-xs text-secondary font-semibold uppercase tracking-wider">Est. {STORE_CONFIG.founded}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   {[
                     { label: 'Categories', value: '50+' },
                     { label: 'Brands', value: '200+' },
-                    { label: 'Countries', value: '30+' },
-                    { label: 'Reviews', value: '4.9★' },
+                    { label: 'Countries', value: stats.countries },
+                    { label: 'Reviews', value: stats.reviews },
                   ].map((stat) => (
                     <div key={stat.label} className="bg-surface border-2 border-on-surface p-4 text-center">
                       <p className="font-headline-md text-2xl font-black text-primary-container">{stat.value}</p>
@@ -154,8 +187,8 @@ export default function HomePage() {
         <div className="max-w-[1440px] mx-auto px-6 md:px-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
             {[
-              { value: '50K+', label: 'Products', icon: 'inventory_2' },
-              { value: '200K+', label: 'Happy Customers', icon: 'group' },
+              { value: stats.products, label: 'Products', icon: 'inventory_2' },
+              { value: stats.customers, label: 'Happy Customers', icon: 'group' },
               { value: '99.9%', label: 'Uptime', icon: 'speed' },
               { value: '24/7', label: 'Support', icon: 'headset_mic' },
             ].map((stat) => (
@@ -203,7 +236,7 @@ export default function HomePage() {
             ].map((cat) => (
               <Link
                 key={cat.name}
-                href="/products"
+                href={`/products?category=${cat.name}`}
                 className="bg-surface border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_var(--color-on-surface)] hover:border-primary-container transition-all flex flex-col items-center text-center group"
               >
                 <div className="w-14 h-14 bg-surface-container border-2 border-on-surface flex items-center justify-center mb-4 group-hover:bg-primary-container transition-colors">
@@ -228,7 +261,7 @@ export default function HomePage() {
               Stay Connected
             </p>
             <h2 className="font-headline-md text-3xl md:text-4xl font-black uppercase tracking-tight text-on-surface mb-3">
-              Join The JUJ4 List
+              Join The {STORE_CONFIG.name} List
             </h2>
             <p className="font-body-md text-sm text-secondary font-semibold mb-10">
               Subscribe for exclusive deals, new arrivals, and insider access. No spam — just the good stuff.
@@ -253,7 +286,7 @@ export default function HomePage() {
 
             {subscribed && (
               <p className="mt-4 text-xs font-bold text-green-700 uppercase tracking-widest animate-pulse">
-                Welcome to the JUJ4 community!
+                Welcome to the {STORE_CONFIG.name} community!
               </p>
             )}
           </div>
@@ -280,7 +313,7 @@ export default function HomePage() {
             <span className="text-primary-container">TODAY</span>
           </h2>
           <p className="font-body-md text-base text-white/60 max-w-md mx-auto mb-10 font-medium">
-            Thousands of premium products are waiting. Join the JUJ4 revolution.
+            Thousands of premium products are waiting. Join the {STORE_CONFIG.name} revolution.
           </p>
           <Link
             href="/products"

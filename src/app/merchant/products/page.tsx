@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from '@/components/providers/ToastProvider';
 
 import React, { useEffect, useState, useMemo } from "react";
 import { collection, query, where, getDocs, doc, setDoc, deleteDoc, Timestamp, getDoc } from "firebase/firestore";
@@ -6,8 +7,10 @@ import { auth, db } from "@/lib/firebase";
 import { Product } from "@/types/schema";
 import { useCategories } from '@/hooks/useCategories';
 import Icon from '@/components/Icon';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 export default function MerchantProducts() {
+  const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -15,6 +18,8 @@ export default function MerchantProducts() {
   const [activeTab, setActiveTab] = useState<'products' | 'services'>('products');
   const [isDragging, setIsDragging] = useState(false);
   const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
+  const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const [isAdding, setIsAdding] = useState(false);
   const { categories } = useCategories();
@@ -73,6 +78,64 @@ export default function MerchantProducts() {
       return () => unsubscribe();
     }
   }, []);
+
+  
+  const toggleSelection = (productId: number) => {
+    setSelectedProductIds(prev => 
+      prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedProductIds(displayedItems.map(p => Number(p.id)));
+    } else {
+      setSelectedProductIds([]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProductIds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedProductIds.length} products?`)) return;
+    
+    setIsBulkDeleting(true);
+    try {
+      const urlsToDel = new Set<string>();
+      
+      for (const id of selectedProductIds) {
+        const product = products.find(p => Number(p.id) === id);
+        if (product) {
+          if ((product as any).image_url) urlsToDel.add((product as any).image_url);
+          if (product.imageUrls) product.imageUrls.forEach((u: string) => urlsToDel.add(u));
+          if ((product as any).additional_images) (product as any).additional_images.forEach((u: string) => urlsToDel.add(u));
+          if (product.variants) {
+            product.variants.forEach((v: any) => {
+              if (v.imageUrl) urlsToDel.add(v.imageUrl);
+            });
+          }
+        }
+        await deleteDoc(doc(db, 'products', id.toString()));
+      }
+      
+      setProducts(products.filter(p => !selectedProductIds.includes(Number(p.id))));
+      setSelectedProductIds([]);
+      showToast(`Successfully deleted ${selectedProductIds.length} products`, 'success');
+
+      const urlsArray = Array.from(urlsToDel).filter(u => u && u.includes('amazonaws.com'));
+      if (urlsArray.length > 0) {
+        fetch('/api/upload', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileUrls: urlsArray }),
+        }).catch(err => console.error('Failed to delete S3 images for bulk delete', err));
+      }
+    } catch (error) {
+      console.error('Error during bulk delete:', error);
+      showToast('Failed to delete some products.', 'error');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const handleAddNew = () => {
     setEditingId(null);
@@ -178,7 +241,7 @@ export default function MerchantProducts() {
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to delete product.');
+      showToast('Failed to delete product.', 'error');
     }
   };
 
@@ -269,7 +332,7 @@ export default function MerchantProducts() {
       });
     } catch (error) {
       console.error("Error uploading image:", error);
-      alert("Failed to upload one or more images.");
+      showToast("Failed to upload one or more images.", 'error');
     } finally {
       setIsUploading(false);
     }
@@ -303,7 +366,7 @@ export default function MerchantProducts() {
         });
       } catch (error) {
         console.error("Error uploading image:", error);
-        alert("Failed to upload image.");
+        showToast("Failed to upload image.", 'error');
       } finally {
         setIsUploading(false);
       }
@@ -363,7 +426,7 @@ export default function MerchantProducts() {
       });
     } catch (error) {
       console.error("Error uploading variant image:", error);
-      alert("Failed to upload variant image.");
+      showToast("Failed to upload variant image.", 'error');
     } finally {
       setIsUploading(false);
     }
@@ -386,7 +449,7 @@ export default function MerchantProducts() {
     const colors = bulkColors.split(',').map(c => c.trim()).filter(Boolean);
 
     if (sizes.length === 0 && colors.length === 0) {
-      alert('Enter at least one size or color to generate variants.');
+      showToast('Enter at least one size or color to generate variants.', 'warning');
       return;
     }
 
@@ -418,7 +481,7 @@ export default function MerchantProducts() {
     }
 
     if (newVariants.length === 0) {
-      alert('All those combinations already exist as variants.');
+      showToast('All those combinations already exist as variants.', 'warning');
       return;
     }
 
@@ -656,7 +719,7 @@ export default function MerchantProducts() {
       }
     } catch (error) {
       console.error("Error saving product:", error);
-      alert('An error occurred while saving.');
+      showToast('An error occurred while saving.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -1002,7 +1065,7 @@ export default function MerchantProducts() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold uppercase text-secondary">Default Price (Ksh)</label>
+                          <label className="text-[10px] font-bold uppercase text-secondary">Default Price ({CURRENCY_CONFIG.symbol})</label>
                           <input
                             type="number"
                             min="0"
@@ -1063,7 +1126,7 @@ export default function MerchantProducts() {
                           <input type="text" placeholder="e.g. Red" value={v.color || ''} onChange={(e) => handleVariantChange(index, 'color', e.target.value)} className="w-24 border-2 border-on-surface p-1.5 text-sm outline-none" />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <label className="text-[10px] font-bold uppercase text-secondary">Price (Ksh)</label>
+                          <label className="text-[10px] font-bold uppercase text-secondary">Price ({CURRENCY_CONFIG.symbol})</label>
                           <input type="number" min="0" step="0.01" placeholder="Price" value={v.price === 0 && !v.price.toString().match(/^0$/) ? '' : v.price} onChange={(e) => handleVariantChange(index, 'price', Number(e.target.value))} className="w-24 border-2 border-on-surface p-1.5 text-sm outline-none" />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -1100,11 +1163,11 @@ export default function MerchantProducts() {
 
               {/* PRICING */}
               <div className="space-y-2">
-                <label className="font-bold text-sm uppercase">Regular Price (Ksh) *</label>
+                <label className="font-bold text-sm uppercase">Regular Price ({CURRENCY_CONFIG.symbol}) *</label>
                 <input required type="number" min="0" step="0.01" name="price" value={editForm.price || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" />
               </div>
               <div className="space-y-2">
-                <label className="font-bold text-sm uppercase">Sale Price (Ksh)</label>
+                <label className="font-bold text-sm uppercase">Sale Price ({CURRENCY_CONFIG.symbol})</label>
                 <input type="number" min="0" step="0.01" name="salePrice" value={editForm.salePrice || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" placeholder="Optional" />
               </div>
               <div className="space-y-2">
@@ -1201,7 +1264,7 @@ export default function MerchantProducts() {
             <tbody>
               {displayedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={activeTab === 'services' ? 4 : 5} className="p-8 text-center font-bold">No {activeTab === 'services' ? 'services' : 'products'} found. Add one to get started!</td>
+                  <td colSpan={activeTab === 'services' ? 5 : 6} className="p-8 text-center font-bold">No {activeTab === 'services' ? 'services' : 'products'} found. Add one to get started!</td>
                 </tr>
               ) : (
                 displayedItems.map((product) => (
@@ -1214,7 +1277,7 @@ export default function MerchantProducts() {
                       )}
                     </td>
                     <td className="p-4 font-bold max-w-[200px] truncate">{product.name}</td>
-                    <td className="p-4">Ksh {product.price.toFixed(2)}</td>
+                    <td className="p-4">{CURRENCY_CONFIG.symbol} {product.price.toFixed(2)}</td>
                     {activeTab !== 'services' && <td className="p-4">{product.stock}</td>}
                     <td className="p-4 text-right">
                       <button 

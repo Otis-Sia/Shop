@@ -1,5 +1,5 @@
-'use client';
-
+"use client";
+import { STORE_CONFIG } from '@/lib/config/store';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getCart, removeFromCart, updateCartItem, CartItem } from '@/lib/api/cart';
@@ -7,6 +7,7 @@ import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserProfile } from '@/lib/api/auth';
 import Icon from '@/components/Icon';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -30,9 +31,13 @@ export default function CartPage() {
   const calculateTotal = (cartItems: CartItem[]) => {
     const t = cartItems.reduce((sum, item) => {
       if (!item.Product) return sum;
-      let price = parseFloat(String(item.Product.price));
+      let price = parseFloat(String(item.Product.price || 0));
       if (item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null && item.Product.variants && item.Product.variants[item.selectedVariantIndex]) {
-        price = parseFloat(String(item.Product.variants[item.selectedVariantIndex].price));
+        const rawVariantPrice = item.Product.variants[item.selectedVariantIndex].price;
+        if (!(rawVariantPrice === '' || rawVariantPrice === null || rawVariantPrice === undefined || Number(rawVariantPrice) === 0)) {
+          const variantPrice = Number(rawVariantPrice);
+          price = Number.isFinite(variantPrice) ? variantPrice : price;
+        }
       }
       const discount = item.Product.discount || 0;
       const finalPrice = discount > 0 ? price * (1 - discount / 100) : price;
@@ -156,7 +161,7 @@ export default function CartPage() {
               {items.map(item => {
                 const product = item.Product;
                 if (!product) return null;
-                let basePrice = parseFloat(String(product.price));
+                let basePrice = parseFloat(String(product.price || 0));
                 let variantImageUrl = '';
                 if (product.hasVariants && product.variants) {
                   let matchingVariant;
@@ -171,7 +176,11 @@ export default function CartPage() {
                   }
                   
                   if (matchingVariant) {
-                    basePrice = matchingVariant.price;
+                    const rawVariantPrice = matchingVariant.price;
+                    if (!(rawVariantPrice === '' || rawVariantPrice === null || rawVariantPrice === undefined || Number(rawVariantPrice) === 0)) {
+                      const variantPrice = Number(rawVariantPrice);
+                      basePrice = Number.isFinite(variantPrice) ? variantPrice : basePrice;
+                    }
                     variantImageUrl = matchingVariant.imageUrl || '';
                   }
                 }
@@ -188,7 +197,7 @@ export default function CartPage() {
                     <div className="flex flex-col sm:flex-row items-start gap-4 flex-grow col-span-1 md:col-span-6">
                       <div className="w-24 h-24 bg-surface-container-low border-2 border-on-surface flex-shrink-0 flex items-center justify-center p-2 relative overflow-hidden">
                         <img 
-                          src={variantImageUrl || product.image_url || '/placeholder.png'} 
+                          src={variantImageUrl || product.image_url || STORE_CONFIG.defaultFallbackImage} 
                           alt={product.name || 'Product'} 
                           className="w-full h-full object-contain"
                         />
@@ -229,9 +238,9 @@ export default function CartPage() {
 
                     {/* Unit Price */}
                     <div className="hidden md:block col-span-1 md:col-span-2 text-center font-headline-md text-sm md:text-base font-extrabold">
-                      Ksh {unitPrice.toFixed(2)}
+                      {CURRENCY_CONFIG.symbol} {unitPrice.toFixed(2)}
                       {discount > 0 && (
-                        <div className="text-xs text-secondary line-through font-normal">Ksh {basePrice.toFixed(2)}</div>
+                        <div className="text-xs text-secondary line-through font-normal">{CURRENCY_CONFIG.symbol} {basePrice.toFixed(2)}</div>
                       )}
                     </div>
 
@@ -258,7 +267,7 @@ export default function CartPage() {
 
                     {/* Total Price */}
                     <div className="col-span-1 md:col-span-2 text-right font-headline-md text-base md:text-lg font-black text-primary-container">
-                      Ksh {itemTotal.toFixed(2)}
+                      {CURRENCY_CONFIG.symbol} {itemTotal.toFixed(2)}
                     </div>
                   </div>
                 );
@@ -275,7 +284,7 @@ export default function CartPage() {
             <div className="space-y-4">
               <div className="flex justify-between border-b border-surface-container pb-3 font-semibold text-sm">
                 <span className="text-secondary uppercase tracking-wider">Subtotal</span>
-                <span className="font-extrabold">Ksh {total.toFixed(2)}</span>
+                <span className="font-extrabold">{CURRENCY_CONFIG.symbol} {total.toFixed(2)}</span>
               </div>
               
               <div className="flex justify-between border-b border-surface-container pb-3 font-semibold text-sm">
@@ -285,7 +294,7 @@ export default function CartPage() {
 
               <div className="flex justify-between pb-3 pt-2 font-black text-lg">
                 <span className="uppercase tracking-widest text-on-surface">Total</span>
-                <span className="text-on-surface">Ksh {total.toFixed(2)}</span>
+                <span className="text-on-surface">{CURRENCY_CONFIG.symbol} {total.toFixed(2)}</span>
               </div>
             </div>
 

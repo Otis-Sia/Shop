@@ -1,5 +1,5 @@
-'use client';
-
+"use client";
+import { useToast } from '@/components/providers/ToastProvider';
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -8,6 +8,7 @@ import Icon from '@/components/Icon';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Product } from '@/types/schema';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 interface ServiceWithMerchant extends Product {
   storeName: string;
@@ -22,6 +23,7 @@ const formatDuration = (mins: number) => {
 };
 
 export default function ServiceDetailPage() {
+  const { showToast } = useToast();
   const params = useParams();
   const id = params.id as string;
   
@@ -162,7 +164,7 @@ export default function ServiceDetailPage() {
                 <span className="block text-sm uppercase font-black text-secondary mb-2 tracking-widest">Pricing</span>
                 <div className="flex items-center gap-3 font-black text-2xl text-primary-container">
                   <Icon name="payments" className="text-3xl" />
-                  Ksh {service.price.toFixed(2)}
+                  {CURRENCY_CONFIG.symbol} {service.price.toFixed(2)}
                 </div>
               </div>
             </div>
@@ -177,7 +179,7 @@ export default function ServiceDetailPage() {
 
           <div className="mt-auto">
             <button 
-              onClick={() => alert(`Booking flow for ${service.name} coming soon!`)}
+              onClick={() => showToast(`Booking flow for ${service.name} coming soon!`, 'warning')}
               className="w-full bg-primary-container text-on-primary-container font-black text-xl uppercase tracking-widest py-6 border-4 border-on-surface shadow-[8px_8px_0px_0px_var(--color-on-surface)] hover:bg-[#ffb05c] active:shadow-none active:translate-x-[8px] active:translate-y-[8px] transition-all"
             >
               Book This Service

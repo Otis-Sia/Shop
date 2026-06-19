@@ -50,7 +50,7 @@ CREATE TABLE products (
     brand VARCHAR(100),
     currency VARCHAR(10) NOT NULL,
     track_inventory BOOLEAN DEFAULT FALSE,
-    stock INTEGER NOT NULL DEFAULT 0,
+    stock INTEGER,
     low_stock_alert BOOLEAN DEFAULT FALSE,
     allow_backorders BOOLEAN DEFAULT FALSE,
     group_category VARCHAR(100),
@@ -76,7 +76,7 @@ CREATE TABLE product_variants (
     size VARCHAR(100),
     color VARCHAR(100),
     price DECIMAL(10, 2) NOT NULL,
-    stock INTEGER NOT NULL DEFAULT 0,
+    stock INTEGER,
     image_url VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -170,3 +170,190 @@ CREATE TABLE system_categories (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ==========================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ==========================================
+
+-- Enable RLS on all tables
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_variants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_cart_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_wishlist_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE carts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE checkouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE system_categories ENABLE ROW LEVEL SECURITY;
+
+-- Assuming a function auth.uid() exists (e.g., Supabase) returning the current user's UUID/VARCHAR
+
+-- ------------------------------------------
+-- 1. Users Collection
+-- ------------------------------------------
+-- Read: Users can read their own profile, admins can read all
+CREATE POLICY "Users can read own profile or admins can read all" ON users FOR SELECT
+USING (
+    auth.uid() = uid OR
+    (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+);
+
+-- Insert: Users can create their own profile, role defaults to customer
+CREATE POLICY "Users can insert own profile" ON users FOR INSERT
+WITH CHECK (
+    auth.uid() = uid AND
+    (role = 'customer' OR role IS NULL)
+);
+
+-- Update: Users can update their own profile, admins can update
+-- Note: Column-level restrictions (e.g., preventing role change) require triggers.
+CREATE POLICY "Users can update own profile or admins can update" ON users FOR UPDATE
+USING (
+    auth.uid() = uid OR
+    (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+);
+
+-- Delete: Users can delete own profile or admins can delete
+CREATE POLICY "Users can delete own profile or admins can delete" ON users FOR DELETE
+USING (
+    auth.uid() = uid OR
+    (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+);
+
+-- ------------------------------------------
+-- 2. Products Collection
+-- ------------------------------------------
+-- Read: Anyone can read
+CREATE POLICY "Products are publicly readable" ON products FOR SELECT USING (true);
+
+-- Insert: Merchants can create their own products
+CREATE POLICY "Merchants can insert own products" ON products FOR INSERT
+WITH CHECK (
+    auth.uid() IS NOT NULL AND
+    (SELECT role FROM users WHERE uid = auth.uid()) = 'merchant' AND
+    merchant_id = auth.uid() AND
+    price >= 0 AND
+    (stock IS NULL OR stock >= 0)
+);
+
+-- Update: Merchants can update own products or admins can update
+CREATE POLICY "Merchants can update own products or admins update" ON products FOR UPDATE
+USING (
+    auth.uid() IS NOT NULL AND (
+        ( (SELECT role FROM users WHERE uid = auth.uid()) = 'merchant' AND merchant_id = auth.uid() ) OR
+        ( (SELECT role FROM users WHERE uid = auth.uid()) = 'admin' )
+    )
+);
+
+-- Delete: Merchants can delete own products or admins delete
+CREATE POLICY "Merchants can delete own products or admins delete" ON products FOR DELETE
+USING (
+    auth.uid() IS NOT NULL AND (
+        ( (SELECT role FROM users WHERE uid = auth.uid()) = 'merchant' AND merchant_id = auth.uid() ) OR
+        ( (SELECT role FROM users WHERE uid = auth.uid()) = 'admin' )
+    )
+);
+
+-- Product Variants
+CREATE POLICY "Product variants are publicly readable" ON product_variants FOR SELECT USING (true);
+CREATE POLICY "Merchants can insert own product variants" ON product_variants FOR INSERT
+WITH CHECK (
+    auth.uid() IS NOT NULL AND
+    (SELECT merchant_id FROM products WHERE id = product_id) = auth.uid() AND
+    price >= 0 AND
+    (stock IS NULL OR stock >= 0)
+);
+CREATE POLICY "Merchants can update own product variants or admins" ON product_variants FOR UPDATE
+USING (
+    auth.uid() IS NOT NULL AND (
+        (SELECT merchant_id FROM products WHERE id = product_id) = auth.uid() OR
+        (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+    )
+);
+CREATE POLICY "Merchants can delete own product variants or admins" ON product_variants FOR DELETE
+USING (
+    auth.uid() IS NOT NULL AND (
+        (SELECT merchant_id FROM products WHERE id = product_id) = auth.uid() OR
+        (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+    )
+);
+
+-- ------------------------------------------
+-- 3. Product Reviews Collection
+-- ------------------------------------------
+-- Read: Anyone can read
+CREATE POLICY "Reviews are publicly readable" ON product_reviews FOR SELECT USING (true);
+
+-- Insert: Authenticated users can review
+CREATE POLICY "Authenticated users can create reviews" ON product_reviews FOR INSERT
+WITH CHECK (
+    auth.uid() = user_id AND
+    rating >= 1 AND rating <= 5
+);
+
+-- Delete: Users can delete own reviews
+CREATE POLICY "Users can delete own reviews" ON product_reviews FOR DELETE
+USING (auth.uid() = user_id);
+
+-- ------------------------------------------
+-- 4. Cart Items, Wishlist, Carts, Checkouts
+-- ------------------------------------------
+-- user_cart_items
+CREATE POLICY "Users manage own cart items" ON user_cart_items FOR ALL USING (auth.uid() = user_id);
+
+-- user_wishlist_items
+CREATE POLICY "Users manage own wishlist items" ON user_wishlist_items FOR ALL USING (auth.uid() = user_id);
+
+-- carts
+CREATE POLICY "Users manage own carts" ON carts FOR ALL USING (auth.uid() = user_id);
+
+-- checkouts
+CREATE POLICY "Users manage own checkouts" ON checkouts FOR ALL USING (auth.uid() = user_id);
+
+-- ------------------------------------------
+-- 5. Orders
+-- ------------------------------------------
+-- Read: Users can read own orders, merchants read own, admins read all
+CREATE POLICY "Users read own orders, merchants read associated, admins read all" ON orders FOR SELECT
+USING (
+    auth.uid() = user_id OR
+    auth.uid() = merchant_id OR
+    (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+);
+
+-- Insert: Users can create own orders
+CREATE POLICY "Users can insert own orders" ON orders FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+
+-- Update: Merchants can update own orders, admins update all
+CREATE POLICY "Merchants update associated orders, admins update all" ON orders FOR UPDATE
+USING (
+    auth.uid() = merchant_id OR
+    (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+);
+
+-- Delete: Only admins can delete
+CREATE POLICY "Only admins can delete orders" ON orders FOR DELETE
+USING ((SELECT role FROM users WHERE uid = auth.uid()) = 'admin');
+
+-- ------------------------------------------
+-- 6. Contact Messages
+-- ------------------------------------------
+-- Read: Only admins
+CREATE POLICY "Admins can read contact messages" ON contact_messages FOR SELECT
+USING ((SELECT role FROM users WHERE uid = auth.uid()) = 'admin');
+
+-- Insert: Anyone can insert
+CREATE POLICY "Anyone can insert contact messages" ON contact_messages FOR INSERT
+WITH CHECK (true);
+
+-- ------------------------------------------
+-- 7. System Categories
+-- ------------------------------------------
+-- Read: Anyone can read
+CREATE POLICY "System categories are publicly readable" ON system_categories FOR SELECT USING (true);
+-- Write/Update/Delete: Admins only
+CREATE POLICY "Admins manage system categories" ON system_categories FOR ALL
+USING ((SELECT role FROM users WHERE uid = auth.uid()) = 'admin');

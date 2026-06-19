@@ -4,17 +4,28 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Icon from '@/components/Icon';
+import { STORE_CONFIG } from '@/lib/config/store';
+import { db } from '@/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
-      setSubscribed(true);
-      setEmail('');
-      setTimeout(() => setSubscribed(false), 3000);
+      try {
+        await addDoc(collection(db, 'subscribers'), {
+          email,
+          createdAt: new Date()
+        });
+        setSubscribed(true);
+        setEmail('');
+        setTimeout(() => setSubscribed(false), 3000);
+      } catch (err) {
+        console.error("Failed to subscribe", err);
+      }
     }
   };
 
@@ -32,7 +43,7 @@ export default function Footer() {
           <div className="lg:col-span-4 space-y-6">
             <div className="flex items-center gap-3">
               <Image src="/Logo.svg" alt="Logo" width={44} height={44} className="w-auto h-11 invert hue-rotate-180" style={{ width: 'auto' }} />
-              <Image src="/name.svg" alt="JUJ4" width={100} height={40} className="w-auto h-7 invert hue-rotate-180" />
+              <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={40} className="w-auto h-7 invert hue-rotate-180" />
             </div>
             <p className="text-sm font-medium text-white/60 leading-relaxed max-w-xs">
               Your premium marketplace for quality products and expert services. Built for the modern shopper who demands the best.
@@ -41,9 +52,9 @@ export default function Footer() {
             {/* Social Links */}
             <div className="flex items-center gap-3 pt-2">
               {[
-                { icon: 'language', label: 'Website', href: '/' },
-                { icon: 'mail', label: 'Email', href: '/contact' },
-                { icon: 'phone', label: 'Phone', href: '/contact' },
+                { icon: 'language', label: 'Website', href: STORE_CONFIG.socials.website },
+                { icon: 'mail', label: 'Email', href: STORE_CONFIG.socials.email },
+                { icon: 'phone', label: 'Phone', href: STORE_CONFIG.socials.phone },
               ].map(social => (
                 <Link
                   key={social.label}
@@ -135,7 +146,7 @@ export default function Footer() {
             </form>
             {subscribed && (
               <p className="mt-3 text-xs font-bold text-green-400 uppercase tracking-widest animate-pulse">
-                Welcome to the JUJ4 community!
+                Welcome to the {STORE_CONFIG.name} community!
               </p>
             )}
           </div>
@@ -146,7 +157,7 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="max-w-[1440px] mx-auto px-6 md:px-16 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-[11px] font-bold text-white/30 uppercase tracking-widest">
-            &copy; {new Date().getFullYear()} JUJ4 E-Commerce Inc. &mdash; All Rights Reserved.
+            &copy; {new Date().getFullYear()} {STORE_CONFIG.companyName} &mdash; All Rights Reserved.
           </p>
 
           {/* Payment Methods / Trust Badges */}

@@ -9,6 +9,7 @@ import { auth, db } from '@/lib/firebase';
 import { Order, OrderStatus } from '@/types/schema';
 import Icon from '@/components/Icon';
 import { Timestamp } from 'firebase/firestore';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; text: string }> = {
   pending: { label: 'Pending', bg: 'bg-surface-container', text: 'text-on-surface' },
@@ -200,7 +201,7 @@ export default function OrdersPage() {
                     {/* Right: Total & Expand */}
                     <div className="flex items-center gap-4">
                       <span className="font-headline-md text-lg md:text-xl font-black text-on-surface">
-                        Ksh {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                        {CURRENCY_CONFIG.symbol} {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                       </span>
                       <div
                         className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
@@ -300,12 +301,12 @@ export default function OrdersPage() {
                                       {(item.color || item.selectedColor) && <p>Color: {item.color || item.selectedColor}</p>}
                                     </div>
                                     <p className="text-xs text-secondary font-semibold mt-0.5">
-                                      Qty: {item.quantity} × Ksh {item.price.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                                      Qty: {item.quantity} × {CURRENCY_CONFIG.symbol} {item.price.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                                     </p>
                                   </div>
                                 </div>
                                 <span className="font-headline-md text-sm font-black text-on-surface shrink-0">
-                                  Ksh {(item.quantity * item.price).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                                  {CURRENCY_CONFIG.symbol} {(item.quantity * item.price).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                                 </span>
                               </div>
                             );
@@ -356,7 +357,7 @@ export default function OrdersPage() {
                             <div className="text-sm text-secondary space-y-1">
                               <p className="font-semibold">{order.shippingInformation.method}</p>
                               <p>
-                                Cost: Ksh {order.shippingInformation.cost.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                                Cost: {CURRENCY_CONFIG.symbol} {order.shippingInformation.cost.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                               </p>
                               {order.shippingInformation.trackingNumber && (
                                 <p className="font-bold text-on-surface">
@@ -375,7 +376,7 @@ export default function OrdersPage() {
                         Order Total
                       </span>
                       <span className="font-headline-md text-xl font-black text-on-surface">
-                        Ksh {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                        {CURRENCY_CONFIG.symbol} {order.totalAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>

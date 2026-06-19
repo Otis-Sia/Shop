@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { login, register, loginWithGoogle, checkEmailExists } from '@/lib/api/auth';
+import { login, register, loginWithGoogle, checkEmailExists, subscribeToAuthChanges, getUserProfile } from '@/lib/api/auth';
 import { syncLocalCartToFirestore } from '@/lib/api/cart';
 import Icon from '@/components/Icon';
 
@@ -25,6 +25,29 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
   // Status fields
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthChanges(async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const profile = await getUserProfile(firebaseUser.uid);
+          if (profile) {
+            const userRole = profile.role || 'customer';
+            if (userRole === 'admin') {
+              window.location.href = '/admin';
+            } else if (userRole === 'merchant') {
+              window.location.href = '/merchant';
+            } else {
+              window.location.href = '/products';
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching profile for redirect", error);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +82,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
       } else if (userRole === 'merchant') {
         window.location.href = '/merchant';
       } else {
-        window.location.href = '/';
+        window.location.href = '/products';
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during sign in.');
@@ -89,7 +112,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
       } else if (userRole === 'merchant') {
         window.location.href = '/merchant';
       } else {
-        window.location.href = '/';
+        window.location.href = '/products';
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during registration.');
@@ -103,7 +126,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
       <div className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 gap-0 border-2 border-on-background overflow-hidden bg-surface">
         
         {/* Left Side: Premium Brand Information Panel */}
-        <div className="relative bg-on-background text-surface flex flex-col justify-center p-12 lg:p-16 space-y-6 min-h-[400px]">
+        <div className="order-2 lg:order-1 relative bg-on-background text-surface flex flex-col justify-center p-12 lg:p-16 space-y-6 min-h-[400px]">
           <div className="absolute inset-0 opacity-20">
             <img 
               alt="Cinematic, high-contrast action shot of a professional athlete" 
@@ -139,7 +162,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
         </div>
 
         {/* Right Side: Step-by-Step Form Panel */}
-        <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-center bg-surface min-h-[550px]">
+        <div className="order-1 lg:order-2 p-8 md:p-12 lg:p-16 flex flex-col justify-center bg-surface min-h-[550px]">
           {/* Header Area depending on step */}
           <div className="mb-8">
             {step === 'email' && (
@@ -229,7 +252,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                     } else if (userRole === 'merchant') {
                       window.location.href = '/merchant';
                     } else {
-                      window.location.href = '/';
+                      window.location.href = '/products';
                     }
                   } catch (err: any) {
                     setError(err.message || 'Google sign-in failed');
@@ -393,7 +416,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
               </div>
 
               <p className="text-xs text-secondary leading-relaxed">
-                By creating an account, you agree to our <a className="underline font-bold text-on-background hover:text-primary-container" href="#">Terms of Service</a> and <a className="underline font-bold text-on-background hover:text-primary-container" href="#">Privacy Policy</a>.
+                By creating an account, you agree to our <Link className="underline font-bold text-on-background hover:text-primary-container" href="/terms">Terms of Service</Link> and <Link className="underline font-bold text-on-background hover:text-primary-container" href="/privacy">Privacy Policy</Link>.
               </p>
 
               <button 

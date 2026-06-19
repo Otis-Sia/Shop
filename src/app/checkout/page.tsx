@@ -1,5 +1,6 @@
-'use client';
-
+"use client";
+import { useToast } from '@/components/providers/ToastProvider';
+import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -11,13 +12,75 @@ import { onAuthStateChanged } from 'firebase/auth';
 import Icon from '@/components/Icon';
 
 export default function CheckoutPage() {
+  const { showToast } = useToast();
   const router = useRouter();
   const [total, setTotal] = useState(0);
   const [itemCount, setItemCount] = useState(0);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [submitting, setSubmitting] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<User | null>(null);
+
+  const [addressQuery, setAddressQuery] = useState('');
+  const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  
+  const [formAddress, setFormAddress] = useState('');
+  const [formCity, setFormCity] = useState('');
+  const [formState, setFormState] = useState('');
+  const [formCountry, setFormCountry] = useState('');
+  const [formZip, setFormZip] = useState('');
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (addressQuery.length > 2) {
+        setIsSearchingAddress(true);
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}&addressdetails=1&limit=5`, {
+          headers: {
+            'Accept-Language': 'en-US,en;q=0.9',
+            'User-Agent': 'JUJ4-Ecommerce-Demo'
+          }
+        })
+          .then(res => res.json())
+          .then(data => {
+            setAddressSuggestions(data);
+            setIsSearchingAddress(false);
+          })
+          .catch(err => {
+            console.error("Address search error:", err);
+            setIsSearchingAddress(false);
+          });
+      } else {
+        setAddressSuggestions([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [addressQuery]);
+
+  const handleSelectAddress = (suggestion: any) => {
+    const addr = suggestion.address || {};
+    const street = addr.road ? `${addr.house_number || ''} ${addr.road}`.trim() : suggestion.display_name.split(',')[0];
+    const city = addr.city || addr.town || addr.village || addr.county || '';
+    const state = addr.state || '';
+    const country = addr.country || '';
+    const zip = addr.postcode || '';
+
+    setFormAddress(street);
+    setFormCity(city);
+    setFormState(state);
+    setFormCountry(country);
+    setFormZip(zip);
+    setAddressQuery('');
+    setAddressSuggestions([]);
+  };
+
+  useEffect(() => {
+    if (userProfile) {
+      if (userProfile.location) setFormAddress(userProfile.location);
+    }
+  }, [userProfile]);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -142,7 +205,7 @@ export default function CheckoutPage() {
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to place order. Please try again.');
+      showToast('Failed to place order. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -339,7 +402,7 @@ export default function CheckoutPage() {
                         </p>
                       </div>
                       <span className="font-bold text-on-surface whitespace-nowrap">
-                        Ksh {(() => {
+                        {CURRENCY_CONFIG.symbol} {(() => {
                           let basePrice = item.Product?.price ? parseFloat(String(item.Product.price)) : 0;
                           if (item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null && item.Product?.variants?.[item.selectedVariantIndex]) {
                             basePrice = parseFloat(String(item.Product.variants[item.selectedVariantIndex].price));
@@ -361,7 +424,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-between pt-3 pb-1 font-black text-lg border-t-2 border-on-surface border-dashed">
                 <span className="uppercase tracking-widest text-on-surface">Total to Pay</span>
-                <span className="text-primary-container text-xl md:text-2xl font-black">Ksh {total.toFixed(2)}</span>
+                <span className="text-primary-container text-xl md:text-2xl font-black">{CURRENCY_CONFIG.symbol} {total.toFixed(2)}</span>
               </div>
             </div>
 
