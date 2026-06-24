@@ -1,15 +1,38 @@
 import { NextResponse } from 'next/server';
 import { generatePresignedUploadUrl } from '@/lib/s3';
+import { adminAuth } from '@/lib/firebase-admin';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    // Optionally, verify user authentication here using Firebase Admin or Next Auth
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const token = authHeader.split('Bearer ')[1];
+    
+    try {
+      await adminAuth.verifyIdToken(token);
+    } catch (authError) {
+      console.error('Invalid token:', authError);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { fileName, fileType } = await request.json();
 
     if (!fileName || !fileType) {
       return NextResponse.json(
         { error: 'Missing fileName or fileType' },
+        { status: 400 }
+      );
+    }
+
+    // Strict MIME type validation
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(fileType)) {
+      return NextResponse.json(
+        { error: 'Invalid file type. Only JPEG, PNG, and WEBP images are allowed.' },
         { status: 400 }
       );
     }
@@ -35,6 +58,19 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const token = authHeader.split('Bearer ')[1];
+    
+    try {
+      await adminAuth.verifyIdToken(token);
+    } catch (authError) {
+      console.error('Invalid token:', authError);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { fileUrls } = await request.json();
     if (!fileUrls || !Array.isArray(fileUrls)) {
       return NextResponse.json({ error: 'Missing or invalid fileUrls array' }, { status: 400 });

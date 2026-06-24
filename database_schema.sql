@@ -46,7 +46,7 @@ CREATE TABLE products (
     sale_price DECIMAL(10, 2),
     sale_start_date TIMESTAMP WITH TIME ZONE,
     sale_end_date TIMESTAMP WITH TIME ZONE,
-    discount DECIMAL(5, 2),
+    discount DECIMAL(10, 2),
     brand VARCHAR(100),
     currency VARCHAR(10) NOT NULL,
     track_inventory BOOLEAN DEFAULT FALSE,
@@ -115,7 +115,6 @@ CREATE TABLE user_wishlist_items (
 CREATE TABLE carts (
     id VARCHAR(255) PRIMARY KEY,
     user_id VARCHAR(255) NOT NULL REFERENCES users(uid),
-    items JSONB, -- Storing array of CartItem objects
     total_amount DECIMAL(10, 2) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -197,7 +196,7 @@ ALTER TABLE system_categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can read own profile or admins can read all" ON users FOR SELECT
 USING (
     auth.uid() = uid OR
-    (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+    (auth.jwt() ->> 'role') = 'admin'
 );
 
 -- Insert: Users can create their own profile, role defaults to customer
@@ -212,14 +211,14 @@ WITH CHECK (
 CREATE POLICY "Users can update own profile or admins can update" ON users FOR UPDATE
 USING (
     auth.uid() = uid OR
-    (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+    (auth.jwt() ->> 'role') = 'admin'
 );
 
 -- Delete: Users can delete own profile or admins can delete
 CREATE POLICY "Users can delete own profile or admins can delete" ON users FOR DELETE
 USING (
     auth.uid() = uid OR
-    (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+    (auth.jwt() ->> 'role') = 'admin'
 );
 
 -- ------------------------------------------
@@ -232,7 +231,7 @@ CREATE POLICY "Products are publicly readable" ON products FOR SELECT USING (tru
 CREATE POLICY "Merchants can insert own products" ON products FOR INSERT
 WITH CHECK (
     auth.uid() IS NOT NULL AND
-    (SELECT role FROM users WHERE uid = auth.uid()) = 'merchant' AND
+    (auth.jwt() ->> 'role') = 'merchant' AND
     merchant_id = auth.uid() AND
     price >= 0 AND
     (stock IS NULL OR stock >= 0)
@@ -242,8 +241,8 @@ WITH CHECK (
 CREATE POLICY "Merchants can update own products or admins update" ON products FOR UPDATE
 USING (
     auth.uid() IS NOT NULL AND (
-        ( (SELECT role FROM users WHERE uid = auth.uid()) = 'merchant' AND merchant_id = auth.uid() ) OR
-        ( (SELECT role FROM users WHERE uid = auth.uid()) = 'admin' )
+        ( (auth.jwt() ->> 'role') = 'merchant' AND merchant_id = auth.uid() ) OR
+        ( (auth.jwt() ->> 'role') = 'admin' )
     )
 );
 
@@ -251,32 +250,37 @@ USING (
 CREATE POLICY "Merchants can delete own products or admins delete" ON products FOR DELETE
 USING (
     auth.uid() IS NOT NULL AND (
-        ( (SELECT role FROM users WHERE uid = auth.uid()) = 'merchant' AND merchant_id = auth.uid() ) OR
-        ( (SELECT role FROM users WHERE uid = auth.uid()) = 'admin' )
+        ( (auth.jwt() ->> 'role') = 'merchant' AND merchant_id = auth.uid() ) OR
+        ( (auth.jwt() ->> 'role') = 'admin' )
     )
 );
 
 -- Product Variants
+CREATE OR REPLACE FUNCTION check_product_merchant(p_id VARCHAR)
+RETURNS VARCHAR AS $$
+  SELECT merchant_id FROM products WHERE id = p_id;
+$$ LANGUAGE sql SECURITY DEFINER;
+
 CREATE POLICY "Product variants are publicly readable" ON product_variants FOR SELECT USING (true);
 CREATE POLICY "Merchants can insert own product variants" ON product_variants FOR INSERT
 WITH CHECK (
     auth.uid() IS NOT NULL AND
-    (SELECT merchant_id FROM products WHERE id = product_id) = auth.uid() AND
+    check_product_merchant(product_id) = auth.uid() AND
     price >= 0 AND
     (stock IS NULL OR stock >= 0)
 );
 CREATE POLICY "Merchants can update own product variants or admins" ON product_variants FOR UPDATE
 USING (
     auth.uid() IS NOT NULL AND (
-        (SELECT merchant_id FROM products WHERE id = product_id) = auth.uid() OR
-        (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+        check_product_merchant(product_id) = auth.uid() OR
+        (auth.jwt() ->> 'role') = 'admin'
     )
 );
 CREATE POLICY "Merchants can delete own product variants or admins" ON product_variants FOR DELETE
 USING (
     auth.uid() IS NOT NULL AND (
-        (SELECT merchant_id FROM products WHERE id = product_id) = auth.uid() OR
-        (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+        check_product_merchant(product_id) = auth.uid() OR
+        (auth.jwt() ->> 'role') = 'admin'
     )
 );
 
@@ -320,7 +324,7 @@ CREATE POLICY "Users read own orders, merchants read associated, admins read all
 USING (
     auth.uid() = user_id OR
     auth.uid() = merchant_id OR
-    (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+    (auth.jwt() ->> 'role') = 'admin'
 );
 
 -- Insert: Users can create own orders
@@ -331,19 +335,19 @@ WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Merchants update associated orders, admins update all" ON orders FOR UPDATE
 USING (
     auth.uid() = merchant_id OR
-    (SELECT role FROM users WHERE uid = auth.uid()) = 'admin'
+    (auth.jwt() ->> 'role') = 'admin'
 );
 
 -- Delete: Only admins can delete
 CREATE POLICY "Only admins can delete orders" ON orders FOR DELETE
-USING ((SELECT role FROM users WHERE uid = auth.uid()) = 'admin');
+USING ((auth.jwt() ->> 'role') = 'admin');
 
 -- ------------------------------------------
 -- 6. Contact Messages
 -- ------------------------------------------
 -- Read: Only admins
 CREATE POLICY "Admins can read contact messages" ON contact_messages FOR SELECT
-USING ((SELECT role FROM users WHERE uid = auth.uid()) = 'admin');
+USING ((auth.jwt() ->> 'role') = 'admin');
 
 -- Insert: Anyone can insert
 CREATE POLICY "Anyone can insert contact messages" ON contact_messages FOR INSERT
@@ -356,4 +360,32 @@ WITH CHECK (true);
 CREATE POLICY "System categories are publicly readable" ON system_categories FOR SELECT USING (true);
 -- Write/Update/Delete: Admins only
 CREATE POLICY "Admins manage system categories" ON system_categories FOR ALL
-USING ((SELECT role FROM users WHERE uid = auth.uid()) = 'admin');
+USING ((auth.jwt() ->> 'role') = 'admin');
+
+-- ==========================================
+-- PERFORMANCE INDEXES
+-- ==========================================
+CREATE INDEX idx_products_merchant ON products(merchant_id);
+CREATE INDEX idx_product_variants_product ON product_variants(product_id);
+CREATE INDEX idx_orders_user ON orders(user_id);
+CREATE INDEX idx_orders_merchant ON orders(merchant_id);
+CREATE INDEX idx_user_cart_items_user ON user_cart_items(user_id);
+
+-- ==========================================
+-- UPDATED_AT TRIGGERS
+-- ==========================================
+CREATE OR REPLACE FUNCTION update_modified_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_users_modtime BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+CREATE TRIGGER update_products_modtime BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+CREATE TRIGGER update_product_variants_modtime BEFORE UPDATE ON product_variants FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+CREATE TRIGGER update_carts_modtime BEFORE UPDATE ON carts FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+CREATE TRIGGER update_checkouts_modtime BEFORE UPDATE ON checkouts FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+CREATE TRIGGER update_orders_modtime BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+CREATE TRIGGER update_system_categories_modtime BEFORE UPDATE ON system_categories FOR EACH ROW EXECUTE FUNCTION update_modified_column();
