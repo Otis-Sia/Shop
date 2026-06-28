@@ -124,8 +124,11 @@ export default function MerchantProducts() {
       const urlsArray = Array.from(urlsToDel).filter(u => u && u.includes('amazonaws.com'));
       if (urlsArray.length > 0) {
         fetch('/api/upload', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
+            method: 'DELETE',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${auth.currentUser ? await auth.currentUser.getIdToken() : ''}`
+            },
           body: JSON.stringify({ fileUrls: urlsArray }),
         }).catch(err => console.error('Failed to delete S3 images for bulk delete', err));
       }
@@ -234,7 +237,10 @@ export default function MerchantProducts() {
         if (urlsArray.length > 0) {
           fetch('/api/upload', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${auth.currentUser ? await auth.currentUser.getIdToken() : ''}`
+            },
             body: JSON.stringify({ fileUrls: urlsArray }),
           }).catch(err => console.error('Failed to delete S3 images for product', err));
         }
@@ -302,8 +308,11 @@ export default function MerchantProducts() {
     try {
       const uploadPromises = Array.from(files).map(async (file) => {
         const response = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${auth.currentUser ? await auth.currentUser.getIdToken() : ''}`
+            },
           body: JSON.stringify({
             fileName: file.name,
             fileType: file.type,
@@ -346,8 +355,11 @@ export default function MerchantProducts() {
       setIsUploading(true);
       try {
         const response = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${auth.currentUser ? await auth.currentUser.getIdToken() : ''}`
+            },
           body: JSON.stringify({ fileName: file.name, fileType: file.type }),
         });
         if (!response.ok) throw new Error('Failed to get upload URL');
@@ -400,8 +412,11 @@ export default function MerchantProducts() {
     setIsUploading(true);
     try {
       const response = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${auth.currentUser ? await auth.currentUser.getIdToken() : ''}`
+            },
         body: JSON.stringify({ fileName: file.name, fileType: file.type }),
       });
       if (!response.ok) throw new Error('Failed to get upload URL');
@@ -711,8 +726,11 @@ export default function MerchantProducts() {
 
       if (imagesToDelete.length > 0) {
         fetch('/api/upload', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
+            method: 'DELETE',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${auth.currentUser ? await auth.currentUser.getIdToken() : ''}`
+            },
           body: JSON.stringify({ fileUrls: imagesToDelete.filter(u => u.includes('amazonaws.com')) }),
         }).catch(err => console.error('Failed to delete removed images', err));
         setImagesToDelete([]);

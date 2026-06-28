@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Upload, FileUp, CheckCircle2, XCircle } from 'lucide-react';
+import { auth } from '@/lib/firebase';
 
 interface S3UploaderProps {
   onUploadSuccess?: (url: string) => void;
@@ -30,11 +31,16 @@ export default function S3Uploader({ onUploadSuccess, label = 'Upload to S3', cl
     setError(null);
 
     try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('User not logged in');
+      const token = await user.getIdToken();
+
       // 1. Get the pre-signed URL from our API route
       const response = await fetch('/api/upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           fileName: file.name,
