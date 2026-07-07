@@ -73,7 +73,10 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
     
     for (const p of productsData) {
       if (!dbProductIds.has(p.id)) {
-        products.push(p);
+        products.push({
+          ...p,
+          merchantId: p.merchantId || 'admin'
+        });
       }
     }
     

@@ -17,18 +17,14 @@ export default function HomePage() {
     async function fetchStats() {
       try {
         const prodCount = await getCountFromServer(collection(db, 'products'));
-        const userCount = await getCountFromServer(collection(db, 'users'));
-        
         const roundToNext100 = (num: number) => Math.ceil(num / 100) * 100;
         
-        setStats({
+        setStats(prev => ({
+          ...prev,
           products: `${roundToNext100(prodCount.data().count || 0)}+`,
-          customers: `${roundToNext100(userCount.data().count || 0)}+`,
-          reviews: '4.9★', // hardcoded for now or fetch avg review
-          countries: '1+', // Default since we only do Kenya currently
-        });
+        }));
       } catch (err) {
-        console.error('Failed to fetch stats:', err);
+        // Ignore stats fetch failure silently
       }
     }
     fetchStats();

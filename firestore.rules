@@ -41,6 +41,8 @@ service cloud.firestore {
     // Users: Users can read and update their own profile document, but cannot change role. They can only change merchantStatus to pending.
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
+      // Allow public read access to merchant and admin profiles so customers can see store names and approval status
+      allow read: if resource.data.role == 'merchant' || resource.data.role == 'admin';
       allow update: if request.auth != null && request.auth.uid == userId && 
         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) && 
         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['merchantStatus']) || request.resource.data.merchantStatus == 'pending');
