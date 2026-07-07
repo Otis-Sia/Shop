@@ -215,7 +215,6 @@ export const getProduct = async (id: number | string): Promise<Product> => {
 
     return product;
   } catch (error) {
-    console.error('Error fetching product:', error);
     throw error;
   }
 };

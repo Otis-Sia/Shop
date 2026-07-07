@@ -139,7 +139,7 @@ export const getUserProfile = async (uid: string) => {
     return null;
   } catch (error: any) {
     console.error('Error fetching user profile:', error);
-    throw new Error('Failed to fetch user profile');
+    throw error;
   }
 };
 
