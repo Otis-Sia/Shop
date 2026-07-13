@@ -1685,10 +1685,10 @@ export default function MerchantProducts() {
           </div>
         </form>
       ) : (
-        <div className="bg-surface border-4 border-on-surface overflow-x-auto">
+        <div className="space-y-4">
           {/* Bulk Action Header */}
           {selectedProductIds.length > 0 && (
-            <div className="p-4 bg-error-container text-error border-b-4 border-on-surface flex items-center justify-between font-bold">
+            <div className="p-4 bg-error-container text-error border-4 border-on-surface flex items-center justify-between font-bold">
               <span>{selectedProductIds.length} item(s) selected</span>
               <button 
                 onClick={handleBulkDelete}
@@ -1700,77 +1700,141 @@ export default function MerchantProducts() {
             </div>
           )}
 
-          <table className="w-full text-left border-collapse min-w-[600px]">
-            <thead>
-              <tr className="bg-on-surface text-surface uppercase font-bold text-sm">
-                <th className="p-4 border-b-4 border-on-surface w-12 text-center">
-                  <input 
-                    type="checkbox" 
-                    onChange={toggleSelectAll} 
-                    checked={displayedItems.length > 0 && selectedProductIds.length === displayedItems.length}
-                    className="accent-primary-container w-4 h-4 cursor-pointer"
-                  />
-                </th>
-                <th className="p-4 border-b-4 border-on-surface">Image</th>
-                <th className="p-4 border-b-4 border-on-surface">Name</th>
-                <th className="p-4 border-b-4 border-on-surface">Price</th>
-                {activeTab !== 'services' && <th className="p-4 border-b-4 border-on-surface">Stock</th>}
-                <th className="p-4 border-b-4 border-on-surface text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayedItems.length === 0 ? (
-                <tr>
-                  <td colSpan={activeTab === 'services' ? 5 : 6} className="p-8 text-center font-bold">No {activeTab === 'services' ? 'services' : 'products'} found. Add one to get started!</td>
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-surface border-4 border-on-surface overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="bg-on-surface text-surface uppercase font-bold text-sm">
+                  <th className="p-4 border-b-4 border-on-surface w-12 text-center">
+                    <input 
+                      type="checkbox" 
+                      onChange={toggleSelectAll} 
+                      checked={displayedItems.length > 0 && selectedProductIds.length === displayedItems.length}
+                      className="accent-primary-container w-4 h-4 cursor-pointer"
+                    />
+                  </th>
+                  <th className="p-4 border-b-4 border-on-surface">Image</th>
+                  <th className="p-4 border-b-4 border-on-surface">Name</th>
+                  <th className="p-4 border-b-4 border-on-surface">Price</th>
+                  {activeTab !== 'services' && <th className="p-4 border-b-4 border-on-surface">Stock</th>}
+                  <th className="p-4 border-b-4 border-on-surface text-right">Actions</th>
                 </tr>
-              ) : (
-                displayedItems.map((product) => (
-                  <tr key={product.id} className="border-b border-on-surface hover:bg-surface-dim transition-colors">
-                    <td className="p-4 text-center">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedProductIds.includes(Number(product.id))}
-                        onChange={() => toggleSelection(Number(product.id))}
-                        className="accent-primary-container w-4 h-4 cursor-pointer"
-                      />
-                    </td>
-                    <td className="p-4">
-                      {product.imageUrls?.[0] ? (
-                        <img src={product.imageUrls[0]} alt={product.name} className="w-16 h-16 object-cover border-2 border-on-surface" />
-                      ) : (
-                        <div className="w-16 h-16 bg-surface-dim border-2 border-on-surface flex items-center justify-center text-xs font-bold">No Img</div>
-                      )}
-                    </td>
-                    <td className="p-4 font-bold max-w-[200px] truncate">{product.name}</td>
-                    <td className="p-4">{CURRENCY_CONFIG.symbol} {product.price.toFixed(2)}</td>
-                    {activeTab !== 'services' && <td className="p-4">{product.stock === null ? 'N/A' : product.stock}</td>}
-                    <td className="p-4">
-                      <div className="flex flex-wrap gap-2 justify-end">
-                        <button 
-                          onClick={() => handleDuplicate(product)}
-                          className="text-xs sm:text-sm border-2 border-on-surface bg-primary-container text-on-surface px-2.5 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                        >
-                          Duplicate
-                        </button>
-                        <button 
-                          onClick={() => handleEdit(product)}
-                          className="text-xs sm:text-sm border-2 border-on-surface px-2.5 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(Number(product.id))}
-                          className="text-xs sm:text-sm border-2 border-error text-error px-2.5 py-1 font-bold hover:bg-error hover:text-white transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+              </thead>
+              <tbody>
+                {displayedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={activeTab === 'services' ? 5 : 6} className="p-8 text-center font-bold">No {activeTab === 'services' ? 'services' : 'products'} found. Add one to get started!</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  displayedItems.map((product) => (
+                    <tr key={product.id} className="border-b border-on-surface hover:bg-surface-dim transition-colors">
+                      <td className="p-4 text-center">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedProductIds.includes(Number(product.id))}
+                          onChange={() => toggleSelection(Number(product.id))}
+                          className="accent-primary-container w-4 h-4 cursor-pointer"
+                        />
+                      </td>
+                      <td className="p-4">
+                        {product.imageUrls?.[0] ? (
+                          <img src={product.imageUrls[0]} alt={product.name} className="w-16 h-16 object-cover border-2 border-on-surface" />
+                        ) : (
+                          <div className="w-16 h-16 bg-surface-dim border-2 border-on-surface flex items-center justify-center text-xs font-bold">No Img</div>
+                        )}
+                      </td>
+                      <td className="p-4 font-bold max-w-[200px] truncate">{product.name}</td>
+                      <td className="p-4">{CURRENCY_CONFIG.symbol} {product.price.toFixed(2)}</td>
+                      {activeTab !== 'services' && <td className="p-4">{product.stock === null ? 'N/A' : product.stock}</td>}
+                      <td className="p-4">
+                        <div className="flex flex-wrap gap-2 justify-end">
+                          <button 
+                            onClick={() => handleDuplicate(product)}
+                            className="text-xs sm:text-sm border-2 border-on-surface bg-primary-container text-on-surface px-2.5 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                          >
+                            Duplicate
+                          </button>
+                          <button 
+                            onClick={() => handleEdit(product)}
+                            className="text-xs sm:text-sm border-2 border-on-surface px-2.5 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(Number(product.id))}
+                            className="text-xs sm:text-sm border-2 border-error text-error px-2.5 py-1 font-bold hover:bg-error hover:text-white transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card List View */}
+          <div className="md:hidden space-y-4">
+            {displayedItems.length === 0 ? (
+              <div className="bg-surface border-4 border-on-surface p-8 text-center font-bold">
+                No {activeTab === 'services' ? 'services' : 'products'} found. Add one to get started!
+              </div>
+            ) : (
+              displayedItems.map((product) => (
+                <div key={product.id} className="bg-surface border-4 border-on-surface p-4 shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex flex-col gap-3">
+                  <div className="flex gap-4 items-start">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedProductIds.includes(Number(product.id))}
+                      onChange={() => toggleSelection(Number(product.id))}
+                      className="accent-primary-container w-4 h-4 cursor-pointer mt-1 shrink-0"
+                    />
+                    
+                    {product.imageUrls?.[0] ? (
+                      <img src={product.imageUrls[0]} alt={product.name} className="w-16 h-16 object-cover border-2 border-on-surface shrink-0" />
+                    ) : (
+                      <div className="w-16 h-16 bg-surface-dim border-2 border-on-surface flex items-center justify-center text-xs font-bold shrink-0">No Img</div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-sm truncate">{product.name}</h3>
+                      <p className="text-xs font-semibold mt-1 text-primary-container">
+                        {CURRENCY_CONFIG.symbol} {product.price.toFixed(2)}
+                      </p>
+                      {activeTab !== 'services' && (
+                        <p className="text-[11px] text-secondary mt-1 font-medium">
+                          Stock: <span className="font-bold text-on-surface">{product.stock === null ? 'N/A' : product.stock}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 justify-end border-t-2 border-surface-container pt-3">
+                    <button 
+                      onClick={() => handleDuplicate(product)}
+                      className="text-xs border-2 border-on-surface bg-primary-container text-on-surface px-3 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                    >
+                      Duplicate
+                    </button>
+                    <button 
+                      onClick={() => handleEdit(product)}
+                      className="text-xs border-2 border-on-surface px-3 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(Number(product.id))}
+                      className="text-xs border-2 border-error text-error px-3 py-1 font-bold hover:bg-error hover:text-white transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>

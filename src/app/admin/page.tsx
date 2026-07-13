@@ -30,6 +30,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'orders' | 'customers' | 'merchants' | 'categories' | 'settings' | 'merchant_details'>('overview');
   const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'merchant' | 'customer' | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   
   // Orders state
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -531,53 +532,157 @@ export default function AdminPage() {
       </aside>
 
       {/* MAIN CONTAINER */}
-      <main className="lg:ml-64 p-6 md:p-12 min-h-screen">
+      <main className="lg:ml-64 p-4 sm:p-6 md:p-12 min-h-screen">
         
-        {/* MOBILE NAVIGATION TABS */}
-        <div className="lg:hidden mb-8 overflow-x-auto no-scrollbar flex border-2 border-on-surface bg-surface divide-x-2 divide-on-surface">
+        {/* MOBILE NAVIGATION TOGGLE BUTTON */}
+        <div className="lg:hidden mb-6 flex justify-between items-center bg-surface border-2 border-on-surface p-3 shadow-[2px_2px_0px_0px_var(--color-on-surface)]">
           <button 
-            onClick={() => setActiveTab('overview')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'overview' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className="flex items-center gap-2 bg-primary-container text-on-surface border-2 border-on-surface px-3 py-1.5 font-bold uppercase text-[11px] shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] transition-all"
           >
-            Overview
+            <Icon name="menu" className="text-sm" />
+            <span>Admin Menu</span>
           </button>
-          <button 
-            onClick={() => setActiveTab('inventory')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'inventory' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
-          >
-            Inventory
-          </button>
-          <button 
-            onClick={() => setActiveTab('orders')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'orders' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
-          >
-            Orders
-          </button>
-          <button 
-            onClick={() => setActiveTab('customers')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'customers' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
-          >
-            Customers
-          </button>
-          <button 
-            onClick={() => setActiveTab('merchants')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'merchants' || activeTab === 'merchant_details' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
-          >
-            Merchants
-          </button>
-          <button 
-            onClick={() => setActiveTab('categories')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'categories' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
-          >
-            Categories
-          </button>
-          <button 
-            onClick={() => setActiveTab('settings')}
-            className={`flex-grow px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap ${activeTab === 'settings' ? 'bg-primary-container text-on-primary-container' : 'bg-surface hover:bg-surface-container'}`}
-          >
-            Settings
-          </button>
+          
+          <span className="font-black text-[10px] uppercase tracking-wider bg-surface-container px-2.5 py-1 border border-on-surface text-secondary flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-primary-container border border-on-surface rounded-full block animate-pulse"></span>
+            Tab: {activeTab === 'merchant_details' ? 'merchants' : activeTab}
+          </span>
         </div>
+
+        {/* MOBILE SIDEBAR DRAWER */}
+        {isMobileSidebarOpen && (
+          <>
+            {/* Backdrop overlay */}
+            <div 
+              className="fixed inset-0 bg-on-surface/40 backdrop-blur-sm z-50 lg:hidden"
+              onClick={() => setIsMobileSidebarOpen(false)}
+            />
+            {/* Drawer Container */}
+            <aside className="fixed left-0 top-0 h-screen flex flex-col py-6 w-64 bg-surface border-r-4 border-on-surface z-50 lg:hidden animate-in slide-in-from-left duration-300">
+              <div className="px-6 mb-8 flex justify-between items-center">
+                <div>
+                  <h3 className="font-headline-sm text-lg font-black text-on-surface uppercase tracking-tight">Admin Menu</h3>
+                  <p className="text-[10px] font-semibold text-secondary uppercase tracking-widest mt-0.5">System Management</p>
+                </div>
+                <button 
+                  onClick={() => setIsMobileSidebarOpen(false)}
+                  className="text-on-surface hover:text-primary-container"
+                >
+                  <Icon name="close" className="text-2xl" />
+                </button>
+              </div>
+
+              <nav className="flex-grow">
+                <ul className="space-y-1">
+                  <li>
+                    <button 
+                      onClick={() => { setActiveTab('overview'); setIsMobileSidebarOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
+                        activeTab === 'overview' 
+                          ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                          : 'text-secondary hover:bg-secondary-container hover:text-on-surface border-transparent'
+                      }`}
+                    >
+                      <Icon name="dashboard" />
+                      <span>Overview</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      onClick={() => { setActiveTab('inventory'); setIsMobileSidebarOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
+                        activeTab === 'inventory' 
+                          ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                          : 'text-secondary hover:bg-secondary-container hover:text-on-surface border-transparent'
+                      }`}
+                    >
+                      <Icon name="inventory" />
+                      <span>Inventory</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      onClick={() => { setActiveTab('orders'); setIsMobileSidebarOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
+                        activeTab === 'orders' 
+                          ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                          : 'text-secondary hover:bg-secondary-container hover:text-on-surface border-transparent'
+                      }`}
+                    >
+                      <Icon name="shopping_basket" />
+                      <span>Orders</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      onClick={() => { setActiveTab('customers'); setIsMobileSidebarOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
+                        activeTab === 'customers' 
+                          ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                          : 'text-secondary hover:bg-secondary-container hover:text-on-surface border-transparent'
+                      }`}
+                    >
+                      <Icon name="group" />
+                      <span>Customers</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      onClick={() => { setActiveTab('merchants'); setIsMobileSidebarOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
+                        activeTab === 'merchants' || activeTab === 'merchant_details'
+                          ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                          : 'text-secondary hover:bg-secondary-container hover:text-on-surface border-transparent'
+                      }`}
+                    >
+                      <Icon name="storefront" />
+                      <span>Merchants</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      onClick={() => { setActiveTab('categories'); setIsMobileSidebarOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
+                        activeTab === 'categories' 
+                          ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                          : 'text-secondary hover:bg-secondary-container hover:text-on-surface border-transparent'
+                      }`}
+                    >
+                      <Icon name="category" />
+                      <span>Categories</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      onClick={() => { setActiveTab('settings'); setIsMobileSidebarOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-6 py-3 font-extrabold uppercase text-xs tracking-wider transition-all border-l-4 ${
+                        activeTab === 'settings' 
+                          ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                          : 'text-secondary hover:bg-secondary-container hover:text-on-surface border-transparent'
+                      }`}
+                    >
+                      <Icon name="settings" />
+                      <span>Settings</span>
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+
+              <div className="px-6 mt-auto">
+                <div className="pt-4 border-t border-surface-container-highest flex items-center gap-3">
+                  <div className="w-10 h-10 bg-on-surface flex items-center justify-center text-surface-bright border border-on-surface font-black">
+                    A
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="font-extrabold text-xs uppercase text-on-surface truncate">Admin User</p>
+                    <p className="text-[10px] font-semibold text-secondary uppercase tracking-wider">Super Admin</p>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </>
+        )}
 
         {/* ─── TAB 1: SYSTEM OVERVIEW ─── */}
         {activeTab === 'overview' && (
@@ -922,7 +1027,8 @@ export default function AdminPage() {
                   <p className="text-xs text-secondary mt-1 max-w-[280px]">Adjust your filter query or add a brand new catalog item to get started!</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                {/* Desktop view */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                       <tr className="bg-on-surface text-surface uppercase text-[10px] tracking-widest font-black border-b border-on-surface">
@@ -1021,6 +1127,78 @@ export default function AdminPage() {
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile view */}
+                <div className="md:hidden divide-y-2 divide-surface-container-highest">
+                  {filteredProducts.map((product) => {
+                    const originalPrice = Number(product.price);
+                    const discount = product.discount || 0;
+                    const unitPrice = discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
+                    const isLowStock = (product.stock ?? 0) <= 5;
+
+                    return (
+                      <div key={product.id} className="p-4 flex flex-col gap-3 animate-in fade-in duration-200">
+                        <div className="flex gap-4">
+                          <div className="w-16 h-16 bg-surface-container-high border border-on-surface overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            <img 
+                              src={product.image_url || 'https://via.placeholder.com/150'} 
+                              alt={product.name} 
+                              className="w-full h-auto object-contain" 
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-on-surface uppercase text-sm leading-tight break-words">{product.name}</h4>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                              <span className="bg-surface-container text-on-surface text-[9px] font-black uppercase px-2 py-0.5 border border-on-surface">
+                                {product.category || 'Apparel'}
+                              </span>
+                              {discount > 0 && (
+                                <span className="bg-primary-container text-on-primary-container text-[9px] font-black uppercase px-2 py-0.5 border border-on-surface">
+                                  {discount}% OFF
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center py-1 border-t border-on-surface/10">
+                          <div>
+                            <span className="text-[9px] font-black text-secondary uppercase tracking-widest block mb-0.5">Price</span>
+                            <span className="font-extrabold text-sm block">Ksh {unitPrice.toFixed(2)}</span>
+                            {discount > 0 && (
+                              <span className="text-[10px] text-secondary line-through font-normal block">Ksh {originalPrice.toFixed(2)}</span>
+                            )}
+                          </div>
+                          <div className="text-center">
+                            <span className="text-[9px] font-black text-secondary uppercase tracking-widest block mb-0.5">Discount</span>
+                            <span className={discount > 0 ? "text-primary-container bg-amber-50 px-2 py-0.5 border border-primary-container text-[10px] font-black inline-block" : "text-secondary text-[10px] font-medium block"}>
+                              {discount > 0 ? `${discount}%` : '-'}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9px] font-black text-secondary uppercase tracking-widest block mb-0.5">Stock Status</span>
+                            <span className={`inline-block px-2.5 py-0.5 font-black text-[10px] uppercase border border-on-surface ${
+                              isLowStock 
+                                ? 'bg-red-50 text-error border-error' 
+                                : 'bg-green-50 text-green-700 border-green-700'
+                            }`}>
+                              {product.stock} {isLowStock ? 'LOW' : 'OK'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2 border-t border-on-surface/10">
+                          <button 
+                            onClick={() => handleRemoveProduct(product.id)}
+                            className="px-3.5 py-1.5 border-2 border-on-surface bg-red-50 hover:bg-red-100 font-extrabold text-[10px] uppercase tracking-wider text-error transition-all active:scale-95"
+                          >
+                            Delete Product
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </section>

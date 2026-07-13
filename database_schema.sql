@@ -170,6 +170,27 @@ CREATE TABLE system_categories (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Drafts Collection
+CREATE TABLE drafts (
+    id VARCHAR(255) PRIMARY KEY,
+    merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid),
+    edit_form JSONB,
+    is_adding BOOLEAN,
+    editing_id INTEGER,
+    is_quick_add BOOLEAN,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Templates Collection
+CREATE TABLE product_templates (
+    id VARCHAR(255) PRIMARY KEY,
+    merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid),
+    name VARCHAR(255) NOT NULL,
+    data JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ==========================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ==========================================
@@ -186,6 +207,8 @@ ALTER TABLE checkouts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE drafts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_templates ENABLE ROW LEVEL SECURITY;
 
 -- Assuming a function auth.uid() exists (e.g., Supabase) returning the current user's UUID/VARCHAR
 
@@ -362,6 +385,16 @@ CREATE POLICY "System categories are publicly readable" ON system_categories FOR
 CREATE POLICY "Admins manage system categories" ON system_categories FOR ALL
 USING ((auth.jwt() ->> 'role') = 'admin');
 
+-- ------------------------------------------
+-- 8. Drafts
+-- ------------------------------------------
+CREATE POLICY "Merchants manage own drafts" ON drafts FOR ALL USING (auth.uid() = merchant_id);
+
+-- ------------------------------------------
+-- 9. Product Templates
+-- ------------------------------------------
+CREATE POLICY "Merchants manage own templates" ON product_templates FOR ALL USING (auth.uid() = merchant_id);
+
 -- ==========================================
 -- PERFORMANCE INDEXES
 -- ==========================================
@@ -370,6 +403,8 @@ CREATE INDEX idx_product_variants_product ON product_variants(product_id);
 CREATE INDEX idx_orders_user ON orders(user_id);
 CREATE INDEX idx_orders_merchant ON orders(merchant_id);
 CREATE INDEX idx_user_cart_items_user ON user_cart_items(user_id);
+CREATE INDEX idx_drafts_merchant ON drafts(merchant_id);
+CREATE INDEX idx_product_templates_merchant ON product_templates(merchant_id);
 
 -- ==========================================
 -- UPDATED_AT TRIGGERS
@@ -389,3 +424,5 @@ CREATE TRIGGER update_carts_modtime BEFORE UPDATE ON carts FOR EACH ROW EXECUTE 
 CREATE TRIGGER update_checkouts_modtime BEFORE UPDATE ON checkouts FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_orders_modtime BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_system_categories_modtime BEFORE UPDATE ON system_categories FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+CREATE TRIGGER update_drafts_modtime BEFORE UPDATE ON drafts FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+CREATE TRIGGER update_product_templates_modtime BEFORE UPDATE ON product_templates FOR EACH ROW EXECUTE FUNCTION update_modified_column();

@@ -209,9 +209,20 @@ export const applyForMerchantRole = async (
 
 export const checkEmailExists = async (email: string): Promise<boolean> => {
   try {
-    const q = query(collection(db, 'users'), where('email', '==', email));
-    const querySnapshot = await getDocs(q);
-    return !querySnapshot.empty;
+    const response = await fetch('/api/auth/check-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Server error checking email');
+    }
+
+    const data = await response.json();
+    return !!data.exists;
   } catch (error: any) {
     console.error('Error checking email existence:', error);
     throw new Error('Failed to check email');

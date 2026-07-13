@@ -112,19 +112,19 @@ export default function CategoryManager({ categories, loading, onRefresh }: Prop
 
   return (
     <div className="space-y-6">
-      <header className="flex justify-between items-end mb-4">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-4">
         <div>
           <p className="font-extrabold text-xs text-primary-container uppercase tracking-widest mb-1.5">Taxonomy</p>
           <h2 className="font-headline-md text-3xl font-black text-on-surface uppercase tracking-tight">Category Management</h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {categories.length === 0 && (
-            <button onClick={handleSeed} className="bg-surface-container text-on-surface border-2 border-on-surface px-4 py-2 font-bold text-xs uppercase hover:bg-surface-dim">
+            <button onClick={handleSeed} className="bg-surface-container text-on-surface border-2 border-on-surface px-4 py-2 font-bold text-xs uppercase hover:bg-surface-dim flex-1 sm:flex-initial text-center justify-center flex">
               Seed Defaults
             </button>
           )}
-          <button onClick={handleAddNew} className="bg-primary-container text-on-primary-container border-2 border-on-surface px-4 py-2 font-bold text-xs uppercase hover:brightness-110 shadow-[2px_2px_0px_0px_var(--color-on-surface)]">
-            + New Category Group
+          <button onClick={handleAddNew} className="bg-primary-container text-on-primary-container border-2 border-on-surface px-4 py-2 font-bold text-xs uppercase hover:brightness-110 shadow-[2px_2px_0px_0px_var(--color-on-surface)] flex-1 sm:flex-initial text-center justify-center flex">
+            + New Group
           </button>
         </div>
       </header>
