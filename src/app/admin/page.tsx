@@ -1027,6 +1027,7 @@ export default function AdminPage() {
                   <p className="text-xs text-secondary mt-1 max-w-[280px]">Adjust your filter query or add a brand new catalog item to get started!</p>
                 </div>
               ) : (
+                <>
                 {/* Desktop view */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[700px]">
@@ -1200,6 +1201,7 @@ export default function AdminPage() {
                     );
                   })}
                 </div>
+                </>
               )}
             </section>
           </div>

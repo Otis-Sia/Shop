@@ -1,5 +1,5 @@
-"use client";
-import { useToast } from '@/components/providers/ToastProvider';
+'use client';
+
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -15,7 +15,6 @@ import Icon from '@/components/Icon';
 import ProductReviews from '@/components/shop/ProductReviews';
 import ProductRatingBadge from '@/components/shop/ProductRatingBadge';
 import './detail.css';
-import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 const mapColorToCss = (name: string): string => {
   const lower = name.toLowerCase();
@@ -30,7 +29,6 @@ const mapColorToCss = (name: string): string => {
 };
 
 export default function ProductDetailPage() {
-  const { showToast } = useToast();
   const params = useParams();
   const productId = params.id as string;
 
@@ -128,39 +126,30 @@ export default function ProductDetailPage() {
         ...(product?.variants || []).flatMap((v: any) => parseCommaSeparated(v.size))
       ]));
 
-  const galleryEntries: [string, { src: string; label: string }][] = [];
-  if (product?.image_url) {
-    galleryEntries.push([product.image_url, { src: product.image_url, label: 'Main image' }]);
-  }
-  (product?.additional_images || []).filter(Boolean).forEach((src, index) => {
-    galleryEntries.push([src, { src, label: `Gallery ${index + 1}` }]);
-  });
-  (product?.variants || [])
-    .filter((variant: any) => variant?.imageUrl)
-    .forEach((variant: any, index: number) => {
-      galleryEntries.push([
-        variant.imageUrl,
-        { src: variant.imageUrl, label: variant.name || variant.color || variant.size || `Variant ${index + 1}` }
-      ]);
-    });
-  const galleryItems = Array.from(new Map(galleryEntries).values());
+  const galleryItems = Array.from(new Map([
+    ...(product?.image_url ? [[product.image_url, { src: product.image_url, label: 'Main image' }]] : []),
+    ...((product?.additional_images || []).filter(Boolean).map((src, index) => [src, { src, label: `Gallery ${index + 1}` }] as const)),
+    ...((product?.variants || [])
+      .filter((variant: any) => variant?.imageUrl)
+      .map((variant: any, index: number) => [variant.imageUrl, { src: variant.imageUrl, label: variant.name || variant.color || variant.size || `Variant ${index + 1}` }] as const)),
+  ]).values());
 
   const handleAddToCart = async () => {
     if (!product) return;
     if (!canAddToCartRole(userRole)) return;
 
     if (availableColors.length > 0 && !selectedColor) {
-      showToast("Please select a color.", 'warning');
+      alert("Please select a color.");
       return;
     }
     
     if (availableSizes.length > 0 && !selectedSize) {
-      showToast("Please select a size.", 'warning');
+      alert("Please select a size.");
       return;
     }
 
     if (product.hasVariants && product.variants && product.variants.length > 0 && selectedVariantIndex === null) {
-      showToast("Please select a specific variant.", 'warning');
+      alert("Please select a specific variant.");
       return;
     }
 
@@ -322,9 +311,9 @@ export default function ProductDetailPage() {
             )}
             
             <div className="flex items-center gap-3 pt-1">
-              <span className="font-headline-md text-2xl font-black text-on-surface">{CURRENCY_CONFIG.symbol} {finalPrice.toFixed(2)}</span>
+              <span className="font-headline-md text-2xl font-black text-on-surface">Ksh {finalPrice.toFixed(2)}</span>
               {discount > 0 && (
-                <span className="text-secondary line-through font-bold text-sm">{CURRENCY_CONFIG.symbol} {basePrice.toFixed(2)}</span>
+                <span className="text-secondary line-through font-bold text-sm">Ksh {basePrice.toFixed(2)}</span>
               )}
               {currentStock > 0 && currentStock !== 99999 && (
                 <span className="bg-surface-container text-on-surface border border-on-surface text-[10px] font-black uppercase px-2 py-0.5 tracking-wider ml-auto">
@@ -402,7 +391,7 @@ export default function ProductDetailPage() {
                             {[v.name, v.color, variantSizes.join(', ')].filter(Boolean).join(' • ') || `Option ${idx + 1}`}
                           </span>
                         </div>
-                        <span className="font-black shrink-0">{CURRENCY_CONFIG.symbol} {priceStr}</span>
+                        <span className="font-black shrink-0">KSh {priceStr}</span>
                       </button>
                     )
                   })}
@@ -519,7 +508,13 @@ export default function ProductDetailPage() {
 
           {/* Delivery & Return Policies Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t-2 border-surface-container pt-6">
-
+            <div className="flex gap-3 items-start p-3 bg-surface border border-on-surface-variant">
+              <Icon name="local_shipping" className="text-primary-container text-2xl font-bold" />
+              <div>
+                <h4 className="font-extrabold text-[10px] uppercase text-on-surface">Free Delivery</h4>
+                <p className="text-[9px] text-secondary font-semibold uppercase mt-0.5">Complimentary for orders over Ksh 150</p>
+              </div>
+            </div>
             <div className="flex gap-3 items-start p-3 bg-surface border border-on-surface-variant">
               <Icon name="swap_horiz" className="text-primary-container text-2xl font-bold" />
               <div>
