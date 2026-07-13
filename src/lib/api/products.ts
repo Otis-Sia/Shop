@@ -93,8 +93,10 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
         if (docSnap.exists()) {
           merchantProfiles[uid] = docSnap.data();
         }
-      } catch (err) {
-        console.error(`Error fetching profile for ${uid}:`, err);
+      } catch (err: any) {
+        if (err?.code !== 'permission-denied') {
+          console.error(`Error fetching profile for ${uid}:`, err);
+        }
       }
     }));
 

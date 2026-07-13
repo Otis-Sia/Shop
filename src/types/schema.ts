@@ -193,6 +193,30 @@ export interface Checkout {
   updatedAt: Timestamp | Date;
 }
 
+// 7. Draft Collection
+// Path: drafts/{merchantId}
+export interface Draft {
+  id?: string; // Document ID (corresponds to merchantId)
+  merchantId: string;
+  editForm: any;
+  isAdding: boolean;
+  editingId: number | null;
+  isQuickAdd: boolean;
+  updatedAt: Timestamp | Date;
+}
+
+// 8. ProductTemplate Collection
+// Path: templates/{templateId}
+export interface ProductTemplate {
+  id?: string; // Document ID
+  merchantId: string;
+  name: string;
+  data: any;
+  createdAt: Timestamp | Date;
+  updatedAt: Timestamp | Date;
+}
+
 // Cloud Storage Paths reference:
 // - Product Images: products/{productId}/{filename}
 // - User Profiles: users/{userId}/{filename}
+
