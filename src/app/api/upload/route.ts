@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { generatePresignedUploadUrl } from '@/lib/s3';
-import { adminAuth } from '@/lib/firebase-admin';
+import { getAdminAuth } from '@/lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,13 +10,15 @@ export async function POST(request: Request) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
     const token = authHeader.split('Bearer ')[1];
-    
+    let decodedToken;
     try {
-      await adminAuth.verifyIdToken(token);
+      const adminAuth = getAdminAuth();
+      decodedToken = await adminAuth.verifyIdToken(token);
     } catch (authError) {
-      console.error('Invalid token:', authError);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.error('Token verification failed:', authError);
+      return NextResponse.json({ error: 'Unauthorized - Invalid Token' }, { status: 401 });
     }
 
     const { fileName, fileType } = await request.json();
