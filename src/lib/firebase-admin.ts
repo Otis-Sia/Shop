@@ -11,8 +11,10 @@ const initializeApp = () => {
   // Ensure these are set in your .env.local without the NEXT_PUBLIC_ prefix
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  // Replace actual literal \n with newline characters for the private key
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  // Replace actual literal \n with newline characters for the private key, and strip extra quotes
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY
+    ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/^"|"$/g, '')
+    : undefined;
 
   if (!projectId || !clientEmail || !privateKey) {
     console.error('Firebase Admin credentials are not fully set in environment variables.');
