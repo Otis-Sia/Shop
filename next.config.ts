@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
+  serverExternalPackages: ['firebase-admin'],
   async headers() {
     return [
       {
