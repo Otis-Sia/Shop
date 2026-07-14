@@ -67,6 +67,7 @@ export async function DELETE(request: Request) {
     const token = authHeader.split('Bearer ')[1];
     
     try {
+      const adminAuth = getAdminAuth();
       await adminAuth.verifyIdToken(token);
     } catch (authError) {
       console.error('Invalid token:', authError);
