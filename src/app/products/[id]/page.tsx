@@ -127,7 +127,7 @@ export default function ProductDetailPage() {
       ]));
 
   const galleryItems = Array.from(new Map([
-    ...(product?.image_url ? [[product.image_url, { src: product.image_url, label: 'Main image' }]] : []),
+    ...(product?.image_url ? [[product.image_url, { src: product.image_url, label: 'Main image' }] as const] : []),
     ...((product?.additional_images || []).filter(Boolean).map((src, index) => [src, { src, label: `Gallery ${index + 1}` }] as const)),
     ...((product?.variants || [])
       .filter((variant: any) => variant?.imageUrl)
