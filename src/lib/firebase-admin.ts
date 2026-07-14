@@ -20,15 +20,28 @@ const initializeApp = () => {
     console.error('Firebase Admin credentials are not fully set in environment variables.');
   }
 
-  return initAdminApp({
-    credential: cert({
-      projectId,
-      clientEmail,
-      privateKey,
-    }),
-  });
+  try {
+    return initAdminApp({
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey,
+      }),
+    });
+  } catch (error: any) {
+    console.error('Firebase Admin Initialization Error:', error.message);
+    throw error;
+  }
 };
 
-export const adminApp = initializeApp();
-export const adminAuth = getAuth(adminApp);
-export const adminDb = getFirestore(adminApp);
+export const getAdminApp = () => {
+  return initializeApp();
+};
+
+export const getAdminAuth = () => {
+  return getAuth(getAdminApp());
+};
+
+export const getAdminDb = () => {
+  return getFirestore(getAdminApp());
+};

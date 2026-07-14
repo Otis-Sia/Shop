@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb, adminAuth } from '@/lib/firebase-admin';
+import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +17,7 @@ export async function POST(request: Request) {
     
     let decodedToken;
     try {
+      const adminAuth = getAdminAuth();
       decodedToken = await adminAuth.verifyIdToken(token);
     } catch (authError) {
       console.error('Invalid token:', authError);
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required checkout information' }, { status: 400 });
     }
     // Reference to the Firestore db
-    const db = adminDb;
+    const db = getAdminDb();
 
     // Use a Firestore Transaction to ensure stock is only deducted if available
     const result = await db.runTransaction(async (transaction: any) => {

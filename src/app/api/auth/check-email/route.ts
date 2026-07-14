@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     }
 
     // Query Firestore users collection securely on the server
+    const adminDb = getAdminDb();
     const snapshot = await adminDb
       .collection('users')
       .where('email', '==', email.toLowerCase().trim())

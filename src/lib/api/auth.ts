@@ -217,7 +217,14 @@ export const checkEmailExists = async (email: string): Promise<boolean> => {
       body: JSON.stringify({ email }),
     });
 
-    const data = await response.json();
+    let data;
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      throw new Error(`Server returned HTML/Text instead of JSON. Status: ${response.status}. Body: ${text.substring(0, 150)}...`);
+    }
 
     if (!response.ok) {
       throw new Error(data.details || data.error || 'Server error checking email');
