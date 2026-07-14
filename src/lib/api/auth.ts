@@ -217,14 +217,15 @@ export const checkEmailExists = async (email: string): Promise<boolean> => {
       body: JSON.stringify({ email }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error('Server error checking email');
+      throw new Error(data.details || data.error || 'Server error checking email');
     }
 
-    const data = await response.json();
     return !!data.exists;
   } catch (error: any) {
     console.error('Error checking email existence:', error);
-    throw new Error('Failed to check email');
+    throw new Error(error.message || 'Failed to check email');
   }
 };

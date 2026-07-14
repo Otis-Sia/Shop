@@ -22,6 +22,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ exists: !snapshot.empty });
   } catch (error: any) {
     console.error('Error checking email existence on server:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Server Error', details: error.message || String(error) }, 
+      { status: 500 }
+    );
   }
 }
