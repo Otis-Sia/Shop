@@ -21,7 +21,7 @@ if (hasUpstashKeys) {
   });
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // If the Upstash keys are missing, bypass rate limiting.
   // This failsafe ensures the app doesn't crash during development or setup.
   if (!ratelimit) {
@@ -58,7 +58,6 @@ export async function proxy(request: NextRequest) {
   }
 }
 
-// See "Matching Paths" below to learn more
 export const config = {
   matcher: '/api/:path*',
 };

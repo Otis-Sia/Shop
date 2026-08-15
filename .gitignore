@@ -23,3 +23,9 @@ Thumbs.db
 .next/
 nextjs-temp/
 tsconfig.tsbuildinfo
+
+# Cloudflare / OpenNext
+.open-next/
+.wrangler/
+.dev.vars
+
