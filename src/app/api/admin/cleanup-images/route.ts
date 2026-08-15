@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getProducts } from '@/lib/api/products';
 import { listAllS3Files, deleteFileFromS3 } from '@/lib/s3';
 
+export const dynamic = 'force-dynamic';
+
 // Important: This should ideally be protected by admin authentication!
 export async function POST(request: Request) {
   try {
