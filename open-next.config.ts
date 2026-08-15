@@ -1,6 +1,7 @@
 import type { OpenNextConfig } from "@opennextjs/aws/types/open-next.js";
 
 const config: OpenNextConfig = {
+  buildCommand: "npx next build",
   default: {
     override: {
       wrapper: "cloudflare-node",
