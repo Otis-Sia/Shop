@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { generatePresignedUploadUrl } from '@/lib/s3';
-import { getAdminAuth } from '@/lib/firebase-admin';
+import { verifyIdToken } from '@/lib/firebase-auth-edge';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +12,8 @@ export async function POST(request: Request) {
     }
 
     const token = authHeader.split('Bearer ')[1];
-    let decodedToken;
     try {
-      const adminAuth = getAdminAuth();
-      decodedToken = await adminAuth.verifyIdToken(token);
+      await verifyIdToken(token);
     } catch (authError) {
       console.error('Token verification failed:', authError);
       return NextResponse.json({ error: 'Unauthorized - Invalid Token' }, { status: 401 });
@@ -67,8 +65,7 @@ export async function DELETE(request: Request) {
     const token = authHeader.split('Bearer ')[1];
     
     try {
-      const adminAuth = getAdminAuth();
-      await adminAuth.verifyIdToken(token);
+      await verifyIdToken(token);
     } catch (authError) {
       console.error('Invalid token:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

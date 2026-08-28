@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { firestoreQuery } from '@/lib/firestore-rest';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,14 +13,28 @@ export async function POST(request: Request) {
     }
 
     // Query Firestore users collection securely on the server
-    const adminDb = getAdminDb();
-    const snapshot = await adminDb
-      .collection('users')
-      .where('email', '==', email.toLowerCase().trim())
-      .limit(1)
-      .get();
+    const results = await firestoreQuery('users', {
+      where: {
+        compositeFilter: {
+          op: 'AND',
+          filters: [
+            {
+              fieldFilter: {
+                field: { fieldPath: 'email' },
+                op: 'EQUAL',
+                value: { stringValue: email.toLowerCase().trim() }
+              }
+            }
+          ]
+        }
+      },
+      limit: 1
+    });
 
-    return NextResponse.json({ exists: !snapshot.empty });
+    // Run query returns an array. If no document is found, it returns [{ readTime: ... }]
+    const exists = results.length > 0 && results[0].document !== undefined;
+
+    return NextResponse.json({ exists });
   } catch (error: any) {
     console.error('Error checking email existence on server:', error);
     return NextResponse.json(
