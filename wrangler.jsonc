@@ -10,7 +10,15 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-
+  "vars": {
+    "NEXT_PUBLIC_FIREBASE_API_KEY": "AIzaSyBPtO7pm6I-WSEJh756RXb5B8RYBQr8Uyg",
+    "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": "juj4-b881b.firebaseapp.com",
+    "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "juj4-b881b",
+    "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET": "juj4-b881b.firebasestorage.app",
+    "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "166068706561",
+    "NEXT_PUBLIC_FIREBASE_APP_ID": "1:166068706561:web:afe881491bd27fb741cf00",
+    "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-546837FYN4"
+  },
   "observability": {
     "enabled": true
   }
