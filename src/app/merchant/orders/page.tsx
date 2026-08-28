@@ -1,7 +1,7 @@
 "use client";
 import { useToast } from '@/components/providers/ToastProvider';
 import React, { useEffect, useState } from "react";
-import { collection, query, where, getDocs, doc, updateDoc, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, Timestamp } from 'firebase/firestore/lite';
 import { auth, db } from "@/lib/firebase";
 import { Order } from "@/types/schema";
 import { CURRENCY_CONFIG } from '@/lib/utils/currency';

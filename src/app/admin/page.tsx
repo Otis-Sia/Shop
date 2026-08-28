@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Product } from '@/lib/data/products-data';
-import { collection, getDocs, doc, setDoc, deleteDoc, Timestamp, query, where, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc, Timestamp, query, where, updateDoc, getDoc } from 'firebase/firestore/lite';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import Link from 'next/link';

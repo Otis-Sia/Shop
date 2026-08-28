@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore/lite';
 import { auth, db } from "@/lib/firebase";
 import OnboardingPopup from "@/components/merchant/OnboardingPopup";
 import Link from "next/link";

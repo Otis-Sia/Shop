@@ -3,11 +3,11 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore/lite';
 import { db } from '@/lib/firebase';
 import { Order } from '@/types/schema';
 import Icon from '@/components/Icon';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore/lite';
 import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 function formatDate(date: Timestamp | Date | undefined): string {

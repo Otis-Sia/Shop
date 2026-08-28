@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore/lite';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 
@@ -29,32 +29,36 @@ export default function FloatingCart() {
       }
     };
 
-    let unsubscribeSnapshot: (() => void) | null = null;
+    const fetchCart = async () => {
+      if (!auth.currentUser) return;
+      try {
+        const cartRef = collection(db, 'users', auth.currentUser.uid, 'cart');
+        const snapshot = await getDocs(cartRef);
+        let count = 0;
+        snapshot.forEach((doc) => {
+          count += doc.data().quantity || 1;
+        });
+        setItemCount(count);
+      } catch (err) {
+        console.error('Failed to fetch cart count', err);
+      }
+    };
 
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         // Authenticated -> use Firestore
-        const cartRef = collection(db, 'users', user.uid, 'cart');
-        unsubscribeSnapshot = onSnapshot(cartRef, (snapshot) => {
-          let count = 0;
-          snapshot.forEach((doc) => {
-            count += doc.data().quantity || 1;
-          });
-          setItemCount(count);
-        });
+        fetchCart();
       } else {
         // Not authenticated -> use LocalStorage
-        if (unsubscribeSnapshot) {
-          unsubscribeSnapshot();
-          unsubscribeSnapshot = null;
-        }
         updateLocalCartCount();
       }
     });
 
     // Listen for custom 'cartUpdated' event dispatched by saveLocalCart
     const handleCartUpdate = () => {
-      if (!auth.currentUser) {
+      if (auth.currentUser) {
+        fetchCart();
+      } else {
         updateLocalCartCount();
       }
     };
@@ -63,7 +67,6 @@ export default function FloatingCart() {
 
     return () => {
       unsubscribeAuth();
-      if (unsubscribeSnapshot) unsubscribeSnapshot();
       window.removeEventListener('cartUpdated', handleCartUpdate);
     };
   }, []);

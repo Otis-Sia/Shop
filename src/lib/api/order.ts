@@ -1,6 +1,6 @@
 import { clearCart } from './cart';
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, doc, updateDoc, increment } from 'firebase/firestore/lite';
 import { Order, OrderStatus, Cart, Checkout } from '@/types/schema';
 
 export const createOrder = async (orderData: Partial<Order>): Promise<Order> => {
@@ -50,7 +50,7 @@ export const getMyOrders = async (): Promise<Order[]> => {
   if (!user) return [];
 
   try {
-    const { getDocs, query, where } = await import('firebase/firestore');
+    const { getDocs, query, where } = await import('firebase/firestore/lite');
     const q = query(
       collection(db, 'orders'),
       where('userId', '==', user.uid)
@@ -77,7 +77,7 @@ export const getMyOrders = async (): Promise<Order[]> => {
 
 export const getAllOrders = async (): Promise<Order[]> => {
   try {
-    const { getDocs, query, orderBy } = await import('firebase/firestore');
+    const { getDocs, query, orderBy } = await import('firebase/firestore/lite');
     const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({

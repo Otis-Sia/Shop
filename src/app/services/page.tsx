@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore/lite';
 import { db } from '@/lib/firebase';
 import { Product } from '@/types/schema';
 import { CURRENCY_CONFIG } from '@/lib/utils/currency';

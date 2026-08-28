@@ -2,7 +2,7 @@
 import { useToast } from '@/components/providers/ToastProvider';
 import React, { useState, useEffect } from 'react';
 import { getProducts } from '@/lib/api/products';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore/lite';
 import { db } from '@/lib/firebase';
 import { Order } from '@/types/schema';
 import { Product } from '@/lib/data/products-data';

@@ -9,7 +9,7 @@ import {
   Timestamp,
   doc,
   deleteDoc,
-} from 'firebase/firestore';
+} from 'firebase/firestore/lite';
 
 export interface Review {
   id?: string;

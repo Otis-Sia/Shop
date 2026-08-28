@@ -2,7 +2,7 @@ import { getProduct } from './products';
 import { getUserProfile } from './auth';
 import { Product } from '@/lib/data/products-data';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDocs, getDoc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore/lite';
 import { canAddToCartRole } from '@/lib/access';
 
 export interface CartItem {

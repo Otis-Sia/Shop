@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from 'firebase/firestore/lite';
 import { auth, db } from "@/lib/firebase";
 import Link from "next/link";
 import { Package, ShoppingCart, LayoutDashboard, Settings } from "lucide-react";

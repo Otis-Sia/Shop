@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from 'firebase/firestore/lite';
 import { applyForMerchantRole } from "@/lib/api/auth";
 import S3Uploader from "@/components/S3Uploader";
 

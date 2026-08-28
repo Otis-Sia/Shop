@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, setDoc, deleteDoc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, deleteDoc, updateDoc, query, where } from 'firebase/firestore/lite';
 import { db } from '../firebase';
 import { SystemCategory } from '@/types/schema';
 import { CATEGORIES_DATA } from '../data/categories';

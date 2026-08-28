@@ -1,5 +1,5 @@
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, setDoc, deleteDoc, getDocs, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, getDoc, Timestamp } from 'firebase/firestore/lite';
 import { getProduct } from './products';
 import { Product } from '@/lib/data/products-data';
 

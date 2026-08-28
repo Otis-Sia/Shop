@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Icon from '@/components/Icon';
 import { STORE_CONFIG } from '@/lib/config/store';
 import { db } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore/lite';
 
 export default function Footer() {
   const [email, setEmail] = useState('');

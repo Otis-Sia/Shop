@@ -1,7 +1,7 @@
 "use client";
 import { useToast } from '@/components/providers/ToastProvider';
 import { useEffect, useState } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from 'firebase/firestore/lite';
 import { auth, db } from "@/lib/firebase";
 import { UserDocument } from "@/types/schema";
 import S3Uploader from "@/components/S3Uploader";

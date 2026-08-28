@@ -6,7 +6,7 @@ import Icon from '@/components/Icon';
 import Countdown from '@/components/Countdown';
 import { STORE_CONFIG } from '@/lib/config/store';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getCountFromServer } from 'firebase/firestore';
+import { collection, addDoc, getCount } from 'firebase/firestore/lite';
 
 export default function HomePage() {
   const [email, setEmail] = useState('');
@@ -16,7 +16,7 @@ export default function HomePage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const prodCount = await getCountFromServer(collection(db, 'products'));
+        const prodCount = await getCount(collection(db, 'products'));
         const roundToNext100 = (num: number) => Math.ceil(num / 100) * 100;
         
         setStats(prev => ({

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from 'firebase/firestore/lite';
 import { auth, db } from "@/lib/firebase";
 
 export default function OnboardingPopup() {

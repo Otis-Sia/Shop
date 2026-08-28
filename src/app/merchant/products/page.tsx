@@ -2,7 +2,7 @@
 import { useToast } from '@/components/providers/ToastProvider';
 
 import React, { useEffect, useState, useMemo } from "react";
-import { collection, query, where, getDocs, doc, setDoc, deleteDoc, Timestamp, getDoc, addDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, setDoc, deleteDoc, Timestamp, getDoc, addDoc } from 'firebase/firestore/lite';
 import { auth, db } from "@/lib/firebase";
 import { Product } from "@/types/schema";
 import { useCategories } from '@/hooks/useCategories';

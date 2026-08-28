@@ -13,7 +13,7 @@ export interface ProductFilters {
   includeUnapproved?: boolean;
 }
 
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore/lite';
 import { db } from '@/lib/firebase';
 
 export const getProducts = async (filters: ProductFilters = {}): Promise<Product[]> => {

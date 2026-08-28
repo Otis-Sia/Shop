@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, Timestamp } from 'firebase/firestore/lite';
 import { db } from '@/lib/firebase';
 import { STORE_CONFIG } from '@/lib/config/store';
 

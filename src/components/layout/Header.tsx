@@ -29,7 +29,7 @@ export default function Header() {
       if (user) {
         let role = 'customer';
         try {
-          const { doc, getDoc } = await import('firebase/firestore');
+          const { doc, getDoc } = await import('firebase/firestore/lite');
           const { db } = await import('@/lib/firebase');
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists()) {
