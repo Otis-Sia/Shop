@@ -90,6 +90,8 @@ CREATE TABLE IF NOT EXISTS products (
     colors TEXT[] DEFAULT '{}'::text[],
     sizes TEXT[] DEFAULT '{}'::text[],
     has_variants BOOLEAN DEFAULT FALSE,
+    supplier_name VARCHAR(255),
+    cost_price DECIMAL(10, 2),
 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -225,6 +227,7 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_products_merchant ON products(merchant_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+CREATE INDEX IF NOT EXISTS idx_products_supplier ON products(supplier_name);
 
 CREATE INDEX IF NOT EXISTS idx_product_variants_product ON product_variants(product_id);
 CREATE INDEX IF NOT EXISTS idx_product_reviews_product ON product_reviews(product_id);

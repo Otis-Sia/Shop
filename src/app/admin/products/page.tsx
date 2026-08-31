@@ -8,31 +8,64 @@ import { getUserProfile } from "@/lib/api/auth";
 import { useCategories } from '@/hooks/useCategories';
 import Icon from '@/components/Icon';
 import { CURRENCY_CONFIG } from '@/lib/utils/currency';
+import SendToWhatsAppModal from '@/components/admin/SendToWhatsAppModal';
 
 export default function MerchantProducts() {
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   
-  
-  
   const [isDragging, setIsDragging] = useState(false);
   const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
-  const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+  const [selectedProductIds, setSelectedProductIds] = useState<(string | number)[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const [isAdding, setIsAdding] = useState(false);
   const { categories } = useCategories();
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | number | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSkuManuallyEdited, setIsSkuManuallyEdited] = useState(false);
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
+  const [selectedSupplierFilter, setSelectedSupplierFilter] = useState("");
+  const [selectedStockFilter, setSelectedStockFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
+
+  // WhatsApp & Single Item Sync State
+  const [whatsAppModalProduct, setWhatsAppModalProduct] = useState<{ id: string; name: string } | null>(null);
+  const [userAuthToken, setUserAuthToken] = useState<string>("");
+  const [singleSyncingId, setSingleSyncingId] = useState<string | number | null>(null);
 
   const [isQuickAdd, setIsQuickAdd] = useState(false);
   const [isSyncingCatalog, setIsSyncingCatalog] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [draftToResume, setDraftToResume] = useState<any>(null);
+
+  // Auto SKU Generation Helper
+  const generateSku = (supplierName: string = '', productName: string = '') => {
+    const cleanSupplier = (supplierName || '')
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    const cleanProduct = (productName || '')
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    if (!cleanSupplier && !cleanProduct) return '';
+    if (!cleanSupplier) return cleanProduct;
+    if (!cleanProduct) return cleanSupplier;
+    return `${cleanSupplier}-${cleanProduct}`;
+  };
 
   const handleFullSync = async () => {
     setIsSyncingCatalog(true);
@@ -63,6 +96,37 @@ export default function MerchantProducts() {
       setIsSyncingCatalog(false);
     }
   };
+
+  const handleSingleSync = async (product: Product) => {
+    const prodId = String(product.id);
+    setSingleSyncingId(product.id);
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Please log in first.");
+      const token = await user.getIdToken();
+
+      const res = await fetch("/api/meta/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ productId: prodId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error?.message || data.error || "Failed to sync product to WhatsApp");
+      }
+
+      showToast(`"${product.name}" synced to WhatsApp Catalog!`, "success");
+    } catch (err: any) {
+      console.error("Single sync error:", err);
+      showToast(err.message || "Failed to sync product", "error");
+    } finally {
+      setSingleSyncingId(null);
+    }
+  };
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     core: true,
     categories: true,
@@ -83,12 +147,11 @@ export default function MerchantProducts() {
 
       try {
         const token = await user.getIdToken();
+        setUserAuthToken(token);
 
         // Fetch offering type
         const userProfile = await getUserProfile(user.uid);
         if (userProfile) {
-          
-          
           
         }
 
@@ -96,7 +159,6 @@ export default function MerchantProducts() {
         const productsList = await getProducts({
           adminId: userProfile?.role === 'admin' ? undefined : user.uid,
           includeUnapproved: true,
-
         });
         setProducts(productsList);
 
@@ -191,7 +253,7 @@ export default function MerchantProducts() {
     }
   };
 
-  const toggleSelection = (productId: number) => {
+  const toggleSelection = (productId: string | number) => {
     setSelectedProductIds(prev => 
       prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
     );
@@ -199,7 +261,7 @@ export default function MerchantProducts() {
 
   const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedProductIds(displayedItems.map(p => Number(p.id)));
+      setSelectedProductIds(displayedItems.map(p => p.id));
     } else {
       setSelectedProductIds([]);
     }
@@ -214,7 +276,7 @@ export default function MerchantProducts() {
       const urlsToDel = new Set<string>();
       
       for (const id of selectedProductIds) {
-        const product = products.find(p => Number(p.id) === id);
+        const product = products.find(p => String(p.id) === String(id));
         if (product) {
           if ((product as any).image_url) urlsToDel.add((product as any).image_url);
           if (product.imageUrls) product.imageUrls.forEach((u: string) => urlsToDel.add(u));
@@ -233,7 +295,7 @@ export default function MerchantProducts() {
         });
       }
       
-      setProducts(products.filter(p => !selectedProductIds.includes(Number(p.id))));
+      setProducts(products.filter(p => !selectedProductIds.includes(p.id)));
       setSelectedProductIds([]);
       showToast(`Successfully deleted ${selectedProductIds.length} products`, 'success');
 
@@ -270,6 +332,7 @@ export default function MerchantProducts() {
     setEditingId(null);
     setIsAdding(true);
     setIsQuickAdd(false);
+    setIsSkuManuallyEdited(false);
     setFormErrors({});
     setEditForm({
       name: '',
@@ -277,7 +340,8 @@ export default function MerchantProducts() {
       description: '',
       brand: '',
       sku: '',
-      
+      supplierName: '',
+      costPrice: '',
 
       groupCategory: '',
       category: 'Apparel',
@@ -302,7 +366,6 @@ export default function MerchantProducts() {
       stock: '',
       lowStockAlert: false,
       allowBackorders: false,
-
     });
 
     setOpenSections({
@@ -315,8 +378,9 @@ export default function MerchantProducts() {
 
   const handleEdit = (product: Product) => {
     setIsAdding(false);
-    setEditingId(Number(product.id));
+    setEditingId(product.id);
     setIsQuickAdd(false);
+    setIsSkuManuallyEdited(Boolean(product.sku));
     setFormErrors({});
     
     // Format dates for inputs if they exist
@@ -334,6 +398,8 @@ export default function MerchantProducts() {
 
     setEditForm({ 
       ...product, 
+      supplierName: product.supplierName || '',
+      costPrice: product.costPrice !== undefined && product.costPrice !== null ? product.costPrice : '',
       groupCategory: product.groupCategory || '',
       imageUrls: product.imageUrls || [''],
       tags: product.tags?.join(', ') || '',
@@ -361,6 +427,7 @@ export default function MerchantProducts() {
     setIsAdding(true);
     setEditingId(null);
     setIsQuickAdd(false);
+    setIsSkuManuallyEdited(false);
     setFormErrors({});
 
     let formattedStartDate = '';
@@ -380,10 +447,15 @@ export default function MerchantProducts() {
       id: Date.now().toString() + Math.floor(Math.random() * 10000)
     }));
 
+    const autoSku = generateSku(product.supplierName || '', `Copy of ${product.name}`);
+
     setEditForm({
       ...product,
       id: undefined,
       name: `Copy of ${product.name}`,
+      supplierName: product.supplierName || '',
+      costPrice: product.costPrice !== undefined && product.costPrice !== null ? product.costPrice : '',
+      sku: autoSku,
       groupCategory: product.groupCategory || '',
       imageUrls: product.imageUrls || [''],
       tags: product.tags?.join(', ') || '',
@@ -407,10 +479,10 @@ export default function MerchantProducts() {
     showToast("Product fields duplicated. You can modify and save now.", "success");
   };
 
-  const handleDelete = async (productId: number) => {
+  const handleDelete = async (productId: string | number) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
     try {
-      const productToDelete = products.find(p => Number(p.id) === productId);
+      const productToDelete = products.find(p => String(p.id) === String(productId));
       const user = auth.currentUser;
       const token = user ? await user.getIdToken() : '';
       
@@ -423,7 +495,7 @@ export default function MerchantProducts() {
         throw new Error('Failed to delete product');
       }
 
-      setProducts(products.filter(p => Number(p.id) !== productId));
+      setProducts(products.filter(p => String(p.id) !== String(productId)));
 
       if (productToDelete) {
         const urlsToDel = new Set<string>();
@@ -473,14 +545,35 @@ export default function MerchantProducts() {
         return next;
       });
     }
+
+    if (name === 'sku') {
+      setIsSkuManuallyEdited(true);
+    }
+
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setEditForm((prev: any) => ({ ...prev, [name]: checked }));
     } else {
-      setEditForm((prev: any) => ({
-        ...prev,
-        [name]: (name === 'price' || name === 'stock' || name === 'discount' || name === 'salePrice') ? Number(value) : value,
-      }));
+      const parsedVal = (name === 'price' || name === 'stock' || name === 'discount' || name === 'salePrice') 
+        ? (value === '' ? '' : Number(value)) 
+        : value;
+
+      // Auto-generate SKU in real-time when name or supplierName changes, if user hasn't manually locked SKU
+      if (!isSkuManuallyEdited && (name === 'name' || name === 'supplierName')) {
+        const currentName = name === 'name' ? value : (editForm.name || '');
+        const currentSupplier = name === 'supplierName' ? value : (editForm.supplierName || '');
+        const autoSku = generateSku(currentSupplier, currentName);
+        setEditForm((prev: any) => ({
+          ...prev,
+          [name]: parsedVal,
+          sku: autoSku
+        }));
+      } else {
+        setEditForm((prev: any) => ({
+          ...prev,
+          [name]: parsedVal,
+        }));
+      }
     }
   };
 
@@ -980,6 +1073,8 @@ export default function MerchantProducts() {
         shortDescription: editForm.shortDescription || '',
         description: editForm.description || editForm.shortDescription || editForm.name || '',
         sku: editForm.sku || '',
+        supplierName: editForm.supplierName || '',
+        costPrice: editForm.costPrice !== undefined && editForm.costPrice !== null && editForm.costPrice !== '' ? Number(editForm.costPrice) : null,
         brand: editForm.brand || '',
         
         groupCategory: editForm.groupCategory || selectedGroupNode?.name || '',
@@ -1006,7 +1101,6 @@ export default function MerchantProducts() {
         stock: (editForm.trackInventory ?? true) ? (editForm.stock || 0) : null,
         lowStockAlert: editForm.lowStockAlert ?? false,
         allowBackorders: editForm.allowBackorders ?? false,
-        
       };
 
       let saveId = editingId;
@@ -1038,7 +1132,7 @@ export default function MerchantProducts() {
       if (isAdding) {
         setProducts([newProduct, ...products]);
       } else {
-        setProducts(products.map(p => Number(p.id) === saveId ? newProduct : p));
+        setProducts(products.map(p => String(p.id) === String(saveId) ? newProduct : p));
       }
 
       setEditingId(null);
@@ -1091,11 +1185,65 @@ export default function MerchantProducts() {
     return Array.from(new Set(list)).sort();
   }, [categories]);
 
+  const uniqueSuppliers = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach(p => {
+      if (p.supplierName && p.supplierName.trim()) {
+        set.add(p.supplierName.trim());
+      }
+    });
+    return Array.from(set).sort();
+  }, [products]);
+
+  const displayedItems = useMemo(() => {
+    let result = [...products];
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(p => 
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.supplierName && p.supplierName.toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q)) ||
+        (p.brand && p.brand.toLowerCase().includes(q)) ||
+        (p.tags && p.tags.some((t: string) => t.toLowerCase().includes(q)))
+      );
+    }
+
+    if (selectedCategoryFilter) {
+      result = result.filter(p => p.category === selectedCategoryFilter || p.groupCategory === selectedCategoryFilter);
+    }
+
+    if (selectedSupplierFilter) {
+      result = result.filter(p => p.supplierName === selectedSupplierFilter);
+    }
+
+    if (selectedStockFilter === 'in_stock') {
+      result = result.filter(p => p.stock === null || p.stock > 0);
+    } else if (selectedStockFilter === 'low_stock') {
+      result = result.filter(p => p.stock !== null && p.stock > 0 && p.stock <= 5);
+    } else if (selectedStockFilter === 'out_of_stock') {
+      result = result.filter(p => p.stock !== null && p.stock <= 0);
+    }
+
+    if (sortBy === 'newest') {
+      result.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    } else if (sortBy === 'price_asc') {
+      result.sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'price_desc') {
+      result.sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'name_asc') {
+      result.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === 'stock_asc') {
+      result.sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0));
+    }
+
+    return result;
+  }, [products, searchQuery, selectedCategoryFilter, selectedSupplierFilter, selectedStockFilter, sortBy]);
+
   if (loading) {
     return <div className="p-8 font-bold animate-pulse">Loading items...</div>;
   }
-
-  const displayedItems = products;
 
   return (
     <div className="p-4 sm:p-8">
@@ -1254,10 +1402,66 @@ export default function MerchantProducts() {
                   name="name" 
                   value={editForm.name || ''} 
                   onChange={handleChange} 
+                  placeholder="e.g. Vintage Denim Jacket"
                   className={`w-full border-2 p-2 focus:ring-0 outline-none ${formErrors.name ? 'border-error bg-error/5' : 'border-on-surface'}`} 
                 />
                 {formErrors.name && <p className="text-xs text-error font-bold">{formErrors.name}</p>}
               </div>
+
+              {/* Supplier Identification */}
+              <div className="space-y-2">
+                <label className="font-bold text-sm uppercase flex items-center justify-between">
+                  <span>Supplier Name</span>
+                  <span className="text-[10px] text-secondary font-semibold uppercase">Dropship Supplier</span>
+                </label>
+                <input 
+                  type="text"
+                  name="supplierName" 
+                  list="quick-supplier-suggestions"
+                  value={editForm.supplierName || ''} 
+                  onChange={handleChange} 
+                  placeholder="e.g. Shenzhen Tech, CJ Dropship..."
+                  className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
+                />
+                <datalist id="quick-supplier-suggestions">
+                  {uniqueSuppliers.map(sup => (
+                    <option key={sup} value={sup}>{sup}</option>
+                  ))}
+                </datalist>
+              </div>
+
+              {/* Auto-Generated / Custom SKU */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-sm uppercase">SKU (Product Code)</label>
+                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 border ${isSkuManuallyEdited ? 'border-secondary text-secondary bg-surface-dim' : 'border-primary-container text-on-surface bg-primary-container'}`}>
+                    {isSkuManuallyEdited ? 'Custom SKU' : 'Auto from Supplier'}
+                  </span>
+                </div>
+                <input 
+                  name="sku" 
+                  value={editForm.sku || ''} 
+                  onChange={handleChange} 
+                  placeholder="Auto-generated from Supplier + Name..."
+                  className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none font-mono text-sm" 
+                />
+                {isSkuManuallyEdited && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSkuManuallyEdited(false);
+                      const autoSku = generateSku(editForm.supplierName, editForm.name);
+                      setEditForm((prev: any) => ({ ...prev, sku: autoSku }));
+                      showToast("Reset SKU to auto-generated format", "info");
+                    }}
+                    className="text-[10px] font-bold text-primary-container hover:underline uppercase block"
+                  >
+                    ↺ Revert to Auto-Generated SKU
+                  </button>
+                )}
+              </div>
+
+              {/* Selling Price */}
               <div className="space-y-2">
                 <label className="font-bold text-sm uppercase flex items-center gap-1">
                   Price ({CURRENCY_CONFIG.symbol}) <span className="text-error font-black">*</span>
@@ -1274,7 +1478,32 @@ export default function MerchantProducts() {
                 />
                 {formErrors.price && <p className="text-xs text-error font-bold">{formErrors.price}</p>}
               </div>
+
+              {/* Cost Price (Optional) */}
               <div className="space-y-2">
+                <label className="font-bold text-sm uppercase flex items-center justify-between">
+                  <span>Cost Price ({CURRENCY_CONFIG.symbol})</span>
+                  <span className="text-[10px] text-secondary font-semibold uppercase">Optional Supplier Cost</span>
+                </label>
+                <input 
+                  type="number" 
+                  min="0" 
+                  step="0.01" 
+                  name="costPrice" 
+                  value={editForm.costPrice === 0 && !editForm.costPrice.toString().match(/^0$/) ? '' : (editForm.costPrice ?? '')} 
+                  onChange={handleChange} 
+                  placeholder="e.g. 15.00"
+                  className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" 
+                />
+                {editForm.price > 0 && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
+                  <div className="text-[11px] font-bold p-1 bg-surface-dim border border-on-surface/30 flex justify-between">
+                    <span>Est. Profit: <strong className={Number(editForm.price) - Number(editForm.costPrice) >= 0 ? 'text-green-700' : 'text-error'}>{CURRENCY_CONFIG.symbol} {(Number(editForm.price) - Number(editForm.costPrice)).toFixed(2)}</strong></span>
+                    <span className="text-secondary">({(((Number(editForm.price) - Number(editForm.costPrice)) / Number(editForm.price)) * 100).toFixed(1)}% margin)</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
                 <label className="font-bold text-sm uppercase flex items-center gap-1">
                   Category <span className="text-error font-black">*</span>
                 </label>
@@ -1416,10 +1645,65 @@ export default function MerchantProducts() {
                         name="name" 
                         value={editForm.name || ''} 
                         onChange={handleChange} 
+                        placeholder="e.g. Wireless Noise-Cancelling Headphones"
                         className={`w-full border-2 p-2 focus:ring-0 outline-none ${formErrors.name ? 'border-error bg-error/5' : 'border-on-surface'}`} 
                       />
                       {formErrors.name && <p className="text-xs text-error font-bold">{formErrors.name}</p>}
                     </div>
+
+                    {/* Supplier Name in Core Info */}
+                    <div className="space-y-2">
+                      <label className="font-bold text-sm uppercase flex items-center justify-between">
+                        <span>Supplier / Merchant Name</span>
+                        <span className="text-[10px] text-secondary font-semibold uppercase">Dropship Source</span>
+                      </label>
+                      <input 
+                        type="text"
+                        name="supplierName" 
+                        list="core-supplier-suggestions"
+                        value={editForm.supplierName || ''} 
+                        onChange={handleChange} 
+                        placeholder="e.g. Shenzhen Tech, CJ Dropship..."
+                        className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
+                      />
+                      <datalist id="core-supplier-suggestions">
+                        {uniqueSuppliers.map(sup => (
+                          <option key={sup} value={sup}>{sup}</option>
+                        ))}
+                      </datalist>
+                    </div>
+
+                    {/* SKU in Core Info */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-sm uppercase">SKU (Product Code)</label>
+                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 border ${isSkuManuallyEdited ? 'border-secondary text-secondary bg-surface-dim' : 'border-primary-container text-on-surface bg-primary-container'}`}>
+                          {isSkuManuallyEdited ? 'Custom SKU' : 'Auto from Supplier'}
+                        </span>
+                      </div>
+                      <input 
+                        name="sku" 
+                        value={editForm.sku || ''} 
+                        onChange={handleChange} 
+                        placeholder="Auto-generated from Supplier + Name..."
+                        className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none font-mono text-sm" 
+                      />
+                      {isSkuManuallyEdited && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsSkuManuallyEdited(false);
+                            const autoSku = generateSku(editForm.supplierName, editForm.name);
+                            setEditForm((prev: any) => ({ ...prev, sku: autoSku }));
+                            showToast("Reset SKU to auto-generated format", "info");
+                          }}
+                          className="text-[10px] font-bold text-primary-container hover:underline uppercase block"
+                        >
+                          ↺ Revert to Auto-Generated SKU
+                        </button>
+                      )}
+                    </div>
+
                     <div className="space-y-2 md:col-span-2">
                       <label className="font-bold text-sm uppercase">Short Description</label>
                       <textarea name="shortDescription" value={editForm.shortDescription || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-16 focus:ring-0 outline-none" placeholder="A brief summary for previews..."></textarea>
@@ -1429,14 +1713,9 @@ export default function MerchantProducts() {
                       <textarea name="description" value={editForm.description || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-32 focus:ring-0 outline-none" placeholder="Detailed product description..."></textarea>
                     </div>
 
-                      <div className="space-y-2">
-                        <label className="font-bold text-sm uppercase">Brand / Manufacturer</label>
-                        <input name="brand" value={editForm.brand || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" />
-                      </div>
-                    
-                    <div className="space-y-2">
-                      <label className="font-bold text-sm uppercase">SKU</label>
-                      <input name="sku" value={editForm.sku || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" />
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="font-bold text-sm uppercase">Brand / Manufacturer</label>
+                      <input name="brand" value={editForm.brand || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" />
                     </div>
                   </div>
                 )}
@@ -1827,7 +2106,7 @@ export default function MerchantProducts() {
                       )}
                     </div>
 
-                    {/* PRICING */}
+                    {/* PRICING & COST */}
                     <div className="space-y-2">
                       <label className="font-bold text-sm uppercase flex items-center gap-1">
                         Regular Price ({CURRENCY_CONFIG.symbol}) <span className="text-error font-black">*</span>
@@ -1848,6 +2127,31 @@ export default function MerchantProducts() {
                       <label className="font-bold text-sm uppercase">Sale Price ({CURRENCY_CONFIG.symbol})</label>
                       <input type="number" min="0" step="0.01" name="salePrice" value={editForm.salePrice || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" placeholder="Optional" />
                     </div>
+
+                    {/* Cost Price (Supplier Cost) */}
+                    <div className="space-y-2 md:col-span-2 p-4 border-2 border-on-surface/20 bg-surface-dim">
+                      <label className="font-bold text-sm uppercase flex items-center justify-between">
+                        <span>Supplier Cost Price ({CURRENCY_CONFIG.symbol})</span>
+                        <span className="text-[10px] text-secondary font-semibold uppercase">Dropshipping Item Cost</span>
+                      </label>
+                      <input 
+                        type="number" 
+                        min="0" 
+                        step="0.01" 
+                        name="costPrice" 
+                        value={editForm.costPrice === 0 && !editForm.costPrice.toString().match(/^0$/) ? '' : (editForm.costPrice ?? '')} 
+                        onChange={handleChange} 
+                        placeholder="e.g. 15.00" 
+                        className="w-full max-w-sm border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
+                      />
+                      {editForm.price > 0 && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
+                        <div className="mt-2 text-xs font-bold p-2 bg-surface border border-on-surface flex items-center justify-between max-w-sm">
+                          <span>Estimated Profit: <strong className={Number(editForm.price) - Number(editForm.costPrice) >= 0 ? 'text-green-700' : 'text-error'}>{CURRENCY_CONFIG.symbol} {(Number(editForm.price) - Number(editForm.costPrice)).toFixed(2)}</strong></span>
+                          <span className="text-secondary font-semibold">({(((Number(editForm.price) - Number(editForm.costPrice)) / Number(editForm.price)) * 100).toFixed(1)}% margin)</span>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="space-y-2">
                       <label className="font-bold text-sm uppercase">Sale Start Date</label>
                       <input type="date" name="saleStartDate" value={editForm.saleStartDate || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" />
@@ -1946,7 +2250,129 @@ export default function MerchantProducts() {
           </div>
         </form>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* SEARCH & FILTER TOOLBAR */}
+          <div className="bg-surface border-4 border-on-surface p-4 shadow-[4px_4px_0px_0px_var(--color-on-surface)] space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {/* Search Bar */}
+              <div className="lg:col-span-2 relative">
+                <label className="block text-[10px] font-black uppercase text-secondary mb-1">Search Products</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search name, SKU, supplier, tag..."
+                    className="w-full border-2 border-on-surface p-2 text-sm focus:ring-0 outline-none pr-8 bg-surface"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-black text-secondary hover:text-on-surface"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Filter by Category */}
+              <div>
+                <label className="block text-[10px] font-black uppercase text-secondary mb-1">Category</label>
+                <select
+                  value={selectedCategoryFilter}
+                  onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                  className="w-full border-2 border-on-surface p-2 text-sm focus:ring-0 outline-none bg-surface font-bold uppercase"
+                >
+                  <option value="">All Categories</option>
+                  {allSystemCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filter by Supplier */}
+              <div>
+                <label className="block text-[10px] font-black uppercase text-secondary mb-1">Dropship Supplier</label>
+                <select
+                  value={selectedSupplierFilter}
+                  onChange={(e) => setSelectedSupplierFilter(e.target.value)}
+                  className="w-full border-2 border-on-surface p-2 text-sm focus:ring-0 outline-none bg-surface font-bold uppercase"
+                >
+                  <option value="">All Suppliers</option>
+                  {uniqueSuppliers.map((sup) => (
+                    <option key={sup} value={sup}>
+                      {sup}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sort By */}
+              <div>
+                <label className="block text-[10px] font-black uppercase text-secondary mb-1">Sort By</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full border-2 border-on-surface p-2 text-sm focus:ring-0 outline-none bg-surface font-bold uppercase"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="name_asc">Name (A-Z)</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                  <option value="stock_asc">Stock: Low to High</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Filter Tags & Active Counts */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t-2 border-on-surface/10 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-bold uppercase text-secondary">Stock Filter:</span>
+                {(['all', 'in_stock', 'low_stock', 'out_of_stock'] as const).map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setSelectedStockFilter(st)}
+                    className={`px-2.5 py-0.5 font-bold uppercase border-2 text-[11px] transition-colors ${
+                      selectedStockFilter === st
+                        ? 'bg-on-surface text-surface border-on-surface'
+                        : 'bg-surface text-on-surface border-on-surface/40 hover:border-on-surface'
+                    }`}
+                  >
+                    {st === 'all' && 'All'}
+                    {st === 'in_stock' && 'In Stock'}
+                    {st === 'low_stock' && 'Low Stock (≤5)'}
+                    {st === 'out_of_stock' && 'Out of Stock'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3">
+                {(searchQuery || selectedCategoryFilter || selectedSupplierFilter || selectedStockFilter !== 'all') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedCategoryFilter("");
+                      setSelectedSupplierFilter("");
+                      setSelectedStockFilter("all");
+                    }}
+                    className="text-xs font-black uppercase text-error hover:underline"
+                  >
+                    Reset Filters
+                  </button>
+                )}
+                <span className="font-black uppercase text-[11px] bg-primary-container px-2 py-0.5 border border-on-surface">
+                  Showing {displayedItems.length} of {products.length} Products
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Bulk Action Header */}
           {selectedProductIds.length > 0 && (
             <div className="p-4 bg-error-container text-error border-4 border-on-surface flex items-center justify-between font-bold">
@@ -1963,9 +2389,9 @@ export default function MerchantProducts() {
 
           {/* Desktop Table View */}
           <div className="hidden md:block bg-surface border-4 border-on-surface overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[600px]">
+            <table className="w-full text-left border-collapse min-w-[750px]">
               <thead>
-                <tr className="bg-on-surface text-surface uppercase font-bold text-sm">
+                <tr className="bg-on-surface text-surface uppercase font-bold text-xs tracking-wider">
                   <th className="p-4 border-b-4 border-on-surface w-12 text-center">
                     <input 
                       type="checkbox" 
@@ -1974,63 +2400,147 @@ export default function MerchantProducts() {
                       className="accent-primary-container w-4 h-4 cursor-pointer"
                     />
                   </th>
-                  <th className="p-4 border-b-4 border-on-surface">Image</th>
-                  <th className="p-4 border-b-4 border-on-surface">Name</th>
-                  <th className="p-4 border-b-4 border-on-surface">Price</th>
-                  {<th className="p-4 border-b-4 border-on-surface">Stock</th>}
+                  <th className="p-4 border-b-4 border-on-surface">Product & SKU</th>
+                  <th className="p-4 border-b-4 border-on-surface">Supplier</th>
+                  <th className="p-4 border-b-4 border-on-surface">Pricing</th>
+                  <th className="p-4 border-b-4 border-on-surface">Stock</th>
                   <th className="p-4 border-b-4 border-on-surface text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {displayedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center font-bold">No products found. Add one to get started!</td>
+                    <td colSpan={6} className="p-8 text-center font-bold text-secondary">
+                      No products match the selected filters.
+                    </td>
                   </tr>
                 ) : (
-                  displayedItems.map((product) => (
-                    <tr key={product.id} className="border-b border-on-surface hover:bg-surface-dim transition-colors">
-                      <td className="p-4 text-center">
-                        <input 
-                          type="checkbox" 
-                          checked={selectedProductIds.includes(Number(product.id))}
-                          onChange={() => toggleSelection(Number(product.id))}
-                          className="accent-primary-container w-4 h-4 cursor-pointer"
-                        />
-                      </td>
-                      <td className="p-4">
-                        {product.imageUrls?.[0] ? (
-                          <img src={product.imageUrls[0]} alt={product.name} className="w-16 h-16 object-cover border-2 border-on-surface" />
-                        ) : (
-                          <div className="w-16 h-16 bg-surface-dim border-2 border-on-surface flex items-center justify-center text-xs font-bold">No Img</div>
-                        )}
-                      </td>
-                      <td className="p-4 font-bold max-w-[200px] truncate">{product.name}</td>
-                      <td className="p-4">{CURRENCY_CONFIG.symbol} {product.price.toFixed(2)}</td>
-                      {<td className="p-4">{product.stock === null ? 'N/A' : product.stock}</td>}
-                      <td className="p-4">
-                        <div className="flex flex-wrap gap-2 justify-end">
-                          <button 
-                            onClick={() => handleDuplicate(product)}
-                            className="text-xs sm:text-sm border-2 border-on-surface bg-primary-container text-on-surface px-2.5 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                          >
-                            Duplicate
-                          </button>
-                          <button 
-                            onClick={() => handleEdit(product)}
-                            className="text-xs sm:text-sm border-2 border-on-surface px-2.5 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(Number(product.id))}
-                            className="text-xs sm:text-sm border-2 border-error text-error px-2.5 py-1 font-bold hover:bg-error hover:text-white transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  displayedItems.map((product) => {
+                    const isLowStock = product.stock !== null && product.stock > 0 && product.stock <= 5;
+                    const isOutOfStock = product.stock !== null && product.stock <= 0;
+                    const isSingleSyncing = singleSyncingId === product.id;
+
+                    return (
+                      <tr key={product.id} className="border-b border-on-surface hover:bg-surface-dim transition-colors">
+                        <td className="p-4 text-center">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedProductIds.includes(product.id)}
+                            onChange={() => toggleSelection(product.id)}
+                            className="accent-primary-container w-4 h-4 cursor-pointer"
+                          />
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            {product.imageUrls?.[0] ? (
+                              <img src={product.imageUrls[0]} alt={product.name} className="w-14 h-14 object-cover border-2 border-on-surface shrink-0" />
+                            ) : (
+                              <div className="w-14 h-14 bg-surface-dim border-2 border-on-surface flex items-center justify-center text-[10px] font-bold shrink-0">No Img</div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-bold text-sm truncate max-w-[220px]" title={product.name}>{product.name}</p>
+                              {product.sku && (
+                                <p className="font-mono text-[11px] text-secondary tracking-tight font-semibold">
+                                  SKU: {product.sku}
+                                </p>
+                              )}
+                              <span className="inline-block mt-0.5 text-[10px] uppercase font-bold text-secondary bg-surface-dim px-1.5 py-0.5 border border-on-surface/20">
+                                {product.category}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {product.supplierName ? (
+                            <span className="inline-flex items-center gap-1 font-bold text-xs bg-primary-container text-on-surface px-2 py-0.5 border border-on-surface">
+                              <Icon name="store" className="text-xs" />
+                              {product.supplierName}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-secondary italic">None</span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          <div className="text-xs space-y-0.5">
+                            <p className="font-bold text-sm">
+                              {CURRENCY_CONFIG.symbol} {product.price.toFixed(2)}
+                            </p>
+                            {product.salePrice && product.salePrice > 0 ? (
+                              <p className="text-[10px] font-bold text-green-700">
+                                Sale: {CURRENCY_CONFIG.symbol} {product.salePrice.toFixed(2)}
+                              </p>
+                            ) : null}
+                            {product.costPrice !== undefined && product.costPrice !== null && (
+                              <p className="text-[10px] text-secondary font-semibold">
+                                Cost: {CURRENCY_CONFIG.symbol} {Number(product.costPrice).toFixed(2)}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {product.stock === null ? (
+                            <span className="text-xs font-bold text-secondary">Unlimited</span>
+                          ) : isOutOfStock ? (
+                            <span className="inline-block px-2 py-0.5 text-[10px] font-black uppercase bg-error text-white border border-on-surface">
+                              Out of Stock
+                            </span>
+                          ) : isLowStock ? (
+                            <span className="inline-block px-2 py-0.5 text-[10px] font-black uppercase bg-amber-400 text-black border border-on-surface">
+                              Low: {product.stock}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-bold text-on-surface">
+                              {product.stock} in stock
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex flex-wrap gap-1.5 justify-end items-center">
+                            {/* WhatsApp Share Button */}
+                            <button
+                              type="button"
+                              onClick={() => setWhatsAppModalProduct({ id: String(product.id), name: product.name })}
+                              title="Send to WhatsApp Catalog / Customer"
+                              className="text-xs border-2 border-green-700 bg-green-50 text-green-800 px-2 py-1 font-bold hover:bg-green-700 hover:text-white transition-colors shadow-[2px_2px_0px_0px_#15803d] inline-flex items-center gap-1"
+                            >
+                              <Icon name="chat" className="text-xs" />
+                              WhatsApp
+                            </button>
+
+                            {/* Single Sync to Meta */}
+                            <button
+                              type="button"
+                              onClick={() => handleSingleSync(product)}
+                              disabled={isSingleSyncing}
+                              title="Sync this product to Meta / WhatsApp Catalog"
+                              className="text-xs border-2 border-on-surface bg-surface text-on-surface px-2 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)] disabled:opacity-50"
+                            >
+                              {isSingleSyncing ? "..." : "Sync"}
+                            </button>
+
+                            <button 
+                              onClick={() => handleDuplicate(product)}
+                              className="text-xs border-2 border-on-surface bg-primary-container text-on-surface px-2 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                            >
+                              Duplicate
+                            </button>
+                            <button 
+                              onClick={() => handleEdit(product)}
+                              className="text-xs border-2 border-on-surface px-2.5 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(product.id)}
+                              className="text-xs border-2 border-error text-error px-2 py-1 font-bold hover:bg-error hover:text-white transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -2039,64 +2549,112 @@ export default function MerchantProducts() {
           {/* Mobile Card List View */}
           <div className="md:hidden space-y-4">
             {displayedItems.length === 0 ? (
-              <div className="bg-surface border-4 border-on-surface p-8 text-center font-bold">
-                No products found. Add one to get started!
+              <div className="bg-surface border-4 border-on-surface p-8 text-center font-bold text-secondary">
+                No products match the selected filters.
               </div>
             ) : (
-              displayedItems.map((product) => (
-                <div key={product.id} className="bg-surface border-4 border-on-surface p-4 shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex flex-col gap-3">
-                  <div className="flex gap-4 items-start">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedProductIds.includes(Number(product.id))}
-                      onChange={() => toggleSelection(Number(product.id))}
-                      className="accent-primary-container w-4 h-4 cursor-pointer mt-1 shrink-0"
-                    />
-                    
-                    {product.imageUrls?.[0] ? (
-                      <img src={product.imageUrls[0]} alt={product.name} className="w-16 h-16 object-cover border-2 border-on-surface shrink-0" />
-                    ) : (
-                      <div className="w-16 h-16 bg-surface-dim border-2 border-on-surface flex items-center justify-center text-xs font-bold shrink-0">No Img</div>
-                    )}
+              displayedItems.map((product) => {
+                const isLowStock = product.stock !== null && product.stock > 0 && product.stock <= 5;
+                const isOutOfStock = product.stock !== null && product.stock <= 0;
+                const isSingleSyncing = singleSyncingId === product.id;
 
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-sm truncate">{product.name}</h3>
-                      <p className="text-xs font-semibold mt-1 text-primary-container">
-                        {CURRENCY_CONFIG.symbol} {product.price.toFixed(2)}
-                      </p>
-                      {(
-                        <p className="text-[11px] text-secondary mt-1 font-medium">
-                          Stock: <span className="font-bold text-on-surface">{product.stock === null ? 'N/A' : product.stock}</span>
-                        </p>
+                return (
+                  <div key={product.id} className="bg-surface border-4 border-on-surface p-4 shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex flex-col gap-3">
+                    <div className="flex gap-4 items-start">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedProductIds.includes(product.id)}
+                        onChange={() => toggleSelection(product.id)}
+                        className="accent-primary-container w-4 h-4 cursor-pointer mt-1 shrink-0"
+                      />
+                      
+                      {product.imageUrls?.[0] ? (
+                        <img src={product.imageUrls[0]} alt={product.name} className="w-16 h-16 object-cover border-2 border-on-surface shrink-0" />
+                      ) : (
+                        <div className="w-16 h-16 bg-surface-dim border-2 border-on-surface flex items-center justify-center text-xs font-bold shrink-0">No Img</div>
                       )}
+
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-sm truncate">{product.name}</h3>
+                        {product.sku && (
+                          <p className="font-mono text-[11px] text-secondary font-semibold mt-0.5">
+                            SKU: {product.sku}
+                          </p>
+                        )}
+                        {product.supplierName && (
+                          <span className="inline-block mt-1 text-[10px] font-bold bg-primary-container text-on-surface px-1.5 py-0.5 border border-on-surface">
+                            Supplier: {product.supplierName}
+                          </span>
+                        )}
+                        <p className="text-xs font-semibold mt-1 text-primary-container">
+                          {CURRENCY_CONFIG.symbol} {product.price.toFixed(2)}
+                        </p>
+                        <div className="mt-1">
+                          {product.stock === null ? (
+                            <span className="text-[11px] text-secondary font-medium">Unlimited stock</span>
+                          ) : isOutOfStock ? (
+                            <span className="px-1.5 py-0.2 text-[10px] font-black uppercase bg-error text-white">Out of Stock</span>
+                          ) : isLowStock ? (
+                            <span className="px-1.5 py-0.2 text-[10px] font-black uppercase bg-amber-400 text-black">Low: {product.stock}</span>
+                          ) : (
+                            <span className="text-[11px] text-secondary font-medium">Stock: <strong className="text-on-surface">{product.stock}</strong></span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 justify-end border-t-2 border-surface-container pt-3">
+                      <button
+                        type="button"
+                        onClick={() => setWhatsAppModalProduct({ id: String(product.id), name: product.name })}
+                        className="text-xs border-2 border-green-700 bg-green-50 text-green-800 px-2 py-1 font-bold shadow-[2px_2px_0px_0px_#15803d]"
+                      >
+                        WhatsApp
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSingleSync(product)}
+                        disabled={isSingleSyncing}
+                        className="text-xs border-2 border-on-surface px-2 py-1 font-bold shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                      >
+                        {isSingleSyncing ? "..." : "Sync"}
+                      </button>
+                      <button 
+                        onClick={() => handleDuplicate(product)}
+                        className="text-xs border-2 border-on-surface bg-primary-container text-on-surface px-2.5 py-1 font-bold shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                      >
+                        Duplicate
+                      </button>
+                      <button 
+                        onClick={() => handleEdit(product)}
+                        className="text-xs border-2 border-on-surface px-2.5 py-1 font-bold shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(product.id)}
+                        className="text-xs border-2 border-error text-error px-2.5 py-1 font-bold shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex gap-2 justify-end border-t-2 border-surface-container pt-3">
-                    <button 
-                      onClick={() => handleDuplicate(product)}
-                      className="text-xs border-2 border-on-surface bg-primary-container text-on-surface px-3 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                    >
-                      Duplicate
-                    </button>
-                    <button 
-                      onClick={() => handleEdit(product)}
-                      className="text-xs border-2 border-on-surface px-3 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(Number(product.id))}
-                      className="text-xs border-2 border-error text-error px-3 py-1 font-bold hover:bg-error hover:text-white transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
+      )}
+
+      {/* WhatsApp Sharing Modal */}
+      {whatsAppModalProduct && (
+        <SendToWhatsAppModal
+          productId={whatsAppModalProduct.id}
+          productName={whatsAppModalProduct.name}
+          isOpen={Boolean(whatsAppModalProduct)}
+          onClose={() => setWhatsAppModalProduct(null)}
+          userToken={userAuthToken}
+        />
       )}
     </div>
   );

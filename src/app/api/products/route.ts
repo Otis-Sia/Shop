@@ -39,6 +39,8 @@ const mapDbProductToProduct = (p: any, variants: any[] = [], merchantProfile: an
     sizes: p.sizes || [],
     discount: p.discount ? Number(p.discount) : 0,
     brand: p.brand || '',
+    supplierName: p.supplier_name || '',
+    costPrice: p.cost_price !== null && p.cost_price !== undefined ? Number(p.cost_price) : undefined,
     currency: p.currency || 'XAF',
 
     image_url: primaryImage,
@@ -76,6 +78,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const keyword = searchParams.get('keyword');
     const category = searchParams.get('category');
+    const supplier = searchParams.get('supplier');
     const maxPrice = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : null;
     const adminId = searchParams.get('adminId');
     
@@ -93,6 +96,9 @@ export async function GET(request: Request) {
 
     if (category) {
       query = query.eq('category', category);
+    }
+    if (supplier) {
+      query = query.eq('supplier_name', supplier);
     }
     if (adminId) {
       query = query.eq('merchant_id', adminId);
@@ -242,14 +248,30 @@ export async function POST(request: Request) {
     }
 
     const productId = body.id ? body.id.toString() : Date.now().toString();
+
+    // Check if existing product exists to preserve merchant_id or verify ownership
+    const { data: existingProd } = await supabase
+      .from('products')
+      .select('merchant_id')
+      .eq('id', productId)
+      .maybeSingle();
+
+    if (existingProd && existingProd.merchant_id !== uid && userProfile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden: You do not own this product' }, { status: 403 });
+    }
+
+    const merchantIdToUse = existingProd ? existingProd.merchant_id : uid;
+
     const productPayload = {
       id: productId,
-      merchant_id: uid,
+      merchant_id: merchantIdToUse,
 
       name: body.name || '',
       short_description: body.shortDescription || '',
       description: body.description || '',
       sku: body.sku || '',
+      supplier_name: body.supplierName || body.supplier_name || '',
+      cost_price: body.costPrice !== undefined && body.costPrice !== null && body.costPrice !== '' ? Number(body.costPrice) : null,
       price: Number(body.price || 0),
       sale_price: body.salePrice ? Number(body.salePrice) : null,
       sale_start_date: body.saleStartDate || null,
@@ -258,7 +280,7 @@ export async function POST(request: Request) {
       brand: body.brand || '',
       currency: body.currency || 'XAF',
       track_inventory: body.trackInventory !== false,
-      stock: body.stock !== undefined ? Number(body.stock) : 0,
+      stock: body.stock !== undefined && body.stock !== null && body.stock !== '' ? Number(body.stock) : 0,
       low_stock_alert: body.lowStockAlert || false,
       allow_backorders: body.allowBackorders || false,
       group_category: body.groupCategory || '',
@@ -274,7 +296,7 @@ export async function POST(request: Request) {
       sizes: body.sizes || [],
       has_variants: body.hasVariants || (body.variants && body.variants.length > 0) || false,
       
-      created_at: new Date().toISOString(),
+      created_at: existingProd ? undefined : new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
@@ -289,18 +311,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: prodError.message }, { status: 500 });
     }
 
-    // Insert variants if present
-    if (body.variants && Array.isArray(body.variants) && body.variants.length > 0) {
-      // Clear old variants first if updating
-      await supabase.from('product_variants').delete().eq('product_id', productId);
+    // Always clear old variants first to ensure accurate state
+    await supabase.from('product_variants').delete().eq('product_id', productId);
 
+    // Insert new variants if present and hasVariants is enabled
+    if (body.hasVariants && body.variants && Array.isArray(body.variants) && body.variants.length > 0) {
       const variantRows = body.variants.map((v: any, index: number) => ({
         id: v.id || `${productId}_v${index}_${Date.now()}`,
         product_id: productId,
         size: v.size || '',
         color: v.color || '',
         price: Number(v.price || productPayload.price),
-        stock: v.stock !== undefined ? Number(v.stock) : productPayload.stock,
+        stock: v.stock !== undefined && v.stock !== null && v.stock !== '' ? Number(v.stock) : productPayload.stock,
         image_url: v.imageUrl || v.image_url || '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -315,7 +337,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, product: mapDbProductToProduct(insertedProduct, body.variants || [], userProfile) });
+    return NextResponse.json({ success: true, product: mapDbProductToProduct(insertedProduct, (body.hasVariants && body.variants) ? body.variants : [], userProfile) });
   } catch (error: any) {
     console.error('Error in POST /api/products:', error);
     return NextResponse.json({ error: error.message || 'Failed to save product' }, { status: 500 });

@@ -51,6 +51,8 @@ export async function GET(
       sizes: product.sizes || [],
       discount: product.discount ? Number(product.discount) : 0,
       brand: product.brand || '',
+      supplierName: product.supplier_name || '',
+      costPrice: product.cost_price !== null && product.cost_price !== undefined ? Number(product.cost_price) : undefined,
       currency: product.currency || 'XAF',
 
       image_url: imageUrls.length > 0 ? imageUrls[0] : (product.image_url || ''),

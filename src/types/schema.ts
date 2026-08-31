@@ -89,6 +89,8 @@ export interface Product {
   sizes?: string[];
   hasVariants?: boolean;
   variants?: ProductVariant[];
+  supplierName?: string;
+  costPrice?: number;
 
   createdAt: TimestampType;
   updatedAt: TimestampType;

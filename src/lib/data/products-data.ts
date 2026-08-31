@@ -34,6 +34,9 @@ export interface Product {
 
   hasVariants?: boolean;
   variants?: any[];
+  sku?: string;
+  supplierName?: string;
+  costPrice?: number;
   allowMultiplePurchases?: boolean;
   lowStockAlert?: boolean;
   allowBackorders?: boolean;
