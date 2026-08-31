@@ -4,11 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore/lite';
-import { auth, db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
+import { getMyOrders } from '@/lib/api/order';
 import { Order, OrderStatus } from '@/types/schema';
 import Icon from '@/components/Icon';
-import { Timestamp } from 'firebase/firestore/lite';
 import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; text: string }> = {
@@ -31,10 +30,17 @@ function getTimelineIndex(status: OrderStatus): number {
   return idx >= 0 ? idx : -1;
 }
 
-function formatDate(date: Timestamp | Date | undefined): string {
+function formatDate(date: any): string {
   if (!date) return '—';
-  const d = date instanceof Timestamp ? date.toDate() : new Date(date as unknown as string);
-  return d.toLocaleDateString('en-KE', {
+  if (typeof date === 'object' && 'seconds' in date) {
+    return new Date(date.seconds * 1000).toLocaleDateString('en-KE', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+  const d = new Date(date);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-KE', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -47,7 +53,6 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [productImages, setProductImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -59,52 +64,8 @@ export default function OrdersPage() {
 
       const fetchOrders = async () => {
         try {
-          const q = query(
-            collection(db, 'orders'),
-            where('userId', '==', user.uid)
-          );
-          const snapshot = await getDocs(q);
-          const fetched = snapshot.docs.map((doc) => ({
-            ...(doc.data() as Order),
-            id: doc.id,
-          }));
-          fetched.sort((a, b) => {
-            const timeA = a.createdAt ? (a.createdAt as any).seconds || 0 : 0;
-            const timeB = b.createdAt ? (b.createdAt as any).seconds || 0 : 0;
-            return timeB - timeA;
-          });
-          setOrders(fetched);
-
-          // Get product images for items without stored imageUrl
-          const missingProductIds = new Set<string>();
-          fetched.forEach(order => {
-            order.items?.forEach(item => {
-              if (item.productId && !item.imageUrl) {
-                missingProductIds.add(item.productId);
-              }
-            });
-          });
-
-          if (missingProductIds.size > 0) {
-            const images: Record<string, string> = {};
-            await Promise.all(
-              Array.from(missingProductIds).map(async (pid) => {
-                try {
-                  const prodSnap = await getDoc(doc(db, 'products', pid));
-                  if (prodSnap.exists()) {
-                    const data = prodSnap.data();
-                    const url = data.image_url || (data.imageUrls && data.imageUrls[0]) || '';
-                    if (url) {
-                      images[pid] = url;
-                    }
-                  }
-                } catch (e) {
-                  console.error('Failed to fetch image for product:', pid, e);
-                }
-              })
-            );
-            setProductImages(images);
-          }
+          const fetched = await getMyOrders();
+          setOrders(fetched as (Order & { id: string })[]);
         } catch (err) {
           console.error('Error fetching orders:', err);
         } finally {
@@ -279,7 +240,7 @@ export default function OrdersPage() {
                         </h4>
                         <div className="space-y-3">
                           {order.items.map((item, idx) => {
-                            const imgUrl = item.imageUrl || productImages[item.productId] || 'https://via.placeholder.com/60';
+                            const imgUrl = item.imageUrl || (item as any).image_url || 'https://via.placeholder.com/60';
                             return (
                               <div
                                 key={`${item.productId}-${idx}`}

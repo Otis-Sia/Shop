@@ -1,7 +1,6 @@
 import { clearCart } from './cart';
-import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, doc, updateDoc, increment } from 'firebase/firestore/lite';
-import { Order, OrderStatus, Cart, Checkout } from '@/types/schema';
+import { auth } from '@/lib/firebase';
+import { Order } from '@/types/schema';
 
 export const createOrder = async (orderData: Partial<Order>): Promise<Order> => {
   const user = auth.currentUser;
@@ -21,7 +20,7 @@ export const createOrder = async (orderData: Partial<Order>): Promise<Order> => 
         contactInformation: orderData.contactInformation,
         shippingAddress: orderData.shippingAddress,
         shippingInformation: orderData.shippingInformation,
-        totalAmount: orderData.totalAmount // Though calculated client side, server recalculates
+        totalAmount: orderData.totalAmount
       }),
     });
 
@@ -33,7 +32,6 @@ export const createOrder = async (orderData: Partial<Order>): Promise<Order> => 
 
     await clearCart();
 
-    // Return the first created order for backward compatibility or the full response
     if (data.createdOrders && data.createdOrders.length > 0) {
       return data.createdOrders[0] as Order;
     }
@@ -50,40 +48,64 @@ export const getMyOrders = async (): Promise<Order[]> => {
   if (!user) return [];
 
   try {
-    const { getDocs, query, where } = await import('firebase/firestore/lite');
-    const q = query(
-      collection(db, 'orders'),
-      where('userId', '==', user.uid)
-    );
-    const snapshot = await getDocs(q);
-    const orders = snapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      ...docSnap.data()
-    })) as Order[];
-    
-    // Sort client-side to avoid composite index requirement
-    orders.sort((a, b) => {
-      const timeA = a.createdAt ? (a.createdAt as any).seconds || 0 : 0;
-      const timeB = b.createdAt ? (b.createdAt as any).seconds || 0 : 0;
-      return timeB - timeA;
+    const token = await user.getIdToken();
+    const res = await fetch('/api/orders?filter=user', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
-    
-    return orders;
+
+    if (res.ok) {
+      const data = await res.json();
+      return (data.orders || []) as Order[];
+    }
+    return [];
   } catch (error) {
     console.error('Error fetching user orders:', error);
     return [];
   }
 };
 
-export const getAllOrders = async (): Promise<Order[]> => {
+export const getMerchantOrders = async (): Promise<Order[]> => {
+  const user = auth.currentUser;
+  if (!user) return [];
+
   try {
-    const { getDocs, query, orderBy } = await import('firebase/firestore/lite');
-    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Order[];
+    const token = await user.getIdToken();
+    const res = await fetch('/api/orders?filter=merchant', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return (data.orders || []) as Order[];
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching merchant orders:', error);
+    return [];
+  }
+};
+
+export const getAllOrders = async (): Promise<Order[]> => {
+  const user = auth.currentUser;
+  if (!user) return [];
+
+  try {
+    const token = await user.getIdToken();
+    const res = await fetch('/api/orders?filter=all', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return (data.orders || []) as Order[];
+    }
+    return [];
   } catch (error) {
     console.error('Error fetching all orders:', error);
     return [];

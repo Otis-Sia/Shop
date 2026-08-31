@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from 'firebase/firestore/lite';
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
+import { getUserProfile } from "@/lib/api/auth";
+import Link from "next/link";
+import { Package, ShoppingCart, LayoutDashboard, Settings } from "lucide-react";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function MerchantLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isMerchant, setIsMerchant] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -17,17 +19,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         // Not logged in -> redirect to auth screen
         router.push("/login?redirect=/admin");
       } else {
-        // Check if the user has the 'admin' role in Firestore
+        // Check if the user has the 'merchant' or 'admin' role
         try {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists() && userDoc.data()?.role === "admin") {
-            setIsAdmin(true);
+          const profile = await getUserProfile(user.uid);
+          const role = profile?.role;
+          if (role === "merchant" || role === "admin") {
+            setIsMerchant(true);
           } else {
-            // Logged in, but NOT an admin -> redirect to home
+            // Logged in, but NOT a merchant -> redirect to home
             router.push("/");
           }
         } catch (error) {
-          console.error("Error checking admin access:", error);
+          console.error("Error checking merchant access:", error);
           router.push("/");
         }
       }
@@ -43,18 +46,50 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-on-surface border-t-primary-container rounded-full animate-spin mx-auto mb-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)]"></div>
           <h2 className="font-headline-md font-black uppercase text-on-surface tracking-widest text-xl">
-            Verifying Access Controls...
+            Verifying Merchant Access...
           </h2>
         </div>
       </div>
     );
   }
 
-  // If not admin and not loading, we render nothing because the router will handle redirecting.
-  if (!isAdmin) {
+  if (!isMerchant) {
     return null;
   }
 
-  // If verified as admin, render the admin dashboard.
-  return <>{children}</>;
+  return (
+    <div className="flex flex-col md:flex-row min-h-screen bg-surface">
+      {/* Sidebar Navigation for Merchant */}
+      <aside className="w-full md:w-64 bg-on-surface text-surface dark:bg-surface-container-low dark:text-on-surface flex flex-col border-b-4 md:border-b-0 md:border-r-4 border-on-surface shrink-0 transition-colors">
+        <div className="p-4 md:p-6 border-b-4 border-on-surface border-dashed transition-colors">
+          <h2 className="font-headline-md font-black text-xl md:text-2xl tracking-tight text-primary-container">
+            MERCHANT HUB
+          </h2>
+        </div>
+        <nav className="p-2 md:p-4 flex flex-row md:flex-col overflow-x-auto md:space-y-4 font-body-lg font-bold hide-scrollbar">
+          <Link href="/admin" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container border-2 border-transparent hover:border-on-surface transition-colors rounded-none shrink-0">
+            <LayoutDashboard size={20} className="md:w-6 md:h-6" />
+            <span className="text-sm md:text-base">Dashboard</span>
+          </Link>
+          <Link href="/admin/products" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container border-2 border-transparent hover:border-on-surface transition-colors rounded-none shrink-0">
+            <Package size={20} className="md:w-6 md:h-6" />
+            <span className="text-sm md:text-base">My Products</span>
+          </Link>
+          <Link href="/admin/orders" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container border-2 border-transparent hover:border-on-surface transition-colors rounded-none shrink-0">
+            <ShoppingCart size={20} className="md:w-6 md:h-6" />
+            <span className="text-sm md:text-base">My Orders</span>
+          </Link>
+          <Link href="/admin/settings" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container border-2 border-transparent hover:border-on-surface transition-colors rounded-none shrink-0">
+            <Settings size={20} className="md:w-6 md:h-6" />
+            <span className="text-sm md:text-base">Settings</span>
+          </Link>
+        </nav>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-auto">
+        {children}
+      </main>
+    </div>
+  );
 }

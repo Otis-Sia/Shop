@@ -7,189 +7,33 @@ export interface ProductFilters {
   maxPrice?: number;
   limit?: number;
   category?: string;
-  merchantId?: string;
-  itemType?: string;
+  adminId?: string;
+
   newArrivals?: boolean;
   includeUnapproved?: boolean;
 }
 
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore/lite';
-import { db } from '@/lib/firebase';
-
 export const getProducts = async (filters: ProductFilters = {}): Promise<Product[]> => {
   try {
-    const snapshot = await getDocs(collection(db, 'products'));
-    const productsPromises = snapshot.docs.map(async (docSnap) => {
-      const d = docSnap.data();
-      const product: Product = {
-        id: Number(docSnap.id),
-        name: d.name || '',
-        price: d.price || 0,
-        description: d.description || '',
-        category: d.category || '',
-        stock: d.stock || 0,
-        tags: d.tags || [],
-        colors: d.colors || [],
-        sizes: d.sizes || [],
-        discount: d.discount || 0,
-        brand: d.brand || '',
-        itemType: d.itemType || 'goods',
-        image_url: d.imageUrls && d.imageUrls.length > 0 ? d.imageUrls[0] : (d.image_url || ''),
-        additional_images: d.imageUrls && d.imageUrls.length > 1 ? d.imageUrls.slice(1) : (d.additional_images || []),
-        merchantId: d.merchantId || 'admin',
-        allowMultiplePurchases: d.allowMultiplePurchases !== false,
-        hasVariants: d.hasVariants || false,
-        variants: [], // We will populate this below
-        createdAt: d.createdAt || null,
-        trackInventory: d.trackInventory !== false
-      };
+    const params = new URLSearchParams();
+    if (filters.keyword) params.append('keyword', filters.keyword);
+    if (filters.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.category) params.append('category', filters.category);
+    if (filters.adminId) params.append('adminId', filters.adminId);
 
-      if (product.hasVariants) {
-        try {
-          const variantsSnap = await getDocs(collection(db, 'products', docSnap.id, 'variants'));
-          if (variantsSnap.docs.length > 0) {
-            product.variants = variantsSnap.docs.map(vDoc => ({
-              id: vDoc.id,
-              productId: docSnap.id,
-              ...vDoc.data()
-            })) as any;
-          } else {
-            // Fallback to embedded variants for products saved before subcollection migration
-            product.variants = d.variants || [];
-          }
-        } catch (err) {
-          console.error(`Error fetching variants for product ${docSnap.id}:`, err);
-          product.variants = d.variants || [];
-        }
-      } else {
-        product.variants = d.variants || [];
-      }
-      return product;
-    });
+    if (filters.newArrivals) params.append('newArrivals', 'true');
+    if (filters.includeUnapproved) params.append('includeUnapproved', 'true');
 
-    let products: Product[] = await Promise.all(productsPromises);
-
-    const dbProductIds = new Set(products.map(p => p.id));
-    
-    for (const p of productsData) {
-      if (!dbProductIds.has(p.id)) {
-        products.push({
-          ...p,
-          merchantId: p.merchantId || 'admin'
-        });
-      }
+    const res = await fetch(`/api/products?${params.toString()}`);
+    if (res.ok) {
+      const data = await res.json();
+      return (data.products || []) as Product[];
     }
-    
-    products.sort((a, b) => b.id - a.id);
-
-    // Fetch merchant profiles to populate merchantName
-    const uniqueMerchantIds = Array.from(new Set(products.map(p => p.merchantId).filter(id => id && id !== 'admin'))) as string[];
-    const merchantProfiles: Record<string, any> = {};
-    
-    await Promise.all(uniqueMerchantIds.map(async (uid) => {
-      try {
-        const docRef = doc(db, 'users', uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          merchantProfiles[uid] = docSnap.data();
-        }
-      } catch (err: any) {
-        if (err?.code !== 'permission-denied') {
-          console.error(`Error fetching profile for ${uid}:`, err);
-        }
-      }
-    }));
-
-    products = products.map(p => {
-      if (p.merchantId !== 'admin' && p.merchantId && merchantProfiles[p.merchantId]) {
-        const profile = merchantProfiles[p.merchantId];
-        const storeName = profile.storeName || (profile.first_name ? `${profile.first_name} ${profile.last_name || ''}` : undefined);
-        return {
-          ...p,
-          merchantName: storeName,
-          merchantInfo: profile.businessCategory ? `${profile.businessCategory} seller` : undefined,
-          merchantStatus: profile.merchantStatus,
-          merchantCreatedAt: profile.createdAt
-        };
-      }
-      return p;
-    });
-
-    // Only allow products from merchants who are 'approved' or 'verified' (or admin)
-    if (!filters.includeUnapproved) {
-      products = products.filter(p => 
-        p.merchantId === 'admin' || 
-        p.merchantStatus === 'approved' || 
-        p.merchantStatus === 'verified'
-      );
-    }
-
-    if (filters.keyword) {
-      const searchTerms = filters.keyword.toLowerCase().split(/\s+/).filter(Boolean);
-      products = products.filter(p => {
-        const searchableText = [
-          p.name,
-          p.description,
-          p.category || '',
-          p.brand || '',
-          ...(p.tags || [])
-        ].join(' ').toLowerCase();
-
-        return searchTerms.every(term => searchableText.includes(term));
-      });
-    }
-
-    if (filters.maxPrice) {
-      products = products.filter(p => p.price <= filters.maxPrice!);
-    }
-
-    if (filters.category) {
-      products = products.filter(p => p.category === filters.category);
-    }
-
-    if (filters.newArrivals) {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      products = products.filter(p => {
-        if (!p.createdAt) return false;
-        let date: Date;
-        if (p.createdAt.toDate) {
-          date = p.createdAt.toDate();
-        } else {
-          date = new Date(p.createdAt);
-        }
-        return date.getTime() >= oneWeekAgo.getTime();
-      });
-    }
-
-    if (filters.merchantId) {
-      products = products.filter(p => p.merchantId === filters.merchantId);
-    }
-
-    if (filters.itemType) {
-      if (filters.itemType !== 'all') {
-        products = products.filter(p => p.itemType === filters.itemType);
-      }
-    } else {
-      // By default, exclude services from products list
-      products = products.filter(p => p.itemType !== 'service');
-    }
-
-    // Sort verified merchants' products to appear first
-    products.sort((a, b) => {
-      const aVerified = a.merchantStatus === 'verified' ? 1 : 0;
-      const bVerified = b.merchantStatus === 'verified' ? 1 : 0;
-      return bVerified - aVerified;
-    });
-
-    if (filters.limit) {
-      products = products.slice(0, filters.limit);
-    }
-
-    return products;
+    return productsData;
   } catch (error) {
-    console.error('Error fetching products:', error);
-    return [];
+    console.error('Error fetching products from API:', error);
+    return productsData;
   }
 };
 
@@ -211,15 +55,19 @@ export const getAvailableTags = async (): Promise<string[]> => {
 
 export const getProduct = async (id: number | string): Promise<Product> => {
   try {
-    const products = await getProducts();
-    const product = products.find(p => p.id == Number(id));
-
-    if (!product) {
-      throw new Error('Product not found');
+    const res = await fetch(`/api/products/${id}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.product) return data.product as Product;
     }
 
-    return product;
+    const fallback = productsData.find(p => p.id == Number(id));
+    if (fallback) return fallback;
+
+    throw new Error('Product not found');
   } catch (error) {
+    const fallback = productsData.find(p => p.id == Number(id));
+    if (fallback) return fallback;
     throw error;
   }
 };

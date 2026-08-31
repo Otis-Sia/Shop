@@ -8,28 +8,43 @@ import {
   sendPasswordResetEmail,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore/lite';
-import { auth, db } from '../firebase';
+import { auth } from '../firebase';
 
 export interface User {
   uid: string;
   email: string | null;
   first_name?: string;
   last_name?: string;
+  display_name?: string;
   username?: string;
   location?: string;
   phone?: string;
   role?: "customer" | "admin" | "merchant";
   merchantStatus?: "pending" | "approved" | "rejected" | "verified";
   storeName?: string;
+  storeDescription?: string;
   businessCategories?: string[];
   businessType?: string;
+  offeringType?: 'goods' | 'services' | 'both';
+  industry?: string;
+  storeContactEmail?: string;
+  storeContactPhone?: string;
+  socialMediaLinks?: {
+    instagram?: string;
+    twitter?: string;
+    facebook?: string;
+    website?: string;
+  };
+  logoUrl?: string;
+  bannerUrl?: string;
+  onboardingComplete?: boolean;
 }
 
 export const register = async (userData: { email: string; password: string; first_name: string; last_name: string; role?: 'customer' | 'merchant'; phone?: string }) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
     const user = userCredential.user;
+    const token = await user.getIdToken();
 
     const role = userData.role || 'customer';
     const profileData: any = {
@@ -37,16 +52,22 @@ export const register = async (userData: { email: string; password: string; firs
       last_name: userData.last_name,
       email: userData.email,
       role: role,
-      phone: userData.phone || '',
-      createdAt: new Date().toISOString()
+      phone: userData.phone || ''
     };
 
     if (role === 'merchant') {
       profileData.merchantStatus = 'pending';
     }
 
-    // Store additional profile info in Firestore
-    await setDoc(doc(db, 'users', user.uid), profileData);
+    // Save profile to Supabase via server API
+    await fetch('/api/users/profile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(profileData)
+    });
 
     return {
       uid: user.uid,
@@ -62,13 +83,20 @@ export const login = async (credentials: { email: string; password: string }) =>
   try {
     const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
     const user = userCredential.user;
+    const token = await user.getIdToken();
     
-    // Fetch profile data
-    const docRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(docRef);
-    let profileData = {};
-    if (docSnap.exists()) {
-      profileData = docSnap.data();
+    // Fetch profile data from Supabase
+    let profileData: any = {};
+    try {
+      const res = await fetch('/api/users/profile', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        profileData = json.user || {};
+      }
+    } catch (profileErr) {
+      console.warn('Could not fetch Supabase profile upon login:', profileErr);
     }
 
     return {
@@ -86,24 +114,38 @@ export const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
+    const token = await user.getIdToken();
 
-    // Check if user document exists, if not create one
-    const docRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(docRef);
-    
+    // Check / create profile in Supabase
     let profileData: any = {};
-    if (!docSnap.exists()) {
-      // Create user profile
-      const [firstName = '', lastName = ''] = (user.displayName || '').split(' ');
-      profileData = {
-        first_name: firstName,
-        last_name: lastName,
-        email: user.email,
-        createdAt: new Date().toISOString()
-      };
-      await setDoc(docRef, profileData);
-    } else {
-      profileData = docSnap.data();
+    const res = await fetch('/api/users/profile', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json.user) {
+        profileData = json.user;
+      } else {
+        const [firstName = '', lastName = ''] = (user.displayName || '').split(' ');
+        const newProfile = {
+          first_name: firstName,
+          last_name: lastName,
+          email: user.email
+        };
+        const postRes = await fetch('/api/users/profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(newProfile)
+        });
+        if (postRes.ok) {
+          const postJson = await postRes.json();
+          profileData = postJson.user || newProfile;
+        }
+      }
     }
 
     return {
@@ -129,24 +171,46 @@ export const subscribeToAuthChanges = (callback: (user: FirebaseUser | null) => 
   return onAuthStateChanged(auth, callback);
 };
 
-export const getUserProfile = async (uid: string) => {
+export const getUserProfile = async (uid: string): Promise<User | null> => {
   try {
-    const docRef = doc(db, 'users', uid);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { uid, ...docSnap.data() } as User;
+    const user = auth.currentUser;
+    const token = user ? await user.getIdToken() : null;
+
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`/api/users/profile?uid=${encodeURIComponent(uid)}`, { headers });
+    if (res.ok) {
+      const json = await res.json();
+      return json.user as User;
     }
     return null;
   } catch (error: any) {
     console.error('Error fetching user profile:', error);
-    throw error;
+    return null;
   }
 };
 
 export const updateProfile = async (uid: string, data: Partial<User>) => {
   try {
-    const docRef = doc(db, 'users', uid);
-    await setDoc(docRef, data, { merge: true });
+    const user = auth.currentUser;
+    if (!user) throw new Error('Not authenticated');
+    const token = await user.getIdToken();
+
+    const res = await fetch('/api/users/profile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!res.ok) {
+      const json = await res.json();
+      throw new Error(json.error || 'Failed to update profile');
+    }
+
     return true;
   } catch (error: any) {
     console.error('Error updating user profile:', error);
@@ -194,13 +258,11 @@ export const applyForMerchantRole = async (
   }
 ) => {
   try {
-    const docRef = doc(db, 'users', uid);
-    await setDoc(docRef, { 
+    return await updateProfile(uid, {
       merchantStatus: 'approved',
       onboardingComplete: true,
       ...details
-    }, { merge: true });
-    return true;
+    });
   } catch (error: any) {
     console.error('Error applying for merchant role:', error);
     throw new Error(error.message || 'Failed to apply for merchant role');

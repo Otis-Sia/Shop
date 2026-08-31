@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore/lite';
+export type TimestampType = string | Date | { seconds: number; nanoseconds: number };
 
 // User Roles
 export type UserRole = "customer" | "admin" | "merchant";
@@ -12,10 +12,10 @@ export interface CategoryNode {
 export interface SystemCategory {
   id?: string;
   name: string;
-  type: 'goods' | 'services';
+
   categories: CategoryNode[];
-  createdAt?: Timestamp | Date;
-  updatedAt?: Timestamp | Date;
+  createdAt?: TimestampType;
+  updatedAt?: TimestampType;
 }
 
 // 1. Users Collection
@@ -27,27 +27,10 @@ export interface UserDocument {
   username?: string;
   location?: string;
   phone?: string;
-  storeName?: string;
-  storeDescription?: string;
-  businessCategories?: string[];
-  businessType?: string;
-  offeringType?: 'goods' | 'services' | 'both';
-  industry?: string;
-  storeContactEmail?: string;
-  storeContactPhone?: string;
-  socialMediaLinks?: {
-    instagram?: string;
-    twitter?: string;
-    facebook?: string;
-    website?: string;
-  };
-  logoUrl?: string;
-  bannerUrl?: string;
   onboardingComplete?: boolean;
   role: UserRole;
-  merchantStatus?: 'pending' | 'approved' | 'rejected' | 'verified';
-  createdAt: Timestamp | Date;
-  updatedAt: Timestamp | Date;
+  createdAt: TimestampType;
+  updatedAt: TimestampType;
 }
 
 export interface ProductVariant {
@@ -58,8 +41,8 @@ export interface ProductVariant {
   price: number;
   stock: number | null;
   imageUrl?: string;
-  createdAt?: Timestamp | Date;
-  updatedAt?: Timestamp | Date;
+  createdAt?: TimestampType;
+  updatedAt?: TimestampType;
 }
 
 // 2. Cart Item Subcollection (Under Users)
@@ -69,23 +52,23 @@ export interface CartItem {
   quantity: number;
   selectedColor?: string;
   selectedSize?: string;
-  addedAt: Timestamp | Date;
+  addedAt: TimestampType;
 }
 
 // 3. Products Collection
 // Path: products/{productId}
 export interface Product {
   id?: string; // ID is usually the document ID
-  merchantId: string; // The ID of the merchant who owns this product
-  itemType?: 'goods' | 'service';
+  adminId: string; // The ID of the admin who created this product
+
   name: string;
   shortDescription?: string;
   description: string;
   sku?: string;
   price: number;
   salePrice?: number;
-  saleStartDate?: Timestamp | Date | null;
-  saleEndDate?: Timestamp | Date | null;
+  saleStartDate?: TimestampType | null;
+  saleEndDate?: TimestampType | null;
   discount?: number;
   brand?: string;
   currency: string; // e.g., 'USD'
@@ -106,9 +89,9 @@ export interface Product {
   sizes?: string[];
   hasVariants?: boolean;
   variants?: ProductVariant[];
-  duration?: number; // Duration of the service in minutes
-  createdAt: Timestamp | Date;
-  updatedAt: Timestamp | Date;
+
+  createdAt: TimestampType;
+  updatedAt: TimestampType;
 }
 
 // Order Status Types
@@ -126,7 +109,7 @@ export interface ShippingInformation {
   method: string;
   cost: number;
   trackingNumber?: string;
-  estimatedDelivery?: Timestamp | Date;
+  estimatedDelivery?: TimestampType;
 }
 
 export interface ContactInformation {
@@ -154,7 +137,7 @@ export interface OrderItem {
 export interface Order {
   id?: string; // Document ID
   userId: string;
-  merchantId: string; // The ID of the merchant this order belongs to
+  adminId?: string; // The ID of the admin who handled this order
   cartId?: string;
   checkoutId?: string;
   status: OrderStatus;
@@ -163,8 +146,8 @@ export interface Order {
   shippingAddress: ShippingAddress;
   shippingInformation?: ShippingInformation;
   items: OrderItem[];
-  createdAt: Timestamp | Date;
-  updatedAt: Timestamp | Date;
+  createdAt: TimestampType;
+  updatedAt: TimestampType;
 }
 
 // 5. Cart Collection
@@ -174,8 +157,8 @@ export interface Cart {
   userId: string;
   items: CartItem[];
   totalAmount: number;
-  createdAt: Timestamp | Date;
-  updatedAt: Timestamp | Date;
+  createdAt: TimestampType;
+  updatedAt: TimestampType;
 }
 
 // 6. Checkout Collection
@@ -189,31 +172,49 @@ export interface Checkout {
   shippingInformation?: ShippingInformation;
   status: "pending" | "processing" | "completed" | "failed";
   totalAmount: number;
-  createdAt: Timestamp | Date;
-  updatedAt: Timestamp | Date;
+  createdAt: TimestampType;
+  updatedAt: TimestampType;
 }
 
 // 7. Draft Collection
-// Path: drafts/{merchantId}
+// Path: drafts/{adminId}
 export interface Draft {
-  id?: string; // Document ID (corresponds to merchantId)
-  merchantId: string;
+  id?: string; // Document ID (corresponds to adminId)
+  adminId: string;
   editForm: any;
   isAdding: boolean;
   editingId: number | null;
   isQuickAdd: boolean;
-  updatedAt: Timestamp | Date;
+  updatedAt: TimestampType;
 }
 
 // 8. ProductTemplate Collection
 // Path: templates/{templateId}
 export interface ProductTemplate {
   id?: string; // Document ID
-  merchantId: string;
+  adminId: string;
   name: string;
   data: any;
-  createdAt: Timestamp | Date;
-  updatedAt: Timestamp | Date;
+  createdAt: TimestampType;
+  updatedAt: TimestampType;
+}
+
+// 9. StoreSettings Collection
+// Path: settings/store
+export interface StoreSettings {
+  storeName?: string;
+  storeDescription?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  socialMediaLinks?: {
+    instagram?: string;
+    twitter?: string;
+    facebook?: string;
+    website?: string;
+  };
+  contactEmail?: string;
+  contactPhone?: string;
+  updatedAt: TimestampType;
 }
 
 // Cloud Storage Paths reference:

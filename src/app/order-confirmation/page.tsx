@@ -3,17 +3,21 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { doc, getDoc } from 'firebase/firestore/lite';
-import { db } from '@/lib/firebase';
 import { Order } from '@/types/schema';
 import Icon from '@/components/Icon';
-import { Timestamp } from 'firebase/firestore/lite';
 import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 
-function formatDate(date: Timestamp | Date | undefined): string {
+function formatDate(date: any): string {
   if (!date) return '—';
-  const d = date instanceof Timestamp ? date.toDate() : new Date(date as unknown as string);
-  return d.toLocaleDateString('en-KE', {
+  if (typeof date === 'object' && 'seconds' in date) {
+    return new Date(date.seconds * 1000).toLocaleDateString('en-KE', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+  const d = new Date(date);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-KE', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -57,10 +61,14 @@ function OrderConfirmationContent() {
 
     const fetchOrder = async () => {
       try {
-        const docRef = doc(db, 'orders', orderId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setOrder({ ...(docSnap.data() as Order), id: docSnap.id });
+        const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.order) {
+            setOrder(data.order);
+          } else {
+            setError(true);
+          }
         } else {
           setError(true);
         }

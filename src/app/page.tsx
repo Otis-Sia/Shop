@@ -5,8 +5,7 @@ import { useState, useEffect } from 'react';
 import Icon from '@/components/Icon';
 import Countdown from '@/components/Countdown';
 import { STORE_CONFIG } from '@/lib/config/store';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, getCount } from 'firebase/firestore/lite';
+import { getProducts } from '@/lib/api/products';
 
 export default function HomePage() {
   const [email, setEmail] = useState('');
@@ -16,12 +15,12 @@ export default function HomePage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const prodCount = await getCount(collection(db, 'products'));
+        const prods = await getProducts();
         const roundToNext100 = (num: number) => Math.ceil(num / 100) * 100;
         
         setStats(prev => ({
           ...prev,
-          products: `${roundToNext100(prodCount.data().count || 0)}+`,
+          products: `${roundToNext100(prods.length || 0)}+`,
         }));
       } catch (err) {
         // Ignore stats fetch failure silently
@@ -34,13 +33,16 @@ export default function HomePage() {
     e.preventDefault();
     if (email) {
       try {
-        await addDoc(collection(db, 'subscribers'), {
-          email,
-          createdAt: new Date()
+        const res = await fetch('/api/subscribers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
         });
-        setSubscribed(true);
-        setEmail('');
-        setTimeout(() => setSubscribed(false), 3000);
+        if (res.ok) {
+          setSubscribed(true);
+          setEmail('');
+          setTimeout(() => setSubscribed(false), 3000);
+        }
       } catch (err) {
         console.error("Failed to subscribe", err);
       }

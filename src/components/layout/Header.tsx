@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { subscribeToAuthChanges, logout } from '@/lib/api/auth';
+import { subscribeToAuthChanges, logout, getUserProfile } from '@/lib/api/auth';
 import { getCart } from '@/lib/api/cart';
 import { getWishlistCount } from '@/lib/api/wishlist';
 import Icon from '@/components/Icon';
@@ -29,11 +29,9 @@ export default function Header() {
       if (user) {
         let role = 'customer';
         try {
-          const { doc, getDoc } = await import('firebase/firestore/lite');
-          const { db } = await import('@/lib/firebase');
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            role = userDoc.data().role || 'customer';
+          const profile = await getUserProfile(user.uid);
+          if (profile?.role) {
+            role = profile.role;
           }
         } catch (e) {
           console.error("Error fetching user role for header:", e);
@@ -158,17 +156,9 @@ export default function Header() {
           <Link href="/products?filter=new-arrivals" className="text-on-surface font-semibold hover:text-primary-container transition-colors duration-200">
             New Arrivals
           </Link>
-          <Link href="/services" className="text-on-surface font-semibold hover:text-primary-container transition-colors duration-200">
-            Services
-          </Link>
           {user?.role === 'admin' && (
             <Link href="/admin" className="text-primary-container font-extrabold hover:underline transition-all duration-200">
               Admin Panel
-            </Link>
-          )}
-          {user?.role === 'merchant' && (
-            <Link href="/merchant" className="text-primary-container font-extrabold hover:underline transition-all duration-200">
-              Merchant Hub
             </Link>
           )}
         </div>
@@ -216,9 +206,6 @@ export default function Header() {
                   <div className="bg-surface border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] flex flex-col py-2">
                     <button onClick={() => setIsProfileModalOpen(true)} className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container">Profile</button>
                     <Link href="/orders" className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container">My Orders</Link>
-                    {user?.role === 'merchant' && (
-                      <Link href="/merchant" className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container text-primary-container">Merchant Hub</Link>
-                    )}
                     {user?.role === 'admin' && (
                       <Link href="/admin" className="px-4 py-2 text-left font-bold text-xs uppercase tracking-wider hover:bg-surface-container text-primary-container">Admin Panel</Link>
                     )}
@@ -261,9 +248,6 @@ export default function Header() {
           </Link>
           <Link href="/products?filter=new-arrivals" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-lg border-b-2 border-surface-container pb-2">
             New Arrivals
-          </Link>
-          <Link href="/services" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-lg border-b-2 border-surface-container pb-2">
-            Services
           </Link>
           
           {user ? (

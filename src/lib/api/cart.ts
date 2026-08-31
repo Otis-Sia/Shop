@@ -1,8 +1,7 @@
 import { getProduct } from './products';
 import { getUserProfile } from './auth';
 import { Product } from '@/lib/data/products-data';
-import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDocs, getDoc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore/lite';
+import { auth } from '@/lib/firebase';
 import { canAddToCartRole } from '@/lib/access';
 
 export interface CartItem {
@@ -46,7 +45,6 @@ export const getCart = async (): Promise<Cart> => {
   
   if (!user) {
     const items = getLocalCart();
-    // Resolve products for local items to have complete data
     const populatedItems: CartItem[] = [];
     for (const item of items) {
       const product = await getProduct(item.product_id);
@@ -58,28 +56,20 @@ export const getCart = async (): Promise<Cart> => {
   }
 
   try {
-    const cartRef = collection(db, 'users', user.uid, 'cart');
-    const snapshot = await getDocs(cartRef);
-    const items: CartItem[] = [];
-    
-    for (const docSnap of snapshot.docs) {
-      const data = docSnap.data();
-      const product = await getProduct(data.productId);
-      if (product) {
-        items.push({
-          id: docSnap.id,
-          product_id: data.productId,
-          quantity: data.quantity,
-          selectedColor: data.selectedColor,
-          selectedSize: data.selectedSize,
-          selectedVariantIndex: data.selectedVariantIndex,
-          Product: product
-        });
+    const token = await user.getIdToken();
+    const res = await fetch('/api/cart', {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return { CartItems: data.CartItems || [] };
     }
-    return { CartItems: items };
+    return { CartItems: [] };
   } catch (error) {
-    console.error('Error fetching cart from Firestore:', error);
+    console.error('Error fetching cart from backend:', error);
     return { CartItems: [] };
   }
 };
@@ -112,32 +102,25 @@ export const addToCart = async (productId: number | string, quantity = 1, select
   }
 
   try {
-    const colorPart = selectedColor ? `_${selectedColor.replace(/[^a-zA-Z0-9]/g, '')}` : '';
-    const sizePart = selectedSize ? `_${selectedSize.replace(/[^a-zA-Z0-9]/g, '')}` : '';
-    const variantPart = selectedVariantIndex !== undefined && selectedVariantIndex !== null ? `_v${selectedVariantIndex}` : '';
-    const cartDocId = `${productId}${colorPart}${sizePart}${variantPart}`;
-    const cartDocRef = doc(db, 'users', user.uid, 'cart', cartDocId);
-    const docSnap = await getDoc(cartDocRef);
+    const token = await user.getIdToken();
+    const res = await fetch('/api/cart', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        productId,
+        quantity,
+        selectedColor,
+        selectedSize,
+        selectedVariantIndex
+      })
+    });
 
-    if (docSnap.exists()) {
-      const existingData = docSnap.data();
-      await setDoc(cartDocRef, {
-        productId: productId.toString(),
-        quantity: existingData.quantity + quantity,
-        selectedColor: selectedColor || null,
-        selectedSize: selectedSize || null,
-        selectedVariantIndex: selectedVariantIndex !== undefined ? selectedVariantIndex : null,
-        addedAt: Timestamp.now()
-      }, { merge: true });
-    } else {
-      await setDoc(cartDocRef, {
-        productId: productId.toString(),
-        quantity: quantity,
-        selectedColor: selectedColor || null,
-        selectedSize: selectedSize || null,
-        selectedVariantIndex: selectedVariantIndex !== undefined ? selectedVariantIndex : null,
-        addedAt: Timestamp.now()
-      });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to add item to cart');
     }
 
     dispatchCartUpdate();
@@ -159,7 +142,19 @@ export const removeFromCart = async (cartItemId: number | string) => {
   }
 
   try {
-    await deleteDoc(doc(db, 'users', user.uid, 'cart', cartItemId.toString()));
+    const token = await user.getIdToken();
+    const res = await fetch(`/api/cart?id=${encodeURIComponent(cartItemId)}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to remove item');
+    }
+
     dispatchCartUpdate();
     return { message: 'Item removed from cloud cart' };
   } catch (error) {
@@ -182,9 +177,24 @@ export const updateCartItem = async (cartItemId: number | string, quantity: numb
   }
 
   try {
-    await setDoc(doc(db, 'users', user.uid, 'cart', cartItemId.toString()), {
-      quantity: quantity
-    }, { merge: true });
+    const token = await user.getIdToken();
+    const res = await fetch('/api/cart', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        id: cartItemId,
+        quantity
+      })
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to update item');
+    }
+
     dispatchCartUpdate();
     return { message: 'Cloud cart updated' };
   } catch (error) {
@@ -205,10 +215,13 @@ export const clearCart = async () => {
   }
 
   try {
-    const cartRef = collection(db, 'users', user.uid, 'cart');
-    const snapshot = await getDocs(cartRef);
-    const deletePromises = snapshot.docs.map(docSnap => deleteDoc(docSnap.ref));
-    await Promise.all(deletePromises);
+    const token = await user.getIdToken();
+    await fetch('/api/cart?clear=true', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     dispatchCartUpdate();
   } catch (error) {
     console.error('Error clearing cloud cart:', error);
@@ -216,46 +229,42 @@ export const clearCart = async () => {
 };
 
 export const syncLocalCartToFirestore = async (userId: string) => {
+  return syncLocalCartToBackend(userId);
+};
+
+export const syncLocalCartToBackend = async (userId: string) => {
   const localItems = getLocalCart();
   if (localItems.length === 0) return;
 
   try {
-    for (const item of localItems) {
-      const colorPart = item.selectedColor ? `_${item.selectedColor.replace(/[^a-zA-Z0-9]/g, '')}` : '';
-      const sizePart = item.selectedSize ? `_${item.selectedSize.replace(/[^a-zA-Z0-9]/g, '')}` : '';
-      const variantPart = item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null ? `_v${item.selectedVariantIndex}` : '';
-      const cartDocId = `${item.product_id}${colorPart}${sizePart}${variantPart}`;
-      const cartDocRef = doc(db, 'users', userId, 'cart', cartDocId);
-      const docSnap = await getDoc(cartDocRef);
+    const user = auth.currentUser;
+    if (!user) return;
 
-      if (docSnap.exists()) {
-        const existingData = docSnap.data();
-        await setDoc(cartDocRef, {
-          productId: item.product_id.toString(),
-          quantity: existingData.quantity + item.quantity,
-          selectedColor: item.selectedColor || null,
-          selectedSize: item.selectedSize || null,
-          selectedVariantIndex: item.selectedVariantIndex !== undefined ? item.selectedVariantIndex : null,
-          updatedAt: Timestamp.now()
-        }, { merge: true });
-      } else {
-        await setDoc(cartDocRef, {
-          productId: item.product_id.toString(),
-          quantity: item.quantity,
-          selectedColor: item.selectedColor || null,
-          selectedSize: item.selectedSize || null,
-          selectedVariantIndex: item.selectedVariantIndex !== undefined ? item.selectedVariantIndex : null,
-          addedAt: Timestamp.now()
-        });
+    const token = await user.getIdToken();
+    const syncItems = localItems.map(item => ({
+      product_id: item.product_id,
+      quantity: item.quantity,
+      selectedColor: item.selectedColor,
+      selectedSize: item.selectedSize,
+      selectedVariantIndex: item.selectedVariantIndex
+    }));
+
+    const res = await fetch('/api/cart', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ syncItems })
+    });
+
+    if (res.ok) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(CART_STORAGE_KEY);
+        dispatchCartUpdate();
       }
     }
-    // Clear local storage after successful sync
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(CART_STORAGE_KEY);
-      dispatchCartUpdate();
-    }
-    console.log("Local cart synced to Firestore successfully.");
   } catch (error) {
-    console.error("Error syncing local cart to Firestore:", error);
+    console.error("Error syncing local cart to backend:", error);
   }
 };

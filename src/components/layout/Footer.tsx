@@ -5,8 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Icon from '@/components/Icon';
 import { STORE_CONFIG } from '@/lib/config/store';
-import { db } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore/lite';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
@@ -16,13 +14,16 @@ export default function Footer() {
     e.preventDefault();
     if (email) {
       try {
-        await addDoc(collection(db, 'subscribers'), {
-          email,
-          createdAt: new Date()
+        const res = await fetch('/api/subscribers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
         });
-        setSubscribed(true);
-        setEmail('');
-        setTimeout(() => setSubscribed(false), 3000);
+        if (res.ok) {
+          setSubscribed(true);
+          setEmail('');
+          setTimeout(() => setSubscribed(false), 3000);
+        }
       } catch (err) {
         console.error("Failed to subscribe", err);
       }
@@ -46,7 +47,7 @@ export default function Footer() {
               <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={40} className="w-auto h-7 invert hue-rotate-180" />
             </div>
             <p className="text-sm font-medium text-white/60 leading-relaxed max-w-xs">
-              Your premium marketplace for quality products and expert services. Built for the modern shopper who demands the best.
+              Your premium marketplace for quality products. Built for the modern shopper who demands the best.
             </p>
 
             {/* Social Links */}
@@ -77,7 +78,6 @@ export default function Footer() {
               {[
                 { label: 'All Products', href: '/products' },
                 { label: 'New Arrivals', href: '/products?filter=new-arrivals' },
-                { label: 'Services', href: '/services' },
                 { label: 'My Wishlist', href: '/wishlist' },
                 { label: 'My Cart', href: '/cart' },
               ].map(link => (

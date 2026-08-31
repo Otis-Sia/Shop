@@ -1,15 +1,15 @@
-import { collection, doc, getDocs, setDoc, deleteDoc, updateDoc, query, where } from 'firebase/firestore/lite';
-import { db } from '../firebase';
 import { SystemCategory } from '@/types/schema';
+import { auth } from '@/lib/firebase';
 import { CATEGORIES_DATA } from '../data/categories';
-
-const COLLECTION_NAME = 'categories';
 
 export const getSystemCategories = async (): Promise<SystemCategory[]> => {
   try {
-    const q = collection(db, COLLECTION_NAME);
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SystemCategory));
+    const res = await fetch('/api/categories');
+    if (res.ok) {
+      const data = await res.json();
+      return (data.categories || []) as SystemCategory[];
+    }
+    return [];
   } catch (error) {
     console.error('Error fetching categories:', error);
     return [];
@@ -18,9 +18,25 @@ export const getSystemCategories = async (): Promise<SystemCategory[]> => {
 
 export const createSystemCategory = async (category: Omit<SystemCategory, 'id'>): Promise<string> => {
   try {
-    const docRef = doc(collection(db, COLLECTION_NAME));
-    await setDoc(docRef, { ...category, createdAt: new Date().toISOString() });
-    return docRef.id;
+    const user = auth.currentUser;
+    const token = user ? await user.getIdToken() : null;
+
+    const res = await fetch('/api/categories', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(category)
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create category');
+    }
+
+    const data = await res.json();
+    return data.category.id;
   } catch (error) {
     console.error('Error creating category:', error);
     throw error;
@@ -29,8 +45,22 @@ export const createSystemCategory = async (category: Omit<SystemCategory, 'id'>)
 
 export const updateSystemCategory = async (id: string, updates: Partial<SystemCategory>): Promise<void> => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    await updateDoc(docRef, { ...updates, updatedAt: new Date().toISOString() });
+    const user = auth.currentUser;
+    const token = user ? await user.getIdToken() : null;
+
+    const res = await fetch('/api/categories', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ id, ...updates })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update category');
+    }
   } catch (error) {
     console.error('Error updating category:', error);
     throw error;
@@ -39,8 +69,20 @@ export const updateSystemCategory = async (id: string, updates: Partial<SystemCa
 
 export const deleteSystemCategory = async (id: string): Promise<void> => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    await deleteDoc(docRef);
+    const user = auth.currentUser;
+    const token = user ? await user.getIdToken() : null;
+
+    const res = await fetch(`/api/categories?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete category');
+    }
   } catch (error) {
     console.error('Error deleting category:', error);
     throw error;
@@ -51,25 +93,15 @@ export const deleteSystemCategory = async (id: string): Promise<void> => {
 export const seedCategories = async (): Promise<void> => {
   const existing = await getSystemCategories();
   if (existing.length > 0) {
-    console.log('Categories already seeded.');
     return;
   }
 
-  console.log('Seeding categories from local data...');
   for (const group of CATEGORIES_DATA.goods) {
     await createSystemCategory({
       name: group.name,
-      type: 'goods',
+
       categories: group.categories
     });
   }
 
-  for (const group of CATEGORIES_DATA.services) {
-    await createSystemCategory({
-      name: group.name,
-      type: 'services',
-      categories: group.categories
-    });
-  }
-  console.log('Finished seeding categories.');
 };

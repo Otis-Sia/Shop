@@ -675,23 +675,7 @@ function ProductsPageContent() {
                         {product.description || `Premium quality ${product.category?.toLowerCase() || 'item'} for sale.`}
                       </p>
 
-                      {/* Merchant Info */}
-                      <Link href={`/store/${product.merchantId || 'admin'}`} className="mt-3 flex items-start gap-2 bg-surface-container-lowest p-2 border border-surface-dim rounded hover:border-primary-container hover:shadow-sm transition-all group">
-                        <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs shrink-0 uppercase">
-                          {product.merchantName ? product.merchantName.substring(0,2) : 'JU'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] font-bold text-on-surface truncate flex items-center gap-1">
-                            {product.merchantName || 'JUJ4 Official Store'}
-                            {product.merchantStatus === 'verified' && (
-                              <Icon name="verified" className="text-[14px] text-blue-500" />
-                            )}
-                          </p>
-                          <p className="text-[9px] text-secondary line-clamp-1">
-                            {product.merchantInfo || 'Verified premium merchant with 100% positive feedback.'}
-                          </p>
-                        </div>
-                      </Link>
+
                       
                       <div className="mt-4 pt-4 border-t border-surface-container-low flex items-center justify-between gap-2">
                         <div className="flex-1">

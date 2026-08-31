@@ -1,15 +1,4 @@
-import { auth, db } from '@/lib/firebase';
-import {
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  where,
-  Timestamp,
-  doc,
-  deleteDoc,
-} from 'firebase/firestore/lite';
+import { auth } from '@/lib/firebase';
 
 export interface Review {
   id?: string;
@@ -17,7 +6,7 @@ export interface Review {
   userName: string;
   rating: number; // 1-5
   comment: string;
-  createdAt: Timestamp | Date;
+  createdAt: string | Date;
 }
 
 export interface ReviewStats {
@@ -30,19 +19,21 @@ export interface ReviewStats {
  * Fetches all reviews for a product, sorted by newest first.
  */
 export async function getProductReviews(productId: string | number): Promise<Review[]> {
-  const reviewsRef = collection(db, 'products', String(productId), 'reviews');
-  const q = query(reviewsRef, orderBy('createdAt', 'desc'));
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Review[];
+  try {
+    const res = await fetch(`/api/reviews?productId=${encodeURIComponent(String(productId))}`);
+    if (res.ok) {
+      const data = await res.json();
+      return (data.reviews || []) as Review[];
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    return [];
+  }
 }
 
 /**
  * Adds a review for a product. Requires authentication.
- * Enforces one review per user per product.
  */
 export async function addReview(
   productId: string | number,
@@ -54,28 +45,27 @@ export async function addReview(
     throw new Error('You must be logged in to write a review.');
   }
 
-  // Enforce one review per user per product
-  const alreadyReviewed = await hasUserReviewed(productId);
-  if (alreadyReviewed) {
-    throw new Error('You have already reviewed this product.');
+  const token = await user.getIdToken();
+  const res = await fetch('/api/reviews', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      productId: String(productId),
+      rating,
+      comment
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to submit review');
   }
 
-  const reviewsRef = collection(db, 'products', String(productId), 'reviews');
-
-  const reviewData: Omit<Review, 'id'> = {
-    userId: user.uid,
-    userName: user.displayName || user.email || 'Anonymous',
-    rating,
-    comment,
-    createdAt: Timestamp.now(),
-  };
-
-  const docRef = await addDoc(reviewsRef, reviewData);
-
-  return {
-    id: docRef.id,
-    ...reviewData,
-  };
+  const data = await res.json();
+  return data.review as Review;
 }
 
 /**
@@ -109,7 +99,7 @@ export async function getReviewStats(productId: string | number): Promise<Review
 }
 
 /**
- * Deletes a review. Only the review author can delete their own review.
+ * Deletes a review. Only the review author or admin can delete.
  */
 export async function deleteReview(
   productId: string | number,
@@ -120,8 +110,18 @@ export async function deleteReview(
     throw new Error('You must be logged in to delete a review.');
   }
 
-  const reviewRef = doc(db, 'products', String(productId), 'reviews', reviewId);
-  await deleteDoc(reviewRef);
+  const token = await user.getIdToken();
+  const res = await fetch(`/api/reviews?id=${encodeURIComponent(reviewId)}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to delete review');
+  }
 }
 
 /**
@@ -131,9 +131,6 @@ export async function hasUserReviewed(productId: string | number): Promise<boole
   const user = auth.currentUser;
   if (!user) return false;
 
-  const reviewsRef = collection(db, 'products', String(productId), 'reviews');
-  const q = query(reviewsRef, where('userId', '==', user.uid));
-  const snapshot = await getDocs(q);
-
-  return !snapshot.empty;
+  const reviews = await getProductReviews(productId);
+  return reviews.some(r => r.userId === user.uid);
 }

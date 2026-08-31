@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
-import { collection, addDoc, Timestamp } from 'firebase/firestore/lite';
-import { db } from '@/lib/firebase';
 import { STORE_CONFIG } from '@/lib/config/store';
 
 export default function ContactPage() {
@@ -26,10 +24,12 @@ export default function ContactPage() {
     
     setStatus('submitting');
     try {
-      await addDoc(collection(db, 'contact_messages'), {
-        ...formData,
-        createdAt: Timestamp.now()
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
       });
+      if (!res.ok) throw new Error('Failed to send message');
       setStatus('success');
       setFormData({ name: '', email: '', subject: 'General Inquiry', message: '' });
     } catch (err) {

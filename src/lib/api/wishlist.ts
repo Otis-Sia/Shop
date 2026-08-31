@@ -1,12 +1,10 @@
-import { auth, db } from '@/lib/firebase';
-import { collection, doc, setDoc, deleteDoc, getDocs, getDoc, Timestamp } from 'firebase/firestore/lite';
+import { auth } from '@/lib/firebase';
 import { getProduct } from './products';
 import { Product } from '@/lib/data/products-data';
 
 const WISHLIST_STORAGE_KEY = 'shop_wishlist_local';
 
-// ── LOCAL STORAGE HELPERS ──────────────────────────────────────────
-
+// LOCAL STORAGE HELPERS
 const getLocalWishlist = (): string[] => {
   if (typeof window === 'undefined') return [];
   const data = localStorage.getItem(WISHLIST_STORAGE_KEY);
@@ -26,11 +24,6 @@ const dispatchWishlistUpdate = () => {
   }
 };
 
-// ── PUBLIC API ─────────────────────────────────────────────────────
-
-/**
- * Get all wishlisted products, resolved with full Product data.
- */
 export const getWishlist = async (): Promise<Product[]> => {
   const user = auth.currentUser;
 
@@ -42,36 +35,31 @@ export const getWishlist = async (): Promise<Product[]> => {
         const product = await getProduct(id);
         if (product) products.push(product);
       } catch {
-        // Product may have been deleted — skip silently
+        // Skip deleted product
       }
     }
     return products;
   }
 
   try {
-    const wishlistRef = collection(db, 'users', user.uid, 'wishlist');
-    const snapshot = await getDocs(wishlistRef);
-    const products: Product[] = [];
-
-    for (const docSnap of snapshot.docs) {
-      try {
-        const data = docSnap.data();
-        const product = await getProduct(data.productId);
-        if (product) products.push(product);
-      } catch {
-        // Product may have been deleted — skip silently
+    const token = await user.getIdToken();
+    const res = await fetch('/api/wishlist', {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return (data.items || []).map((i: any) => i.product).filter(Boolean) as Product[];
     }
-    return products;
+    return [];
   } catch (error) {
-    console.error('Error fetching wishlist from Firestore:', error);
+    console.error('Error fetching wishlist:', error);
     return [];
   }
 };
 
-/**
- * Add a product to the wishlist.
- */
 export const addToWishlist = async (productId: number | string): Promise<void> => {
   const id = productId.toString();
   const user = auth.currentUser;
@@ -86,11 +74,21 @@ export const addToWishlist = async (productId: number | string): Promise<void> =
   }
 
   try {
-    const wishlistDocRef = doc(db, 'users', user.uid, 'wishlist', id);
-    await setDoc(wishlistDocRef, {
-      productId: id,
-      addedAt: Timestamp.now(),
+    const token = await user.getIdToken();
+    const res = await fetch('/api/wishlist', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ productId: id })
     });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to add to wishlist');
+    }
+
     dispatchWishlistUpdate();
   } catch (error) {
     console.error('Error adding to wishlist:', error);
@@ -98,9 +96,6 @@ export const addToWishlist = async (productId: number | string): Promise<void> =
   }
 };
 
-/**
- * Remove a product from the wishlist.
- */
 export const removeFromWishlist = async (productId: number | string): Promise<void> => {
   const id = productId.toString();
   const user = auth.currentUser;
@@ -113,7 +108,19 @@ export const removeFromWishlist = async (productId: number | string): Promise<vo
   }
 
   try {
-    await deleteDoc(doc(db, 'users', user.uid, 'wishlist', id));
+    const token = await user.getIdToken();
+    const res = await fetch(`/api/wishlist?productId=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to remove from wishlist');
+    }
+
     dispatchWishlistUpdate();
   } catch (error) {
     console.error('Error removing from wishlist:', error);
@@ -121,9 +128,6 @@ export const removeFromWishlist = async (productId: number | string): Promise<vo
   }
 };
 
-/**
- * Check whether a product is currently in the wishlist.
- */
 export const isInWishlist = async (productId: number | string): Promise<boolean> => {
   const id = productId.toString();
   const user = auth.currentUser;
@@ -133,18 +137,14 @@ export const isInWishlist = async (productId: number | string): Promise<boolean>
   }
 
   try {
-    const wishlistDocRef = doc(db, 'users', user.uid, 'wishlist', id);
-    const docSnap = await getDoc(wishlistDocRef);
-    return docSnap.exists();
+    const wishlist = await getWishlist();
+    return wishlist.some(p => p.id.toString() === id);
   } catch (error) {
     console.error('Error checking wishlist:', error);
     return false;
   }
 };
 
-/**
- * Get total count of wishlisted items.
- */
 export const getWishlistCount = async (): Promise<number> => {
   const user = auth.currentUser;
 
@@ -153,41 +153,44 @@ export const getWishlistCount = async (): Promise<number> => {
   }
 
   try {
-    const wishlistRef = collection(db, 'users', user.uid, 'wishlist');
-    const snapshot = await getDocs(wishlistRef);
-    return snapshot.size;
+    const wishlist = await getWishlist();
+    return wishlist.length;
   } catch (error) {
     console.error('Error getting wishlist count:', error);
     return 0;
   }
 };
 
-/**
- * Sync local wishlist to Firestore after login.
- */
 export const syncLocalWishlistToFirestore = async (userId: string): Promise<void> => {
+  return syncLocalWishlistToBackend(userId);
+};
+
+export const syncLocalWishlistToBackend = async (userId: string): Promise<void> => {
   const localIds = getLocalWishlist();
   if (localIds.length === 0) return;
 
   try {
-    for (const id of localIds) {
-      const wishlistDocRef = doc(db, 'users', userId, 'wishlist', id);
-      const docSnap = await getDoc(wishlistDocRef);
+    const user = auth.currentUser;
+    if (!user) return;
+    const token = await user.getIdToken();
 
-      if (!docSnap.exists()) {
-        await setDoc(wishlistDocRef, {
-          productId: id,
-          addedAt: Timestamp.now(),
-        });
+    const syncItems = localIds.map(id => ({ productId: id }));
+    const res = await fetch('/api/wishlist', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ syncItems })
+    });
+
+    if (res.ok) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(WISHLIST_STORAGE_KEY);
+        dispatchWishlistUpdate();
       }
     }
-    // Clear local storage after successful sync
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(WISHLIST_STORAGE_KEY);
-      dispatchWishlistUpdate();
-    }
-    console.log('Local wishlist synced to Firestore successfully.');
   } catch (error) {
-    console.error('Error syncing local wishlist to Firestore:', error);
+    console.error('Error syncing local wishlist to backend:', error);
   }
 };

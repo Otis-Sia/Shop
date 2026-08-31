@@ -188,7 +188,7 @@ export default function CheckoutPage() {
           name: item.Product?.name || 'Unknown',
           price: finalPrice,
           quantity: item.quantity,
-          merchantId: item.Product?.merchantId || 'admin',
+          adminId: item.Product?.adminId || 'admin',
           variantName: variantName || null,
           color: item.selectedColor || null,
           size: item.selectedSize || null,

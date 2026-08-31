@@ -1,17 +1,42 @@
--- PostgreSQL Database Schema representing the current Firebase structure
+-- ============================================================================
+-- SUPABASE POSTGRESQL DATABASE SCHEMA
+-- Compatible with Next.js + Supabase + Firebase Auth Architecture
+-- ============================================================================
 
--- Enum types
-CREATE TYPE user_role AS ENUM ('customer', 'admin', 'merchant');
-CREATE TYPE merchant_status AS ENUM ('pending', 'approved', 'rejected', 'verified');
-CREATE TYPE offering_type AS ENUM ('goods', 'services', 'both');
-CREATE TYPE order_status AS ENUM ('pending', 'paid', 'shipped', 'delivered', 'cancelled');
-CREATE TYPE checkout_status AS ENUM ('pending', 'processing', 'completed', 'failed');
+-- Extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Users Collection
-CREATE TABLE users (
+-- ============================================================================
+-- ENUM TYPES (Idempotent creation)
+-- ============================================================================
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+        CREATE TYPE user_role AS ENUM ('customer', 'admin', 'merchant');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'merchant_status') THEN
+        CREATE TYPE merchant_status AS ENUM ('pending', 'approved', 'rejected', 'verified');
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
+        CREATE TYPE order_status AS ENUM ('pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'checkout_status') THEN
+        CREATE TYPE checkout_status AS ENUM ('pending', 'processing', 'completed', 'failed');
+    END IF;
+END $$;
+
+-- ============================================================================
+-- TABLES DEFINITION
+-- ============================================================================
+
+-- 1. Users Table (Stores Firebase Auth user profiles & merchant metadata)
+CREATE TABLE IF NOT EXISTS users (
     uid VARCHAR(255) PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    display_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    display_name VARCHAR(255),
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
     username VARCHAR(255),
     location VARCHAR(255),
     phone VARCHAR(50),
@@ -19,11 +44,11 @@ CREATE TABLE users (
     store_description TEXT,
     business_categories TEXT[],
     business_type VARCHAR(100),
-    offering_type offering_type,
+
     industry VARCHAR(100),
     store_contact_email VARCHAR(255),
     store_contact_phone VARCHAR(50),
-    social_media_links JSONB,
+    social_media_links JSONB DEFAULT '{}'::jsonb,
     logo_url VARCHAR(255),
     banner_url VARCHAR(255),
     onboarding_complete BOOLEAN DEFAULT FALSE,
@@ -33,126 +58,128 @@ CREATE TABLE users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Products Collection
-CREATE TABLE products (
+-- 2. Products Table
+CREATE TABLE IF NOT EXISTS products (
     id VARCHAR(255) PRIMARY KEY,
-    merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid),
-    item_type VARCHAR(50),
+    merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+
     name VARCHAR(255) NOT NULL,
     short_description VARCHAR(500),
     description TEXT NOT NULL,
     sku VARCHAR(100),
-    price DECIMAL(10, 2) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     sale_price DECIMAL(10, 2),
     sale_start_date TIMESTAMP WITH TIME ZONE,
     sale_end_date TIMESTAMP WITH TIME ZONE,
     discount DECIMAL(10, 2),
     brand VARCHAR(100),
-    currency VARCHAR(10) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT 'XAF',
     track_inventory BOOLEAN DEFAULT FALSE,
-    stock INTEGER,
+    stock INTEGER DEFAULT 0,
     low_stock_alert BOOLEAN DEFAULT FALSE,
     allow_backorders BOOLEAN DEFAULT FALSE,
     group_category VARCHAR(100),
-    category VARCHAR(100) NOT NULL,
-    subcategories TEXT[],
-    image_urls TEXT[],
-    image_alt_texts JSONB,
+    category VARCHAR(100) NOT NULL DEFAULT 'General',
+    subcategories TEXT[] DEFAULT '{}'::text[],
+    image_urls TEXT[] DEFAULT '{}'::text[],
+    image_alt_texts JSONB DEFAULT '{}'::jsonb,
     allow_multiple_purchases BOOLEAN DEFAULT TRUE,
     video_url VARCHAR(255),
-    tags TEXT[],
-    labels TEXT[],
-    colors TEXT[],
-    sizes TEXT[],
+    tags TEXT[] DEFAULT '{}'::text[],
+    labels TEXT[] DEFAULT '{}'::text[],
+    colors TEXT[] DEFAULT '{}'::text[],
+    sizes TEXT[] DEFAULT '{}'::text[],
     has_variants BOOLEAN DEFAULT FALSE,
-    duration INTEGER, -- For services
+
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
--- Variants Subcollection (Under Products)
-CREATE TABLE product_variants (
+
+-- 3. Product Variants Table
+CREATE TABLE IF NOT EXISTS product_variants (
     id VARCHAR(255) PRIMARY KEY,
-    product_id VARCHAR(255) NOT NULL REFERENCES products(id),
+    product_id VARCHAR(255) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     size VARCHAR(100),
     color VARCHAR(100),
-    price DECIMAL(10, 2) NOT NULL,
-    stock INTEGER,
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    stock INTEGER DEFAULT 0,
     image_url VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Reviews Subcollection (Under Products)
-CREATE TABLE product_reviews (
+-- 4. Product Reviews Table
+CREATE TABLE IF NOT EXISTS product_reviews (
     id VARCHAR(255) PRIMARY KEY,
-    product_id VARCHAR(255) NOT NULL REFERENCES products(id),
-    user_id VARCHAR(255) NOT NULL REFERENCES users(uid),
-    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    product_id VARCHAR(255) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
     comment TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Cart Item Subcollection (Under Users)
-CREATE TABLE user_cart_items (
+-- 5. User Cart Items Table (Synced authenticated cart)
+CREATE TABLE IF NOT EXISTS user_cart_items (
     id VARCHAR(255) PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL REFERENCES users(uid),
-    product_id VARCHAR(255) NOT NULL REFERENCES products(id),
+    user_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+    product_id VARCHAR(255) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     quantity INTEGER NOT NULL DEFAULT 1,
     selected_color VARCHAR(100),
     selected_size VARCHAR(100),
+    selected_variant_index INTEGER,
     added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Wishlist Item Subcollection (Under Users)
-CREATE TABLE user_wishlist_items (
+-- 6. User Wishlist Items Table
+CREATE TABLE IF NOT EXISTS user_wishlist_items (
     id VARCHAR(255) PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL REFERENCES users(uid),
-    product_id VARCHAR(255) NOT NULL REFERENCES products(id),
+    user_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+    product_id VARCHAR(255) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Carts Collection
-CREATE TABLE carts (
+-- 7. Carts Table (Legacy / Session based carts)
+CREATE TABLE IF NOT EXISTS carts (
     id VARCHAR(255) PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL REFERENCES users(uid),
-    total_amount DECIMAL(10, 2) NOT NULL,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+    total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Checkouts Collection
-CREATE TABLE checkouts (
+-- 8. Checkouts Table
+CREATE TABLE IF NOT EXISTS checkouts (
     id VARCHAR(255) PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL REFERENCES users(uid),
-    cart_id VARCHAR(255) REFERENCES carts(id),
-    contact_information JSONB,
-    shipping_address JSONB,
-    shipping_information JSONB,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+    cart_id VARCHAR(255) REFERENCES carts(id) ON DELETE SET NULL,
+    contact_information JSONB DEFAULT '{}'::jsonb,
+    shipping_address JSONB DEFAULT '{}'::jsonb,
+    shipping_information JSONB DEFAULT '{}'::jsonb,
     status checkout_status NOT NULL DEFAULT 'pending',
-    total_amount DECIMAL(10, 2) NOT NULL,
+    total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Orders Collection
-CREATE TABLE orders (
+-- 9. Orders Table
+CREATE TABLE IF NOT EXISTS orders (
     id VARCHAR(255) PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL REFERENCES users(uid),
-    merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid),
+    user_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+    merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
     cart_id VARCHAR(255),
-    checkout_id VARCHAR(255) REFERENCES checkouts(id),
+    checkout_id VARCHAR(255),
     status order_status NOT NULL DEFAULT 'pending',
-    total_amount DECIMAL(10, 2) NOT NULL,
-    contact_information JSONB,
-    shipping_address JSONB NOT NULL,
-    shipping_information JSONB,
-    items JSONB NOT NULL, -- Storing array of OrderItem objects
+    total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    contact_information JSONB DEFAULT '{}'::jsonb,
+    shipping_address JSONB NOT NULL DEFAULT '{}'::jsonb,
+    shipping_information JSONB DEFAULT '{}'::jsonb,
+    items JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Contact Messages Collection
-CREATE TABLE contact_messages (
+-- 10. Contact Messages Table (Public contact & inquiry submissions)
+CREATE TABLE IF NOT EXISTS contact_messages (
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255),
     email VARCHAR(255),
@@ -160,42 +187,100 @@ CREATE TABLE contact_messages (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- System Categories Collection
-CREATE TABLE system_categories (
+-- 11. System Categories Table (Taxonomy & Navigation structure)
+CREATE TABLE IF NOT EXISTS system_categories (
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    type VARCHAR(50) CHECK (type IN ('goods', 'services')),
-    categories JSONB NOT NULL, -- Array of CategoryNode
+
+    categories JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Drafts Collection
-CREATE TABLE drafts (
+-- 12. Merchant Drafts Table
+CREATE TABLE IF NOT EXISTS drafts (
     id VARCHAR(255) PRIMARY KEY,
-    merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid),
-    edit_form JSONB,
-    is_adding BOOLEAN,
-    editing_id INTEGER,
-    is_quick_add BOOLEAN,
+    merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+    edit_form JSONB DEFAULT '{}'::jsonb,
+    is_adding BOOLEAN DEFAULT FALSE,
+    editing_id BIGINT,
+    is_quick_add BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Product Templates Collection
-CREATE TABLE product_templates (
+-- 13. Merchant Product Templates Table
+CREATE TABLE IF NOT EXISTS product_templates (
     id VARCHAR(255) PRIMARY KEY,
-    merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid),
+    merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    data JSONB,
+    data JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- ==========================================
--- ROW LEVEL SECURITY (RLS) POLICIES
--- ==========================================
+-- ============================================================================
+-- PERFORMANCE INDEXES (Idempotent creation)
+-- ============================================================================
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_products_merchant ON products(merchant_id);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 
--- Enable RLS on all tables
+CREATE INDEX IF NOT EXISTS idx_product_variants_product ON product_variants(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_product ON product_reviews(product_id);
+CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_merchant ON orders(merchant_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_user_cart_items_user ON user_cart_items(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_wishlist_items_user ON user_wishlist_items(user_id);
+CREATE INDEX IF NOT EXISTS idx_drafts_merchant ON drafts(merchant_id);
+CREATE INDEX IF NOT EXISTS idx_product_templates_merchant ON product_templates(merchant_id);
+
+-- ============================================================================
+-- AUTO-UPDATE TIMESTAMPS TRIGGER
+-- ============================================================================
+CREATE OR REPLACE FUNCTION update_modified_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$ BEGIN
+    DROP TRIGGER IF EXISTS update_users_modtime ON users;
+    CREATE TRIGGER update_users_modtime BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+    DROP TRIGGER IF EXISTS update_products_modtime ON products;
+    CREATE TRIGGER update_products_modtime BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+    DROP TRIGGER IF EXISTS update_product_variants_modtime ON product_variants;
+    CREATE TRIGGER update_product_variants_modtime BEFORE UPDATE ON product_variants FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+    DROP TRIGGER IF EXISTS update_carts_modtime ON carts;
+    CREATE TRIGGER update_carts_modtime BEFORE UPDATE ON carts FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+    DROP TRIGGER IF EXISTS update_checkouts_modtime ON checkouts;
+    CREATE TRIGGER update_checkouts_modtime BEFORE UPDATE ON checkouts FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+    DROP TRIGGER IF EXISTS update_orders_modtime ON orders;
+    CREATE TRIGGER update_orders_modtime BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+    DROP TRIGGER IF EXISTS update_system_categories_modtime ON system_categories;
+    CREATE TRIGGER update_system_categories_modtime BEFORE UPDATE ON system_categories FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+    DROP TRIGGER IF EXISTS update_drafts_modtime ON drafts;
+    CREATE TRIGGER update_drafts_modtime BEFORE UPDATE ON drafts FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+    DROP TRIGGER IF EXISTS update_product_templates_modtime ON product_templates;
+    CREATE TRIGGER update_product_templates_modtime BEFORE UPDATE ON product_templates FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+END $$;
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) & PUBLIC READ POLICIES
+-- ============================================================================
+
+-- Enable RLS across tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_variants ENABLE ROW LEVEL SECURITY;
@@ -210,219 +295,25 @@ ALTER TABLE system_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE drafts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_templates ENABLE ROW LEVEL SECURITY;
 
--- Assuming a function auth.uid() exists (e.g., Supabase) returning the current user's UUID/VARCHAR
+-- Public Read Policies (Allow frontend public anon clients to read catalog & categories)
+DO $$ BEGIN
+    DROP POLICY IF EXISTS "Public read access for products" ON products;
+    CREATE POLICY "Public read access for products" ON products FOR SELECT USING (true);
 
--- ------------------------------------------
--- 1. Users Collection
--- ------------------------------------------
--- Read: Users can read their own profile, admins can read all
-CREATE POLICY "Users can read own profile or admins can read all" ON users FOR SELECT
-USING (
-    auth.uid() = uid OR
-    (auth.jwt() ->> 'role') = 'admin'
-);
+    DROP POLICY IF EXISTS "Public read access for product variants" ON product_variants;
+    CREATE POLICY "Public read access for product variants" ON product_variants FOR SELECT USING (true);
 
--- Insert: Users can create their own profile, role defaults to customer
-CREATE POLICY "Users can insert own profile" ON users FOR INSERT
-WITH CHECK (
-    auth.uid() = uid AND
-    (role = 'customer' OR role IS NULL)
-);
+    DROP POLICY IF EXISTS "Public read access for product reviews" ON product_reviews;
+    CREATE POLICY "Public read access for product reviews" ON product_reviews FOR SELECT USING (true);
 
--- Update: Users can update their own profile, admins can update
--- Note: Column-level restrictions (e.g., preventing role change) require triggers.
-CREATE POLICY "Users can update own profile or admins can update" ON users FOR UPDATE
-USING (
-    auth.uid() = uid OR
-    (auth.jwt() ->> 'role') = 'admin'
-);
+    DROP POLICY IF EXISTS "Public read access for system categories" ON system_categories;
+    CREATE POLICY "Public read access for system categories" ON system_categories FOR SELECT USING (true);
 
--- Delete: Users can delete own profile or admins can delete
-CREATE POLICY "Users can delete own profile or admins can delete" ON users FOR DELETE
-USING (
-    auth.uid() = uid OR
-    (auth.jwt() ->> 'role') = 'admin'
-);
+    DROP POLICY IF EXISTS "Public insert access for contact messages" ON contact_messages;
+    CREATE POLICY "Public insert access for contact messages" ON contact_messages FOR INSERT WITH CHECK (true);
+END $$;
 
--- ------------------------------------------
--- 2. Products Collection
--- ------------------------------------------
--- Read: Anyone can read
-CREATE POLICY "Products are publicly readable" ON products FOR SELECT USING (true);
+-- Note: All authenticated mutations (checkout, order updates, merchant product creation, user profile updates)
+-- are executed server-side via Next.js Route Handlers using the Supabase Service Role Key after verifying the
+-- client's Firebase ID token. Service Role calls bypass RLS automatically.
 
--- Insert: Merchants can create their own products
-CREATE POLICY "Merchants can insert own products" ON products FOR INSERT
-WITH CHECK (
-    auth.uid() IS NOT NULL AND
-    (auth.jwt() ->> 'role') = 'merchant' AND
-    merchant_id = auth.uid() AND
-    price >= 0 AND
-    (stock IS NULL OR stock >= 0)
-);
-
--- Update: Merchants can update own products or admins can update
-CREATE POLICY "Merchants can update own products or admins update" ON products FOR UPDATE
-USING (
-    auth.uid() IS NOT NULL AND (
-        ( (auth.jwt() ->> 'role') = 'merchant' AND merchant_id = auth.uid() ) OR
-        ( (auth.jwt() ->> 'role') = 'admin' )
-    )
-);
-
--- Delete: Merchants can delete own products or admins delete
-CREATE POLICY "Merchants can delete own products or admins delete" ON products FOR DELETE
-USING (
-    auth.uid() IS NOT NULL AND (
-        ( (auth.jwt() ->> 'role') = 'merchant' AND merchant_id = auth.uid() ) OR
-        ( (auth.jwt() ->> 'role') = 'admin' )
-    )
-);
-
--- Product Variants
-CREATE OR REPLACE FUNCTION check_product_merchant(p_id VARCHAR)
-RETURNS VARCHAR AS $$
-  SELECT merchant_id FROM products WHERE id = p_id;
-$$ LANGUAGE sql SECURITY DEFINER;
-
-CREATE POLICY "Product variants are publicly readable" ON product_variants FOR SELECT USING (true);
-CREATE POLICY "Merchants can insert own product variants" ON product_variants FOR INSERT
-WITH CHECK (
-    auth.uid() IS NOT NULL AND
-    check_product_merchant(product_id) = auth.uid() AND
-    price >= 0 AND
-    (stock IS NULL OR stock >= 0)
-);
-CREATE POLICY "Merchants can update own product variants or admins" ON product_variants FOR UPDATE
-USING (
-    auth.uid() IS NOT NULL AND (
-        check_product_merchant(product_id) = auth.uid() OR
-        (auth.jwt() ->> 'role') = 'admin'
-    )
-);
-CREATE POLICY "Merchants can delete own product variants or admins" ON product_variants FOR DELETE
-USING (
-    auth.uid() IS NOT NULL AND (
-        check_product_merchant(product_id) = auth.uid() OR
-        (auth.jwt() ->> 'role') = 'admin'
-    )
-);
-
--- ------------------------------------------
--- 3. Product Reviews Collection
--- ------------------------------------------
--- Read: Anyone can read
-CREATE POLICY "Reviews are publicly readable" ON product_reviews FOR SELECT USING (true);
-
--- Insert: Authenticated users can review
-CREATE POLICY "Authenticated users can create reviews" ON product_reviews FOR INSERT
-WITH CHECK (
-    auth.uid() = user_id AND
-    rating >= 1 AND rating <= 5
-);
-
--- Delete: Users can delete own reviews
-CREATE POLICY "Users can delete own reviews" ON product_reviews FOR DELETE
-USING (auth.uid() = user_id);
-
--- ------------------------------------------
--- 4. Cart Items, Wishlist, Carts, Checkouts
--- ------------------------------------------
--- user_cart_items
-CREATE POLICY "Users manage own cart items" ON user_cart_items FOR ALL USING (auth.uid() = user_id);
-
--- user_wishlist_items
-CREATE POLICY "Users manage own wishlist items" ON user_wishlist_items FOR ALL USING (auth.uid() = user_id);
-
--- carts
-CREATE POLICY "Users manage own carts" ON carts FOR ALL USING (auth.uid() = user_id);
-
--- checkouts
-CREATE POLICY "Users manage own checkouts" ON checkouts FOR ALL USING (auth.uid() = user_id);
-
--- ------------------------------------------
--- 5. Orders
--- ------------------------------------------
--- Read: Users can read own orders, merchants read own, admins read all
-CREATE POLICY "Users read own orders, merchants read associated, admins read all" ON orders FOR SELECT
-USING (
-    auth.uid() = user_id OR
-    auth.uid() = merchant_id OR
-    (auth.jwt() ->> 'role') = 'admin'
-);
-
--- Insert: Users can create own orders
-CREATE POLICY "Users can insert own orders" ON orders FOR INSERT
-WITH CHECK (auth.uid() = user_id);
-
--- Update: Merchants can update own orders, admins update all
-CREATE POLICY "Merchants update associated orders, admins update all" ON orders FOR UPDATE
-USING (
-    auth.uid() = merchant_id OR
-    (auth.jwt() ->> 'role') = 'admin'
-);
-
--- Delete: Only admins can delete
-CREATE POLICY "Only admins can delete orders" ON orders FOR DELETE
-USING ((auth.jwt() ->> 'role') = 'admin');
-
--- ------------------------------------------
--- 6. Contact Messages
--- ------------------------------------------
--- Read: Only admins
-CREATE POLICY "Admins can read contact messages" ON contact_messages FOR SELECT
-USING ((auth.jwt() ->> 'role') = 'admin');
-
--- Insert: Anyone can insert
-CREATE POLICY "Anyone can insert contact messages" ON contact_messages FOR INSERT
-WITH CHECK (true);
-
--- ------------------------------------------
--- 7. System Categories
--- ------------------------------------------
--- Read: Anyone can read
-CREATE POLICY "System categories are publicly readable" ON system_categories FOR SELECT USING (true);
--- Write/Update/Delete: Admins only
-CREATE POLICY "Admins manage system categories" ON system_categories FOR ALL
-USING ((auth.jwt() ->> 'role') = 'admin');
-
--- ------------------------------------------
--- 8. Drafts
--- ------------------------------------------
-CREATE POLICY "Merchants manage own drafts" ON drafts FOR ALL USING (auth.uid() = merchant_id);
-
--- ------------------------------------------
--- 9. Product Templates
--- ------------------------------------------
-CREATE POLICY "Merchants manage own templates" ON product_templates FOR ALL USING (auth.uid() = merchant_id);
-
--- ==========================================
--- PERFORMANCE INDEXES
--- ==========================================
-CREATE INDEX idx_products_merchant ON products(merchant_id);
-CREATE INDEX idx_product_variants_product ON product_variants(product_id);
-CREATE INDEX idx_orders_user ON orders(user_id);
-CREATE INDEX idx_orders_merchant ON orders(merchant_id);
-CREATE INDEX idx_user_cart_items_user ON user_cart_items(user_id);
-CREATE INDEX idx_drafts_merchant ON drafts(merchant_id);
-CREATE INDEX idx_product_templates_merchant ON product_templates(merchant_id);
-
--- ==========================================
--- UPDATED_AT TRIGGERS
--- ==========================================
-CREATE OR REPLACE FUNCTION update_modified_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_users_modtime BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_products_modtime BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_product_variants_modtime BEFORE UPDATE ON product_variants FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_carts_modtime BEFORE UPDATE ON carts FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_checkouts_modtime BEFORE UPDATE ON checkouts FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_orders_modtime BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_system_categories_modtime BEFORE UPDATE ON system_categories FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_drafts_modtime BEFORE UPDATE ON drafts FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_product_templates_modtime BEFORE UPDATE ON product_templates FOR EACH ROW EXECUTE FUNCTION update_modified_column();

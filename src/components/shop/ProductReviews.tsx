@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { User as FirebaseUser } from 'firebase/auth';
-import { Timestamp } from 'firebase/firestore/lite';
 import { subscribeToAuthChanges, getUserProfile } from '@/lib/api/auth';
 import {
   getProductReviews,
@@ -75,8 +74,9 @@ function StarSelector({
   );
 }
 
-function formatDate(date: Timestamp | Date): string {
-  const d = date instanceof Timestamp ? date.toDate() : new Date(date as any);
+function formatDate(date: string | Date | undefined): string {
+  if (!date) return '—';
+  const d = new Date(date as unknown as string);
   return d.toLocaleDateString('en-KE', {
     year: 'numeric',
     month: 'short',
