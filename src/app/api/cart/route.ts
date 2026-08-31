@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyIdToken } from '@/lib/firebase-auth-edge';
 import { getServiceSupabase } from '@/lib/supabase/server';
-import { productsData } from '@/lib/data/products-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,14 +64,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const items = (cartRows || []).map((row: any) => {
-      let product = row.products;
-      if (!product) {
-        // Fallback for hardcoded products
-        product = productsData.find(p => p.id.toString() === row.product_id.toString());
-      } else {
+    const items = (cartRows || [])
+      .map((row: any) => {
+        const product = row.products;
+        if (!product) {
+          return null;
+        }
         const imageUrls = product.image_urls || [];
-        product = {
+        const formattedProduct = {
           id: isNaN(Number(product.id)) ? product.id : Number(product.id),
           name: product.name,
           price: Number(product.price || 0),
@@ -92,18 +91,18 @@ export async function GET(request: Request) {
           allowMultiplePurchases: product.allow_multiple_purchases !== false,
           hasVariants: product.has_variants || false
         };
-      }
 
-      return {
-        id: row.id,
-        product_id: row.product_id,
-        quantity: row.quantity,
-        selectedColor: row.selected_color || undefined,
-        selectedSize: row.selected_size || undefined,
-        selectedVariantIndex: row.selected_variant_index !== null ? row.selected_variant_index : undefined,
-        Product: product
-      };
-    });
+        return {
+          id: row.id,
+          product_id: row.product_id,
+          quantity: row.quantity,
+          selectedColor: row.selected_color || undefined,
+          selectedSize: row.selected_size || undefined,
+          selectedVariantIndex: row.selected_variant_index !== null ? row.selected_variant_index : undefined,
+          Product: formattedProduct
+        };
+      })
+      .filter(Boolean);
 
     return NextResponse.json({ CartItems: items });
   } catch (error: any) {

@@ -34,25 +34,31 @@ async function run() {
     console.error("Failed me:", e);
   }
 
-  // Test /me/catalogs
+  // Test debug_token
   try {
-    const res = await fetch(`https://graph.facebook.com/${version}/me/catalogs?access_token=${token}&fields=id,name,product_count,vertical`);
+    const res = await fetch(`https://graph.facebook.com/${version}/debug_token?input_token=${token}&access_token=${token}`);
     const data = await res.json();
-    console.log("\n2. Accessible Catalogs for this Token:", JSON.stringify(data, null, 2));
+    console.log("\n1b. Token Details & Scopes:", JSON.stringify(data, null, 2));
   } catch (e) {
-    console.error("Failed /me/catalogs:", e);
+    console.error("Failed debug_token:", e);
   }
 
-  // Test Specific Catalog IDs
-  const catalogs = ["2170054226905114", "464687504761698", "1708353833601040"];
-  for (const cId of catalogs) {
-    try {
-      const res = await fetch(`https://graph.facebook.com/${version}/${cId}?access_token=${token}&fields=id,name,product_count`);
-      const data = await res.json();
-      console.log(`\n3. Testing Catalog [${cId}]:`, JSON.stringify(data));
-    } catch (e) {
-      console.error(`Failed catalog ${cId}:`, e);
-    }
+  // Test businesses
+  try {
+    const res = await fetch(`https://graph.facebook.com/${version}/me/businesses?access_token=${token}&fields=id,name,owned_product_catalogs{id,name,product_count},client_product_catalogs{id,name,product_count}`);
+    const data = await res.json();
+    console.log("\n2. Businesses & Catalogs:", JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error("Failed /me/businesses:", e);
+  }
+
+  // Test /me/owned_product_catalogs
+  try {
+    const res = await fetch(`https://graph.facebook.com/${version}/me/owned_product_catalogs?access_token=${token}&fields=id,name,product_count`);
+    const data = await res.json();
+    console.log("\n2b. Owned Product Catalogs:", JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error("Failed /me/owned_product_catalogs:", e);
   }
 }
 

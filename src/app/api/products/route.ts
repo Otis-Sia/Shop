@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyIdToken } from '@/lib/firebase-auth-edge';
 import { getServiceSupabase } from '@/lib/supabase/server';
-import { productsData } from '@/lib/data/products-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,18 +114,6 @@ export async function GET(request: Request) {
     let products: any[] = (dbProducts || []).map((p: any) =>
       mapDbProductToProduct(p, p.product_variants || [], p.users)
     );
-
-    // Fallback seed / default products if database is empty
-    const dbProductIds = new Set(products.map(p => p.id));
-    for (const p of productsData) {
-      if (!dbProductIds.has(p.id)) {
-        products.push({
-          ...p,
-          adminId: p.adminId || 'admin',
-          merchant_id: p.adminId || 'admin'
-        });
-      }
-    }
 
     // Filter unapproved merchants if requested
     if (!includeUnapproved) {

@@ -78,7 +78,9 @@ export async function deleteProducts(skus: string[]) {
   
   const requests = skus.map((sku) => ({
     method: "DELETE",
-    retailer_id: sku,
+    data: {
+      id: String(sku),
+    },
   }));
 
   const response = await graph.post(`/${CATALOG_ID}/items_batch`, {

@@ -1,4 +1,4 @@
-import { productsData, Product } from '@/lib/data/products-data';
+import { Product } from '@/lib/data/products-data';
 
 export type { Product };
 
@@ -30,10 +30,10 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
       const data = await res.json();
       return (data.products || []) as Product[];
     }
-    return productsData;
+    return [];
   } catch (error) {
     console.error('Error fetching products from API:', error);
-    return productsData;
+    return [];
   }
 };
 
@@ -54,20 +54,10 @@ export const getAvailableTags = async (): Promise<string[]> => {
 };
 
 export const getProduct = async (id: number | string): Promise<Product> => {
-  try {
-    const res = await fetch(`/api/products/${id}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.product) return data.product as Product;
-    }
-
-    const fallback = productsData.find(p => p.id == Number(id));
-    if (fallback) return fallback;
-
-    throw new Error('Product not found');
-  } catch (error) {
-    const fallback = productsData.find(p => p.id == Number(id));
-    if (fallback) return fallback;
-    throw error;
+  const res = await fetch(`/api/products/${id}`);
+  if (res.ok) {
+    const data = await res.json();
+    if (data.product) return data.product as Product;
   }
+  throw new Error('Product not found');
 };

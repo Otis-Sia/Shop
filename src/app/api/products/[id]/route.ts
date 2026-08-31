@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyIdToken } from '@/lib/firebase-auth-edge';
 import { getServiceSupabase } from '@/lib/supabase/server';
-import { productsData } from '@/lib/data/products-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,17 +23,7 @@ export async function GET(
       .eq('id', id)
       .maybeSingle();
 
-    if (error) {
-      console.error('Error fetching product from Supabase:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
     if (!product) {
-      // Check hardcoded fallback products
-      const fallback = productsData.find(p => p.id.toString() === id);
-      if (fallback) {
-        return NextResponse.json({ product: fallback });
-      }
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
