@@ -29,3 +29,7 @@ tsconfig.tsbuildinfo
 .wrangler/
 .dev.vars
 
+# Local run scripts
+Start_App.bsh
+start_app.bsh
+
