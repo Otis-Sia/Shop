@@ -50,8 +50,8 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-4 space-y-6">
             <div className="flex items-center gap-3">
-              <Image src="/Logo.svg" alt="Logo" width={44} height={44} className="w-auto h-11 invert hue-rotate-180" style={{ width: 'auto', height: 'auto' }} />
-              <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={40} style={{ width: 'auto', height: 'auto' }} className="w-auto h-7 invert hue-rotate-180" />
+              <Image src="/Logo.svg" alt="Logo" width={44} height={50} className="h-11 w-auto invert hue-rotate-180" />
+              <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={28} className="h-7 w-auto invert hue-rotate-180" />
             </div>
             <p className="text-sm font-medium text-white/60 leading-relaxed max-w-xs">
               Your premium marketplace for quality products. Built for the modern shopper who demands the best.
