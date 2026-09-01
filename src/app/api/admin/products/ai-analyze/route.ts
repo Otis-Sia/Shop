@@ -60,39 +60,53 @@ Do not include any markdown code block wrapping like \`\`\`json around the outpu
 
     let responseText = '';
     try {
+      // 1. Try gemini-3.6-flash first
       const response = await ai.models.generateContent({
         model: 'gemini-3.6-flash',
         contents: prompt,
         config: { responseMimeType: "application/json" }
       });
       responseText = response.text || '';
-    } catch (genAiError: any) {
-      console.warn('Gemini API failed, attempting DeepSeek fallback:', genAiError.message);
+    } catch (genAiError1: any) {
+      console.warn('Gemini 3.6 Flash failed, attempting Gemini 2.5 Flash:', genAiError1.message);
       
-      if (!process.env.DEEPSEEK_API_KEY) {
-        throw new Error('Gemini API failed and DEEPSEEK_API_KEY is not configured.');
+      try {
+        // 2. Fallback to gemini-2.5-flash
+        const response2 = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: { responseMimeType: "application/json" }
+        });
+        responseText = response2.text || '';
+      } catch (genAiError2: any) {
+        console.warn('Gemini 2.5 Flash failed, attempting DeepSeek fallback:', genAiError2.message);
+        
+        // 3. Fallback to DeepSeek
+        if (!process.env.DEEPSEEK_API_KEY) {
+          throw new Error('Gemini models failed and DEEPSEEK_API_KEY is not configured.');
+        }
+        
+        const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [{ role: 'user', content: prompt }],
+            response_format: { type: 'json_object' }
+          })
+        });
+        
+        if (!dsResponse.ok) {
+          const errText = await dsResponse.text();
+          throw new Error(`DeepSeek API failed: ${dsResponse.status} ${errText}`);
+        }
+        
+        const dsData = await dsResponse.json();
+        responseText = dsData.choices?.[0]?.message?.content || '';
       }
-      
-      const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [{ role: 'user', content: prompt }],
-          response_format: { type: 'json_object' }
-        })
-      });
-      
-      if (!dsResponse.ok) {
-        const errText = await dsResponse.text();
-        throw new Error(`DeepSeek API failed: ${dsResponse.status} ${errText}`);
-      }
-      
-      const dsData = await dsResponse.json();
-      responseText = dsData.choices?.[0]?.message?.content || '';
     }
 
     if (responseText) {
