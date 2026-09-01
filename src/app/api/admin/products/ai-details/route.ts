@@ -26,29 +26,38 @@ export async function POST(req: Request) {
     })) : [];
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const prompt = `\nYou are an expert e-commerce copywriter and data extraction specialist.
-Given the following free‑form or arbitrary product details, extract and structure all necessary product fields for our e-commerce catalog.
+    const prompt = `\nYou are an expert e-commerce copywriter, merchandiser, and data extraction specialist.
+Given the following raw, free‑form or arbitrary product text, extract, parse, and structure every piece of product information available.
 
-Free‑form details:
+Raw product details:
 """${rawDetails}"""
 
 Existing categories (for reference):
 ${JSON.stringify(categoriesContext, null, 2)}
 
-Return a JSON object with the following fields:
+Return a JSON object containing the following fields:
 - name: concise, high-converting product title/name.
 - shortDescription: 1‑2 sentence punchy summary.
 - description: comprehensive, well-structured product description.
 - brand: brand name if identifiable, otherwise "Generic".
 - countryOfOrigin: country of origin. (Rule: if brand is generic or unknown, default to "Kenya").
+- supplierName: supplier, vendor, dropshipper, or manufacturer name if mentioned (otherwise null).
+- sku: product SKU, model number, or code if present in the text (otherwise null).
+- costPrice: supplier cost / cost price / wholesale price / buy price as a clean number (e.g. 150.00 or null if not found).
+- price: selling price / retail price / MSRP as a clean number (e.g. 299.00 or null if not found).
+- salePrice: discounted / promotional / sale price as a clean number (or null if not found).
+- stock: inventory quantity / units available as an integer (e.g. 50 or null if not found).
+- colors: array of distinct color names mentioned (e.g. ["Black", "White", "Navy Blue"]). If no colors are mentioned, return empty array [].
+- sizes: array of distinct sizes or dimensions mentioned (e.g. ["S", "M", "L", "XL"] or ["40", "41", "42"]). If no sizes are mentioned, return empty array [].
+- variants: array of variant objects if specific variant combinations, SKUs, or color/size options with individual prices/stock are listed in the text: [{"color": "...", "size": "...", "price": 0, "stock": 0}]. Return empty array [] if none specifically listed.
 - groupCategory: top‑level category group (match existing if possible, or provide appropriate new name).
 - category: primary category under the group (match existing if possible, or create appropriate new name).
 - subcategories: array of 1-4 relevant subcategory names.
 - tags: array of 5‑8 relevant search tags.
-- labels: array of 1‑3 promotional labels (e.g. "Featured", "New Arrival", "Popular").
+- labels: array of 1‑3 promotional labels (e.g. "Featured", "New Arrival", "Popular", "Best Seller").
 - imageAltTexts: array of 2‑3 descriptive image alt text strings.
 
-Do not include markdown fences. Output raw valid JSON only.`;
+Do not include markdown code fences (like \`\`\`json). Output raw valid JSON only.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.6-flash',

@@ -526,7 +526,7 @@ export default function MerchantProducts() {
       saleStartDate: '',
       saleEndDate: '',
       
-      trackInventory: true,
+      trackInventory: false,
       stock: '',
       lowStockAlert: false,
       allowBackorders: false,
@@ -1269,8 +1269,9 @@ export default function MerchantProducts() {
       errors.category = 'Category selection is required.';
     }
 
-    if (!isQuickAdd && !(editForm.groupCategory || selectedGroupNode?.name)) {
-      errors.groupCategory = 'Group category is required.';
+    const supplier = (editForm.supplierName || '').trim();
+    if (!supplier) {
+      errors.supplierName = 'Supplier selection is required.';
     }
 
     const cleanedImages = (editForm.imageUrls || []).filter((url: string) => typeof url === 'string' && url.trim() !== '');
@@ -1714,6 +1715,7 @@ export default function MerchantProducts() {
                   </select>
                   <Icon name="expand_more" className="absolute right-2 pointer-events-none text-secondary" />
                 </div>
+                {formErrors.supplierName && <p className="text-xs text-error font-bold">{formErrors.supplierName}</p>}
               </div>
 
               {/* Auto-Generated / Custom SKU */}
