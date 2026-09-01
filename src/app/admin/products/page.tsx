@@ -1712,7 +1712,7 @@ export default function MerchantProducts() {
                       <option key={sup} value={sup}>{sup}</option>
                     ))}
                   </select>
-                  <Icon name="arrow_drop_down" className="absolute right-2 pointer-events-none text-secondary" />
+                  <Icon name="expand_more" className="absolute right-2 pointer-events-none text-secondary" />
                 </div>
               </div>
 
@@ -2134,7 +2134,7 @@ export default function MerchantProducts() {
                             <option key={sup} value={sup}>{sup}</option>
                           ))}
                         </select>
-                        <Icon name="arrow_drop_down" className="absolute right-2 pointer-events-none text-secondary" />
+                        <Icon name="expand_more" className="absolute right-2 pointer-events-none text-secondary" />
                       </div>
                     </div>
 
