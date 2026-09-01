@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getServiceSupabase } from '@/lib/supabase/server';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
@@ -62,9 +62,9 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
 
     let responseText = '';
     try {
-      // 1. Try gemini-3.6-flash first
+      // 1. Try gemini-1.5-flash first
       const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-1.5-flash',
         contents: prompt,
         config: { responseMimeType: 'application/json' }
       });
@@ -73,9 +73,9 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
       console.warn('Gemini 3.6 Flash failed, attempting Gemini 2.5 Flash:', genAiError1.message);
       
       try {
-        // 2. Fallback to gemini-2.5-flash
+        // 2. Fallback to gemini-1.5-pro
         const response2 = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-1.5-pro',
           contents: prompt,
           config: { responseMimeType: 'application/json' }
         });
@@ -142,7 +142,8 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
     }
 
     if (responseText) {
-      const parsed = JSON.parse(responseText);
+      const cleanJson = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
 
       // Insert or update categories if needed
       if (parsed.groupCategory && parsed.category) {
