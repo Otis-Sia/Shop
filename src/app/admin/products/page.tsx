@@ -1718,6 +1718,12 @@ export default function MerchantProducts() {
                   </button>
                 )}
               </div>
+                {/* Free‑form details for AI */}
+                <div className="space-y-2 md:col-span-2">
+                  <label className="font-bold text-sm uppercase">Free‑form details</label>
+                  <textarea name="rawDetails" value={editForm.rawDetails || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-24 focus:ring-0 outline-none" placeholder="Paste product description, specs, etc."></textarea>
+                  <button type="button" onClick={handleAIFromDetails} disabled={isGeneratingFromDetails} className="mt-2 px-4 py-2 bg-primary text-white rounded">✨ Generate fields from details</button>
+                </div>
 
               {/* Selling Price */}
               <div className="space-y-2">
