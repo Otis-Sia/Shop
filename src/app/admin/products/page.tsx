@@ -1,5 +1,6 @@
 "use client";
 import { useToast } from '@/components/providers/ToastProvider';
+import { useSearchParams } from "next/navigation";
 
 import React, { useEffect, useState, useMemo } from "react";
 import { auth } from "@/lib/firebase";
@@ -38,7 +39,8 @@ export default function MerchantProducts() {
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
-  const [selectedSupplierFilter, setSelectedSupplierFilter] = useState("");
+  const searchParams = useSearchParams();
+  const [selectedSupplierFilter, setSelectedSupplierFilter] = useState(searchParams?.get("supplier") || "");
   const [selectedStockFilter, setSelectedStockFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 

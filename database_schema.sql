@@ -249,6 +249,16 @@ CREATE TABLE IF NOT EXISTS ai_fills (
 CREATE INDEX IF NOT EXISTS idx_ai_fills_merchant ON ai_fills(merchant_id);
 CREATE INDEX IF NOT EXISTS idx_ai_fills_product ON ai_fills(product_id);
 
+-- 16. Suppliers Table (Dropship / Wholesale Suppliers)
+CREATE TABLE IF NOT EXISTS suppliers (
+    id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    whatsapp_number VARCHAR(50),
+    location VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ============================================================================
 -- PERFORMANCE INDEXES (Idempotent creation)
 -- ============================================================================
@@ -350,6 +360,9 @@ DO $$ BEGIN
 
     DROP TRIGGER IF EXISTS update_product_analytics_modtime ON product_analytics;
     CREATE TRIGGER update_product_analytics_modtime BEFORE UPDATE ON product_analytics FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+    DROP TRIGGER IF EXISTS update_suppliers_modtime ON suppliers;
+    CREATE TRIGGER update_suppliers_modtime BEFORE UPDATE ON suppliers FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 END $$;
 
 -- ============================================================================
@@ -371,6 +384,7 @@ ALTER TABLE system_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE drafts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE suppliers ENABLE ROW LEVEL SECURITY;
 
 -- Public Read Policies (Allow frontend public anon clients to read catalog & categories)
 DO $$ BEGIN
