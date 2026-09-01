@@ -81,33 +81,63 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
         });
         responseText = response2.text || '';
       } catch (genAiError2: any) {
-        console.warn('Gemini 2.5 Flash failed, attempting DeepSeek fallback:', genAiError2.message);
+        console.warn('Gemini 2.5 Flash failed, attempting Groq fallback:', genAiError2.message);
         
-        // 3. Fallback to DeepSeek
-        if (!process.env.DEEPSEEK_API_KEY) {
-          throw new Error('Gemini models failed and DEEPSEEK_API_KEY is not configured.');
+        try {
+          // 3. Fallback to Groq
+          if (!process.env.GROQ_API_KEY) {
+            throw new Error('GROQ_API_KEY is not configured.');
+          }
+          
+          const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+              model: 'qwen-2.5-32b',
+              messages: [{ role: 'user', content: prompt }],
+              response_format: { type: 'json_object' }
+            })
+          });
+          
+          if (!groqResponse.ok) {
+            const errText = await groqResponse.text();
+            throw new Error(`Groq API failed: ${groqResponse.status} ${errText}`);
+          }
+          
+          const groqData = await groqResponse.json();
+          responseText = groqData.choices?.[0]?.message?.content || '';
+        } catch (groqError: any) {
+          console.warn('Groq failed, attempting DeepSeek fallback:', groqError.message);
+          
+          // 4. Fallback to DeepSeek
+          if (!process.env.DEEPSEEK_API_KEY) {
+            throw new Error('All other models failed and DEEPSEEK_API_KEY is not configured.');
+          }
+          
+          const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+            },
+            body: JSON.stringify({
+              model: 'deepseek-chat',
+              messages: [{ role: 'user', content: prompt }],
+              response_format: { type: 'json_object' }
+            })
+          });
+          
+          if (!dsResponse.ok) {
+            const errText = await dsResponse.text();
+            throw new Error(`DeepSeek API failed: ${dsResponse.status} ${errText}`);
+          }
+          
+          const dsData = await dsResponse.json();
+          responseText = dsData.choices?.[0]?.message?.content || '';
         }
-        
-        const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: [{ role: 'user', content: prompt }],
-            response_format: { type: 'json_object' }
-          })
-        });
-        
-        if (!dsResponse.ok) {
-          const errText = await dsResponse.text();
-          throw new Error(`DeepSeek API failed: ${dsResponse.status} ${errText}`);
-        }
-        
-        const dsData = await dsResponse.json();
-        responseText = dsData.choices?.[0]?.message?.content || '';
       }
     }
 
