@@ -112,8 +112,8 @@ export default function MerchantProducts() {
 
   // Generate fields from free‑form details using AI
   const handleAIFromDetails = async () => {
-    if (!editForm.rawDetails) {
-      showToast('Please enter free‑form details first.', 'error');
+    if (!editForm.rawDetails || !editForm.rawDetails.trim()) {
+      showToast('Please enter free‑form product details first.', 'warning');
       return;
     }
     setIsGeneratingFromDetails(true);
@@ -125,13 +125,41 @@ export default function MerchantProducts() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'AI details parsing failed');
-      setEditForm(prev => ({ ...prev, ...data }));
-      showToast('AI generated fields successfully.', 'success');
-    } catch (e) {
+      
+      setEditForm((prev: any) => {
+        const altTextsObj = { ...(prev.imageAltTexts || {}) };
+        if (Array.isArray(data.imageAltTexts) && prev.imageUrls) {
+          prev.imageUrls.forEach((url: string, idx: number) => {
+            if (data.imageAltTexts[idx]) {
+              altTextsObj[url] = data.imageAltTexts[idx];
+            }
+          });
+        }
+        return {
+          ...prev,
+          name: data.name || prev.name,
+          shortDescription: data.shortDescription || prev.shortDescription,
+          description: data.description || prev.description,
+          groupCategory: data.groupCategory || prev.groupCategory,
+          category: data.category || prev.category,
+          brand: data.brand || prev.brand,
+          countryOfOrigin: data.countryOfOrigin || prev.countryOfOrigin,
+          subcategories: Array.isArray(data.subcategories) && data.subcategories.length > 0 
+            ? data.subcategories.join(', ') : (typeof data.subcategories === 'string' ? data.subcategories : prev.subcategories),
+          tags: Array.isArray(data.tags) && data.tags.length > 0 
+            ? data.tags.join(', ') : (typeof data.tags === 'string' ? data.tags : prev.tags),
+          labels: Array.isArray(data.labels) && data.labels.length > 0 
+            ? data.labels.join(', ') : (typeof data.labels === 'string' ? data.labels : prev.labels),
+          imageAltTexts: Object.keys(altTextsObj).length > 0 ? altTextsObj : prev.imageAltTexts,
+        };
+      });
+      showToast('Product fields populated from details!', 'success');
+    } catch (e: any) {
       console.error(e);
       showToast(e.message || 'Unexpected error during AI parsing.', 'error');
+    } finally {
+      setIsGeneratingFromDetails(false);
     }
-    setIsGeneratingFromDetails(false);
   };
 
 
@@ -1718,12 +1746,31 @@ export default function MerchantProducts() {
                   </button>
                 )}
               </div>
-                {/* Free‑form details for AI */}
-                <div className="space-y-2 md:col-span-2">
-                  <label className="font-bold text-sm uppercase">Free‑form details</label>
-                  <textarea name="rawDetails" value={editForm.rawDetails || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-24 focus:ring-0 outline-none" placeholder="Paste product description, specs, etc."></textarea>
-                  <button type="button" onClick={handleAIFromDetails} disabled={isGeneratingFromDetails} className="mt-2 px-4 py-2 bg-primary text-white rounded">✨ Generate fields from details</button>
+              {/* Free‑form details for AI */}
+              <div className="space-y-2 md:col-span-2 p-3 bg-surface-container border-2 border-on-surface">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="font-bold text-sm uppercase flex items-center gap-1.5 text-on-surface">
+                    <Icon name="auto_awesome" className="text-primary-container text-base" />
+                    <span>Arbitrary Product Details (AI Auto-Fill)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAIFromDetails}
+                    disabled={isGeneratingFromDetails}
+                    className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                  >
+                    <Icon name="auto_awesome" className="text-sm" />
+                    {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
+                  </button>
                 </div>
+                <textarea
+                  name="rawDetails"
+                  value={editForm.rawDetails || ''}
+                  onChange={handleChange}
+                  className="w-full border-2 border-on-surface p-2 h-24 focus:ring-0 outline-none font-mono text-xs bg-surface"
+                  placeholder="Paste any unformatted supplier notes, specs, product description, or details here, then click Generate..."
+                />
+              </div>
 
               {/* Selling Price */}
               <div className="space-y-2">
@@ -2130,10 +2177,29 @@ export default function MerchantProducts() {
                       <label className="font-bold text-sm uppercase">Full Description</label>
                       <textarea name="description" value={editForm.description || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-32 focus:ring-0 outline-none" placeholder="Detailed product description..."></textarea>
                     </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="font-bold text-sm uppercase">Free‑form details</label>
-                      <textarea name="rawDetails" value={editForm.rawDetails || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-24 focus:ring-0 outline-none" placeholder="Paste product description, specs, etc."></textarea>
-                      <button type="button" onClick={handleAIFromDetails} className="mt-2 px-4 py-2 bg-primary text-white rounded">✨ Generate fields from details</button>
+                    <div className="space-y-2 md:col-span-2 p-3 bg-surface-container border-2 border-on-surface">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="font-bold text-sm uppercase flex items-center gap-1.5 text-on-surface">
+                          <Icon name="auto_awesome" className="text-primary-container text-base" />
+                          <span>Arbitrary Product Details (AI Auto-Fill)</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleAIFromDetails}
+                          disabled={isGeneratingFromDetails}
+                          className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                        >
+                          <Icon name="auto_awesome" className="text-sm" />
+                          {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
+                        </button>
+                      </div>
+                      <textarea
+                        name="rawDetails"
+                        value={editForm.rawDetails || ''}
+                        onChange={handleChange}
+                        className="w-full border-2 border-on-surface p-2 h-24 focus:ring-0 outline-none font-mono text-xs bg-surface"
+                        placeholder="Paste any unformatted supplier notes, specs, product description, or details here, then click Generate..."
+                      />
                     </div>
 
                     <div className="space-y-2">

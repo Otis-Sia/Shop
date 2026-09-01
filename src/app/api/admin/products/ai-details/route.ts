@@ -27,19 +27,28 @@ export async function POST(req: Request) {
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `\nYou are an expert e-commerce copywriter and data extraction specialist.
-Given the following free‑form product details, extract the structured information required for our product database.
-\nFree‑form details:\n"""${rawDetails}"""\n\nExisting categories (for reference):\n${JSON.stringify(categoriesContext, null, 2)}\n\nReturn a JSON object with the following fields (no markdown):
-- shortDescription: 1‑2 sentence summary.
-- description: detailed description (2‑3 paragraphs).
-- brand: brand name if identifiable, otherwise a generic brand.
-- countryOfOrigin: country of origin (apply Kenya rule for generic brand).
-- groupCategory: top‑level grouping (use existing or create new).
-- category: primary category (use existing or create new).
-- subcategories: array of sub‑category strings.
-- tags: array of 5‑8 relevant tags.
-- labels: array of 1‑3 promotional labels.
-- imageAltTexts: array of 2‑3 alt‑text strings.
-\nDo not wrap the output in markdown code fences. Output raw JSON only.`;
+Given the following free‑form or arbitrary product details, extract and structure all necessary product fields for our e-commerce catalog.
+
+Free‑form details:
+"""${rawDetails}"""
+
+Existing categories (for reference):
+${JSON.stringify(categoriesContext, null, 2)}
+
+Return a JSON object with the following fields:
+- name: concise, high-converting product title/name.
+- shortDescription: 1‑2 sentence punchy summary.
+- description: comprehensive, well-structured product description.
+- brand: brand name if identifiable, otherwise "Generic".
+- countryOfOrigin: country of origin. (Rule: if brand is generic or unknown, default to "Kenya").
+- groupCategory: top‑level category group (match existing if possible, or provide appropriate new name).
+- category: primary category under the group (match existing if possible, or create appropriate new name).
+- subcategories: array of 1-4 relevant subcategory names.
+- tags: array of 5‑8 relevant search tags.
+- labels: array of 1‑3 promotional labels (e.g. "Featured", "New Arrival", "Popular").
+- imageAltTexts: array of 2‑3 descriptive image alt text strings.
+
+Do not include markdown fences. Output raw valid JSON only.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.6-flash',
