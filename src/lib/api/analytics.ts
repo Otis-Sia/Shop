@@ -27,7 +27,19 @@ export const trackProductEvent = async (
   event: TrackingEventType,
   quantity: number = 1
 ): Promise<TrackEventResponse | null> => {
-  if (productId === undefined || productId === null || String(productId).trim() === '') return null;
+  if (
+    productId === undefined ||
+    productId === null ||
+    typeof productId === 'object' ||
+    typeof productId === 'symbol' ||
+    String(productId).trim() === ''
+  ) {
+    return null;
+  }
+
+  const cleanProductId = String(productId).trim();
+  const parsedQty = parseInt(String(quantity), 10);
+  const cleanQuantity = Math.max(1, Math.min(100000, Number.isFinite(parsedQty) ? parsedQty : 1));
 
   try {
     const res = await fetch('/api/analytics/track', {
@@ -36,9 +48,9 @@ export const trackProductEvent = async (
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        productId: String(productId).trim(),
+        productId: cleanProductId,
         event,
-        quantity
+        quantity: cleanQuantity
       })
     });
 
@@ -48,7 +60,7 @@ export const trackProductEvent = async (
     return null;
   } catch (error) {
     // Non-critical tracking call; log warning but don't disrupt user experience
-    console.warn(`[Analytics] Failed to track ${event} for product ${productId}:`, error);
+    console.warn(`[Analytics] Failed to track ${event} for product ${cleanProductId}:`, error);
     return null;
   }
 };
@@ -85,8 +97,18 @@ export const trackPurchase = (productId: string | number, quantity: number = 1):
  * Fetches analytics data for a specific product.
  */
 export const getProductAnalytics = async (productId: string | number): Promise<ProductAnalytics | null> => {
+  if (
+    productId === undefined ||
+    productId === null ||
+    typeof productId === 'object' ||
+    typeof productId === 'symbol' ||
+    String(productId).trim() === ''
+  ) {
+    return null;
+  }
+
   try {
-    const res = await fetch(`/api/analytics/track?productId=${encodeURIComponent(String(productId))}`);
+    const res = await fetch(`/api/analytics/track?productId=${encodeURIComponent(String(productId).trim())}`);
     if (res.ok) {
       const data = await res.json();
       return data.analytics || null;
@@ -95,5 +117,26 @@ export const getProductAnalytics = async (productId: string | number): Promise<P
   } catch (error) {
     console.error('Error fetching product analytics:', error);
     return null;
+  }
+};
+
+/**
+ * Fetches top products ranked by popularity score or another metric.
+ */
+export const getTopProductAnalytics = async (
+  limit: number = 10,
+  sortBy: 'popularity_score' | 'views' | 'cart_additions' | 'wishlist_additions' | 'purchases' = 'popularity_score'
+): Promise<ProductAnalytics[]> => {
+  try {
+    const cleanLimit = Math.max(1, Math.min(100, Number.isFinite(limit) ? Math.floor(limit) : 10));
+    const res = await fetch(`/api/analytics/track?limit=${cleanLimit}&sortBy=${encodeURIComponent(sortBy)}`);
+    if (res.ok) {
+      const data = await res.json();
+      return (data.analytics || []) as ProductAnalytics[];
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching top product analytics:', error);
+    return [];
   }
 };

@@ -212,36 +212,63 @@ export async function POST(request: Request) {
           );
         }
         if (insertError.code === '23505') {
-          // Unique key violation: concurrent insertion, retry update
-          const { data: retryUpdated } = await supabase
+          // Unique key violation: concurrent insertion, fetch latest row and re-calculate
+          const { data: freshRow } = await supabase
             .from('product_analytics')
-            .update({
-              views: newViews,
-              cart_additions: newCartAdditions,
-              wishlist_additions: newWishlistAdditions,
-              purchases: newPurchases,
-              popularity_score: calculatedScore,
-              updated_at: now
-            })
+            .select('*')
             .eq('product_id', productId)
-            .select()
-            .single();
+            .maybeSingle();
 
-          if (retryUpdated) {
-            return NextResponse.json({
-              success: true,
-              message: 'Event tracked successfully',
-              data: {
-                productId,
-                event: eventType,
-                views: Number(retryUpdated?.views ?? newViews),
-                cartAdditions: Number(retryUpdated?.cart_additions ?? newCartAdditions),
-                wishlistAdditions: Number(retryUpdated?.wishlist_additions ?? newWishlistAdditions),
-                purchases: Number(retryUpdated?.purchases ?? newPurchases),
-                popularityScore: Number(retryUpdated?.popularity_score ?? calculatedScore),
-                updatedAt: retryUpdated?.updated_at || now
-              }
+          if (freshRow) {
+            let retryViews = Number(freshRow.views || 0);
+            let retryCart = Number(freshRow.cart_additions || 0);
+            let retryWishlist = Number(freshRow.wishlist_additions || 0);
+            let retryPurchases = Number(freshRow.purchases || 0);
+
+            switch (eventType) {
+              case 'view': retryViews += quantity; break;
+              case 'cart_add': retryCart += quantity; break;
+              case 'wishlist_add': retryWishlist += quantity; break;
+              case 'purchase': retryPurchases += quantity; break;
+            }
+
+            const retryScore = calculatePopularityScore({
+              views: retryViews,
+              cartAdditions: retryCart,
+              wishlistAdditions: retryWishlist,
+              purchases: retryPurchases
             });
+
+            const { data: retryUpdated, error: retryError } = await supabase
+              .from('product_analytics')
+              .update({
+                views: retryViews,
+                cart_additions: retryCart,
+                wishlist_additions: retryWishlist,
+                purchases: retryPurchases,
+                popularity_score: retryScore,
+                updated_at: now
+              })
+              .eq('product_id', productId)
+              .select()
+              .single();
+
+            if (!retryError && retryUpdated) {
+              return NextResponse.json({
+                success: true,
+                message: 'Event tracked successfully',
+                data: {
+                  productId,
+                  event: eventType,
+                  views: Number(retryUpdated.views),
+                  cartAdditions: Number(retryUpdated.cart_additions),
+                  wishlistAdditions: Number(retryUpdated.wishlist_additions),
+                  purchases: Number(retryUpdated.purchases),
+                  popularityScore: Number(retryUpdated.popularity_score),
+                  updatedAt: retryUpdated.updated_at || now
+                }
+              });
+            }
           }
         }
         console.error('Error inserting product analytics:', insertError);
@@ -276,10 +303,34 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const rawProductId = searchParams.get('productId') || searchParams.get('product_id');
-    const productId = rawProductId ? rawProductId.trim() : null;
+    const productId = (rawProductId && rawProductId.trim().length > 0) ? rawProductId.trim() : null;
+    
+    if (productId && productId.length > 255) {
+      return NextResponse.json(
+        { error: 'Product ID exceeds maximum length of 255 characters' },
+        { status: 400 }
+      );
+    }
+
     const rawLimit = searchParams.get('limit');
     const parsedLimit = rawLimit ? parseInt(rawLimit, 10) : 20;
     const limit = Number.isFinite(parsedLimit) ? Math.min(100, Math.max(1, parsedLimit)) : 20;
+
+    const rawSort = (searchParams.get('sortBy') || searchParams.get('sort_by') || 'popularity_score').trim().toLowerCase();
+    const validSortFields: Record<string, string> = {
+      popularity_score: 'popularity_score',
+      popularity: 'popularity_score',
+      score: 'popularity_score',
+      views: 'views',
+      view: 'views',
+      cart_additions: 'cart_additions',
+      cart: 'cart_additions',
+      wishlist_additions: 'wishlist_additions',
+      wishlist: 'wishlist_additions',
+      purchases: 'purchases',
+      purchase: 'purchases'
+    };
+    const sortColumn = validSortFields[rawSort] || 'popularity_score';
 
     const supabase = getServiceSupabase();
 
@@ -323,11 +374,11 @@ export async function GET(request: Request) {
       });
     }
 
-    // Return list of products sorted by popularity score descending
+    // Return list of products sorted by requested column descending
     const { data: topProducts, error } = await supabase
       .from('product_analytics')
       .select('*')
-      .order('popularity_score', { ascending: false })
+      .order(sortColumn, { ascending: false })
       .limit(limit);
 
     if (error) {

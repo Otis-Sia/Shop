@@ -162,12 +162,54 @@ export async function POST(request: Request) {
 
     // 7. Track analytics purchase events for purchased products
     for (const item of items) {
+      const pId = item.productId.toString();
+      const pQty = Math.max(1, Number(item.quantity) || 1);
       try {
-        await supabase.rpc('track_product_event', {
-          p_product_id: item.productId.toString(),
+        const { error: rpcErr } = await supabase.rpc('track_product_event', {
+          p_product_id: pId,
           p_event_type: 'purchase',
-          p_quantity: Math.max(1, Number(item.quantity) || 1)
+          p_quantity: pQty
         });
+
+        if (rpcErr) {
+          // Direct table fallback if RPC is not deployed in Supabase
+          const { data: existingRow } = await supabase
+            .from('product_analytics')
+            .select('*')
+            .eq('product_id', pId)
+            .maybeSingle();
+
+          const newViews = Number(existingRow?.views || 0);
+          const newCart = Number(existingRow?.cart_additions || 0);
+          const newWishlist = Number(existingRow?.wishlist_additions || 0);
+          const newPurchases = Number(existingRow?.purchases || 0) + pQty;
+          const score = (newViews * 1) + (newWishlist * 3) + (newCart * 5) + (newPurchases * 10);
+          const now = new Date().toISOString();
+
+          if (existingRow) {
+            await supabase
+              .from('product_analytics')
+              .update({
+                purchases: newPurchases,
+                popularity_score: score,
+                updated_at: now
+              })
+              .eq('product_id', pId);
+          } else {
+            await supabase
+              .from('product_analytics')
+              .insert({
+                product_id: pId,
+                views: 0,
+                cart_additions: 0,
+                wishlist_additions: 0,
+                purchases: pQty,
+                popularity_score: score,
+                created_at: now,
+                updated_at: now
+              });
+          }
+        }
       } catch (analyticsErr) {
         console.warn('Analytics purchase tracking warning:', analyticsErr);
       }

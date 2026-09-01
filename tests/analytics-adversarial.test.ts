@@ -57,6 +57,14 @@ describe('Adversarial Analytics Stress & Edge Cases', () => {
     assert.equal(noProductRes.status, 400);
   });
 
+  it('should reject GET request with excessively long productId with 400', async () => {
+    const longIdReq = new Request(`http://localhost/api/analytics/track?productId=${'x'.repeat(300)}`);
+    const res = await GET(longIdReq);
+    assert.equal(res.status, 400);
+    const data = await res.json();
+    assert.match(data.error, /exceeds maximum length/i);
+  });
+
   it('should verify algorithm monotonicity: each positive increment increases or maintains score', () => {
     let prevScore = 0;
     for (let i = 1; i <= 50; i++) {
@@ -69,5 +77,22 @@ describe('Adversarial Analytics Stress & Edge Cases', () => {
       assert.ok(currentScore > prevScore, `Score at step ${i} (${currentScore}) must be greater than step ${i-1} (${prevScore})`);
       prevScore = currentScore;
     }
+  });
+
+  it('should verify concurrency score recalculation logic on conflict retry', () => {
+    // Simulate Request A inserted: { views: 5, wishlistAdditions: 2, cartAdditions: 1, purchases: 0 }
+    const freshRowFromDb = { views: 5, wishlist_additions: 2, cart_additions: 1, purchases: 0 };
+    
+    // Request B arrives concurrently with 'view' quantity 3
+    const incomingQty = 3;
+    const retryViews = freshRowFromDb.views + incomingQty; // 8
+    const retryScore = calculatePopularityScore({
+      views: retryViews,
+      wishlistAdditions: freshRowFromDb.wishlist_additions,
+      cartAdditions: freshRowFromDb.cart_additions,
+      purchases: freshRowFromDb.purchases
+    });
+    // 8*1 + 2*3 + 1*5 + 0 = 8 + 6 + 5 = 19
+    assert.equal(retryScore, 19);
   });
 });

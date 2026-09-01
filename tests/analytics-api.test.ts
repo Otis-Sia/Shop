@@ -205,4 +205,39 @@ describe('Client-Side Analytics Helpers', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it('should get top products via getTopProductAnalytics', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestedUrl = '';
+
+    globalThis.fetch = (async (url: string) => {
+      requestedUrl = url;
+      return {
+        ok: true,
+        json: async () => ({
+          analytics: [
+            { productId: 'top_1', popularityScore: 500 },
+            { productId: 'top_2', popularityScore: 350 }
+          ]
+        })
+      };
+    }) as any;
+
+    try {
+      const topList = await (await import('../src/lib/api/analytics')).getTopProductAnalytics(5, 'popularity_score');
+      assert.equal(requestedUrl, '/api/analytics/track?limit=5&sortBy=popularity_score');
+      assert.equal(topList.length, 2);
+      assert.equal(topList[0].productId, 'top_1');
+      assert.equal(topList[0].popularityScore, 500);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('should reject object or symbol productId safely', async () => {
+    assert.equal(await trackProductView({} as any), null);
+    assert.equal(await trackProductView(Symbol('id') as any), null);
+    assert.equal(await getProductAnalytics({} as any), null);
+    assert.equal(await getProductAnalytics(Symbol('id') as any), null);
+  });
 });

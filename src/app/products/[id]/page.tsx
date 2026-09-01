@@ -59,8 +59,12 @@ export default function ProductDetailPage() {
         setProduct(data);
         setActiveImage(data.image_url || data.additional_images?.[0] || data.variants?.find((variant: any) => variant?.imageUrl)?.imageUrl || null);
         
-        const wishlisted = await isInWishlist(productId);
-        setIsWishlisted(wishlisted);
+        try {
+          const wishlisted = await isInWishlist(productId);
+          setIsWishlisted(wishlisted);
+        } catch {
+          // Non-critical wishlist check failure
+        }
 
         // Fire product view tracking event
         if (lastTrackedProductId.current !== productId) {

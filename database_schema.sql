@@ -275,10 +275,10 @@ CREATE OR REPLACE FUNCTION calculate_product_popularity_score(
 RETURNS DECIMAL(10, 2) AS $$
 BEGIN
     RETURN (
-        (COALESCE(p_views, 0) * 1.0) +
-        (COALESCE(p_wishlist_additions, 0) * 3.0) +
-        (COALESCE(p_cart_additions, 0) * 5.0) +
-        (COALESCE(p_purchases, 0) * 10.0)
+        (GREATEST(COALESCE(p_views, 0), 0) * 1.0) +
+        (GREATEST(COALESCE(p_wishlist_additions, 0), 0) * 3.0) +
+        (GREATEST(COALESCE(p_cart_additions, 0), 0) * 5.0) +
+        (GREATEST(COALESCE(p_purchases, 0), 0) * 10.0)
     );
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
@@ -386,6 +386,7 @@ CREATE OR REPLACE FUNCTION track_product_event(
 )
 RETURNS product_analytics AS $$
 DECLARE
+    v_event VARCHAR(50) := LOWER(TRIM(COALESCE(p_event_type, '')));
     v_qty INTEGER := GREATEST(COALESCE(p_quantity, 1), 1);
     v_result product_analytics;
 BEGIN
@@ -395,7 +396,7 @@ BEGIN
     END IF;
 
     -- Validate event type
-    IF p_event_type NOT IN (
+    IF v_event NOT IN (
         'view', 'views', 'product_view', 'product-view', 'product_views', 'product-views',
         'cart_add', 'cart_addition', 'cart_additions', 'cart', 'add_to_cart', 'add-to-cart', 'cart_adds', 'cart-add', 'cart-adds', 'cart-addition', 'cart-additions',
         'wishlist_add', 'wishlist_addition', 'wishlist_additions', 'wishlist', 'add_to_wishlist', 'add-to-wishlist', 'wishlist_adds', 'wishlist-add', 'wishlist-adds', 'wishlist-addition', 'wishlist-additions',
@@ -416,24 +417,30 @@ BEGIN
     )
     VALUES (
         p_product_id,
-        CASE WHEN p_event_type IN ('view', 'views', 'product_view', 'product-view', 'product_views', 'product-views') THEN v_qty ELSE 0 END,
-        CASE WHEN p_event_type IN ('cart_add', 'cart_addition', 'cart_additions', 'cart', 'add_to_cart', 'add-to-cart', 'cart_adds', 'cart-add', 'cart-adds', 'cart-addition', 'cart-additions') THEN v_qty ELSE 0 END,
-        CASE WHEN p_event_type IN ('wishlist_add', 'wishlist_addition', 'wishlist_additions', 'wishlist', 'add_to_wishlist', 'add-to-wishlist', 'wishlist_adds', 'wishlist-add', 'wishlist-adds', 'wishlist-addition', 'wishlist-additions') THEN v_qty ELSE 0 END,
-        CASE WHEN p_event_type IN ('purchase', 'purchases', 'order', 'orders', 'buy', 'purchased', 'checkout', 'buy_now', 'buy-now') THEN v_qty ELSE 0 END,
+        CASE WHEN v_event IN ('view', 'views', 'product_view', 'product-view', 'product_views', 'product-views') THEN v_qty ELSE 0 END,
+        CASE WHEN v_event IN ('cart_add', 'cart_addition', 'cart_additions', 'cart', 'add_to_cart', 'add-to-cart', 'cart_adds', 'cart-add', 'cart-adds', 'cart-addition', 'cart-additions') THEN v_qty ELSE 0 END,
+        CASE WHEN v_event IN ('wishlist_add', 'wishlist_addition', 'wishlist_additions', 'wishlist', 'add_to_wishlist', 'add-to-wishlist', 'wishlist_adds', 'wishlist-add', 'wishlist-adds', 'wishlist-addition', 'wishlist-additions') THEN v_qty ELSE 0 END,
+        CASE WHEN v_event IN ('purchase', 'purchases', 'order', 'orders', 'buy', 'purchased', 'checkout', 'buy_now', 'buy-now') THEN v_qty ELSE 0 END,
         0.00,
         NOW()
     )
     ON CONFLICT (product_id) DO UPDATE SET
-        views = product_analytics.views + (CASE WHEN p_event_type IN ('view', 'views', 'product_view', 'product-view', 'product_views', 'product-views') THEN v_qty ELSE 0 END),
-        cart_additions = product_analytics.cart_additions + (CASE WHEN p_event_type IN ('cart_add', 'cart_addition', 'cart_additions', 'cart', 'add_to_cart', 'add-to-cart', 'cart_adds', 'cart-add', 'cart-adds', 'cart-addition', 'cart-additions') THEN v_qty ELSE 0 END),
-        wishlist_additions = product_analytics.wishlist_additions + (CASE WHEN p_event_type IN ('wishlist_add', 'wishlist_addition', 'wishlist_additions', 'wishlist', 'add_to_wishlist', 'add-to-wishlist', 'wishlist_adds', 'wishlist-add', 'wishlist-adds', 'wishlist-addition', 'wishlist-additions') THEN v_qty ELSE 0 END),
-        purchases = product_analytics.purchases + (CASE WHEN p_event_type IN ('purchase', 'purchases', 'order', 'orders', 'buy', 'purchased', 'checkout', 'buy_now', 'buy-now') THEN v_qty ELSE 0 END),
+        views = product_analytics.views + (CASE WHEN v_event IN ('view', 'views', 'product_view', 'product-view', 'product_views', 'product-views') THEN v_qty ELSE 0 END),
+        cart_additions = product_analytics.cart_additions + (CASE WHEN v_event IN ('cart_add', 'cart_addition', 'cart_additions', 'cart', 'add_to_cart', 'add-to-cart', 'cart_adds', 'cart-add', 'cart-adds', 'cart-addition', 'cart-additions') THEN v_qty ELSE 0 END),
+        wishlist_additions = product_analytics.wishlist_additions + (CASE WHEN v_event IN ('wishlist_add', 'wishlist_addition', 'wishlist_additions', 'wishlist', 'add_to_wishlist', 'add-to-wishlist', 'wishlist_adds', 'wishlist-add', 'wishlist-adds', 'wishlist-addition', 'wishlist-additions') THEN v_qty ELSE 0 END),
+        purchases = product_analytics.purchases + (CASE WHEN v_event IN ('purchase', 'purchases', 'order', 'orders', 'buy', 'purchased', 'checkout', 'buy_now', 'buy-now') THEN v_qty ELSE 0 END),
         updated_at = NOW()
     RETURNING * INTO v_result;
 
     RETURN v_result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Explicit Permissions
+GRANT SELECT ON TABLE product_analytics TO anon, authenticated;
+GRANT ALL ON TABLE product_analytics TO service_role;
+GRANT EXECUTE ON FUNCTION calculate_product_popularity_score(INTEGER, INTEGER, INTEGER, INTEGER) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION track_product_event(VARCHAR, VARCHAR, INTEGER) TO anon, authenticated, service_role;
 
 -- Note: All authenticated mutations (checkout, order updates, merchant product creation, user profile updates)
 -- are executed server-side via Next.js Route Handlers using the Supabase Service Role Key after verifying the
