@@ -16,6 +16,12 @@ export default function MerchantProducts() {
   const [loading, setLoading] = useState(true);
   
   const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingQuick, setIsDraggingQuick] = useState(false);
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
+  const [dragOverImageIndex, setDragOverImageIndex] = useState<number | null>(null);
+  const [newImageUrlInput, setNewImageUrlInput] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
+
   const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
   const [selectedProductIds, setSelectedProductIds] = useState<(string | number)[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -45,6 +51,48 @@ export default function MerchantProducts() {
   const [isSyncingCatalog, setIsSyncingCatalog] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [draftToResume, setDraftToResume] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleAIAnalyze = async () => {
+    if (!editForm.name) {
+      showToast("Please enter a product name first.", "warning");
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch('/api/admin/products/ai-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editForm.name,
+          images: editForm.imageUrls || []
+        })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to analyze product');
+      
+      setEditForm((prev: any) => ({
+        ...prev,
+        shortDescription: data.shortDescription || prev.shortDescription,
+        description: data.description || prev.description,
+        category: data.category || prev.category,
+        subcategories: Array.isArray(data.subcategories) && data.subcategories.length > 0 
+          ? data.subcategories.join(', ') : prev.subcategories,
+        tags: Array.isArray(data.tags) && data.tags.length > 0 
+          ? data.tags.join(', ') : prev.tags,
+        labels: Array.isArray(data.labels) && data.labels.length > 0 
+          ? data.labels.join(', ') : prev.labels,
+      }));
+      showToast("AI Analysis complete!", "success");
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || "Failed to analyze product", "error");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   // Auto SKU Generation Helper
   const generateSku = (supplierName: string = '', productName: string = '') => {
@@ -619,6 +667,101 @@ export default function MerchantProducts() {
       currentUrls.splice(indexToRemove, 1);
       return { ...prev, imageUrls: currentUrls };
     });
+    showToast("Image removed", "info");
+  };
+
+  const handleDragStartImage = (index: number) => {
+    setDraggedImageIndex(index);
+  };
+
+  const handleDragOverImage = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragOverImageIndex !== index) {
+      setDragOverImageIndex(index);
+    }
+  };
+
+  const handleDragLeaveImage = () => {
+    setDragOverImageIndex(null);
+  };
+
+  const handleDropImageReorder = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check if files were dropped instead of reordering an existing image
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleMultipleFilesUpload(e.dataTransfer.files);
+      setDraggedImageIndex(null);
+      setDragOverImageIndex(null);
+      return;
+    }
+
+    if (draggedImageIndex === null || draggedImageIndex === targetIndex) {
+      setDraggedImageIndex(null);
+      setDragOverImageIndex(null);
+      return;
+    }
+
+    setEditForm((prev: any) => {
+      const urls = [...(prev.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '')];
+      if (draggedImageIndex >= urls.length || targetIndex >= urls.length) return prev;
+      const [movedItem] = urls.splice(draggedImageIndex, 1);
+      urls.splice(targetIndex, 0, movedItem);
+      return { ...prev, imageUrls: urls };
+    });
+
+    setDraggedImageIndex(null);
+    setDragOverImageIndex(null);
+    showToast("Gallery images reordered", "info");
+  };
+
+  const handleDragEndImage = () => {
+    setDraggedImageIndex(null);
+    setDragOverImageIndex(null);
+  };
+
+  const handleSetMainImage = (index: number) => {
+    if (index === 0) return;
+    setEditForm((prev: any) => {
+      const urls = [...(prev.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '')];
+      if (index >= urls.length) return prev;
+      const [movedItem] = urls.splice(index, 1);
+      urls.unshift(movedItem);
+      return { ...prev, imageUrls: urls };
+    });
+    showToast("Main product image updated", "success");
+  };
+
+  const handleMoveImage = (fromIndex: number, direction: 'left' | 'right') => {
+    const toIndex = direction === 'left' ? fromIndex - 1 : fromIndex + 1;
+    setEditForm((prev: any) => {
+      const urls = [...(prev.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '')];
+      if (toIndex < 0 || toIndex >= urls.length) return prev;
+      const [movedItem] = urls.splice(fromIndex, 1);
+      urls.splice(toIndex, 0, movedItem);
+      return { ...prev, imageUrls: urls };
+    });
+  };
+
+  const handleAddCustomImageUrl = () => {
+    const url = newImageUrlInput.trim();
+    if (!url) return;
+    if (formErrors.imageUrls) {
+      setFormErrors(prev => {
+        const next = { ...prev };
+        delete next.imageUrls;
+        return next;
+      });
+    }
+    setEditForm((prev: any) => {
+      const currentUrls = [...(prev.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '')];
+      return { ...prev, imageUrls: [...currentUrls, url] };
+    });
+    setNewImageUrlInput("");
+    setShowUrlInput(false);
+    showToast("Image URL added to gallery", "success");
   };
 
   const handleMultipleFilesUpload = async (files: FileList | File[]) => {
@@ -660,13 +803,10 @@ export default function MerchantProducts() {
       }
 
       setEditForm((prev: any) => {
-        let currentUrls = [...(prev.imageUrls || [])];
-        // Remove trailing empty strings before adding new ones
-        while(currentUrls.length > 0 && currentUrls[currentUrls.length - 1] === '') {
-          currentUrls.pop();
-        }
+        let currentUrls = (prev.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '');
         return { ...prev, imageUrls: [...currentUrls, ...uploadedUrls] };
       });
+      showToast(`Successfully uploaded ${uploadedUrls.length} image(s)`, "success");
     } catch (error) {
       console.error("Error uploading image:", error);
       showToast("Failed to upload one or more images.", 'error');
@@ -712,6 +852,7 @@ export default function MerchantProducts() {
           currentUrls[index] = fileUrl;
           return { ...prev, imageUrls: currentUrls };
         });
+        showToast("Image uploaded successfully", "success");
       } catch (error) {
         console.error("Error uploading image:", error);
         showToast("Failed to upload image.", 'error');
@@ -1394,8 +1535,11 @@ export default function MerchantProducts() {
             /* QUICK ADD FORM MODE */
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
               <div className="space-y-2 md:col-span-2">
-                <label className="font-bold text-sm uppercase flex items-center gap-1">
-                  Product Name <span className="text-error font-black">*</span>
+                <label className="font-bold text-sm uppercase flex items-center justify-between w-full">
+                  <span className="flex items-center gap-1">Product Name <span className="text-error font-black">*</span></span>
+                  <button type="button" onClick={handleAIAnalyze} disabled={isAnalyzing} className="text-[10px] bg-primary-container text-on-surface px-2 py-1 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
+                    <Icon name="sparkles" size={12} /> {isAnalyzing ? 'Analyzing...' : 'Auto-fill with AI'}
+                  </button>
                 </label>
                 <input 
                   required 
@@ -1566,30 +1710,146 @@ export default function MerchantProducts() {
                 <textarea name="shortDescription" value={editForm.shortDescription || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-16 focus:ring-0 outline-none" placeholder="Optional brief summary..."></textarea>
               </div>
               
-              {/* Main Image */}
+              {/* Main Image & Quick Dropzone */}
               <div className="space-y-2 md:col-span-2">
-                <label className="font-bold text-sm uppercase flex items-center gap-1">
-                  Main Product Image <span className="text-error font-black">*</span>
-                </label>
-                <div className="flex gap-2 items-center">
-                  <input 
-                    required
-                    value={editForm.imageUrls?.[0] || ''} 
-                    onChange={(e) => handleImageUrlChange(0, e.target.value)} 
-                    placeholder="Image URL (https://...)"
-                    className={`flex-1 border-2 p-2 focus:ring-0 outline-none ${formErrors.imageUrls ? 'border-error bg-error/5' : 'border-on-surface'}`} 
-                  />
-                  <label className="bg-primary-container text-on-primary-container border-2 border-on-surface px-4 py-2 font-bold cursor-pointer hover:bg-surface-container hover:text-on-surface transition-colors flex items-center justify-center min-w-[100px]">
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      accept="image/*" 
-                      onChange={(e) => handleFileUpload(e, 0)}
-                    />
-                    <span className="text-xs uppercase tracking-wider">Upload</span>
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-sm uppercase flex items-center gap-1">
+                    Product Image(s) <span className="text-error font-black">*</span>
                   </label>
+                  <span className="text-[10px] text-secondary font-semibold uppercase">
+                    Drag & Drop or Click to Upload
+                  </span>
                 </div>
+
+                {/* Dropzone / Image Previews */}
+                {(editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '').length > 0 ? (
+                  <div className="space-y-3 p-4 border-2 border-on-surface bg-surface">
+                    <div className="flex flex-wrap gap-3 items-center">
+                      {(editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '').map((url: string, idx: number) => (
+                        <div 
+                          key={idx} 
+                          className={`relative aspect-square w-20 sm:w-24 border-2 ${idx === 0 ? 'border-primary-container ring-2 ring-primary-container/50' : 'border-on-surface'} bg-surface-dim overflow-hidden group`}
+                        >
+                          <img src={url} alt={`Product thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                          {idx === 0 && (
+                            <span className="absolute top-1 left-1 bg-primary-container text-on-surface text-[9px] font-black uppercase px-1 border border-on-surface">
+                              Main
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(idx)}
+                            className="absolute top-1 right-1 bg-error text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-on-surface opacity-90 hover:opacity-100 hover:scale-110"
+                            title="Remove image"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Drop More Images Zone */}
+                      <label 
+                        className={`aspect-square w-20 sm:w-24 border-2 border-dashed flex flex-col items-center justify-center text-center cursor-pointer transition-colors p-1 ${
+                          isDraggingQuick ? 'border-primary-container bg-primary-container/20 scale-105' : 'border-on-surface/40 hover:border-on-surface hover:bg-surface-dim'
+                        }`}
+                        onDragOver={(e) => { e.preventDefault(); setIsDraggingQuick(true); }}
+                        onDragLeave={(e) => { e.preventDefault(); setIsDraggingQuick(false); }}
+                        onDrop={async (e) => {
+                          e.preventDefault();
+                          setIsDraggingQuick(false);
+                          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                            await handleMultipleFilesUpload(e.dataTransfer.files);
+                          }
+                        }}
+                      >
+                        <Icon name="add_photo_alternate" className="text-xl text-secondary" />
+                        <span className="text-[9px] font-bold uppercase mt-1 text-secondary">+ Add More</span>
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*" 
+                          multiple 
+                          onChange={(e) => handleFileUpload(e)}
+                          disabled={isUploading}
+                        />
+                      </label>
+                    </div>
+
+                    {isUploading && (
+                      <p className="text-xs font-bold animate-pulse text-primary-container">Uploading image(s)...</p>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className={`p-6 border-4 border-dashed transition-all flex flex-col items-center justify-center text-center cursor-pointer ${
+                      isDraggingQuick 
+                        ? 'border-primary-container bg-primary-container/20 scale-[1.01]' 
+                        : (formErrors.imageUrls ? 'border-error bg-error/5' : 'border-on-surface/40 bg-surface hover:bg-surface-container-low')
+                    }`}
+                    onDragOver={(e) => { e.preventDefault(); setIsDraggingQuick(true); }}
+                    onDragLeave={(e) => { e.preventDefault(); setIsDraggingQuick(false); }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      setIsDraggingQuick(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        await handleMultipleFilesUpload(e.dataTransfer.files);
+                      }
+                    }}
+                    onClick={() => document.getElementById('quick-add-file-upload')?.click()}
+                  >
+                    <Icon name="cloud_upload" className="text-3xl mb-1 text-secondary" />
+                    <p className="text-sm font-bold uppercase mb-0.5">Drag & Drop product images here</p>
+                    <p className="text-xs text-secondary uppercase tracking-wider mb-2">or click to browse from device</p>
+                    <input 
+                      id="quick-add-file-upload"
+                      type="file" 
+                      accept="image/*" 
+                      multiple 
+                      onChange={(e) => handleFileUpload(e)} 
+                      disabled={isUploading}
+                      className="hidden"
+                    />
+                    {isUploading && <p className="text-xs font-bold mt-1 animate-pulse text-primary-container">Uploading image(s)...</p>}
+                  </div>
+                )}
                 {formErrors.imageUrls && <p className="text-xs text-error font-bold">{formErrors.imageUrls}</p>}
+
+                {/* Optional URL input fallback */}
+                <div className="pt-1">
+                  {!showUrlInput ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowUrlInput(true)}
+                      className="text-[11px] font-bold text-secondary hover:text-on-surface underline uppercase"
+                    >
+                      + Or add image via URL link
+                    </button>
+                  ) : (
+                    <div className="flex gap-2 items-center mt-1">
+                      <input
+                        type="url"
+                        value={newImageUrlInput}
+                        onChange={(e) => setNewImageUrlInput(e.target.value)}
+                        placeholder="Paste image URL (https://...)"
+                        className="flex-1 border-2 border-on-surface p-1.5 text-xs outline-none bg-surface"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCustomImageUrl}
+                        className="bg-on-surface text-surface px-3 py-1.5 text-xs font-bold uppercase border-2 border-on-surface hover:bg-surface hover:text-on-surface transition-colors"
+                      >
+                        Add URL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowUrlInput(false); setNewImageUrlInput(''); }}
+                        className="text-xs font-bold text-secondary hover:text-error uppercase px-1"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Stock Input */}
@@ -1637,8 +1897,11 @@ export default function MerchantProducts() {
                 {openSections.core && (
                   <div className="p-6 bg-surface grid grid-cols-1 md:grid-cols-2 gap-6 border-t-4 border-on-surface animate-in fade-in duration-200">
                     <div className="space-y-2 md:col-span-2">
-                      <label className="font-bold text-sm uppercase flex items-center gap-1">
-                        {'Product Name'} <span className="text-error font-black">*</span>
+                      <label className="font-bold text-sm uppercase flex items-center justify-between w-full">
+                        <span className="flex items-center gap-1">{'Product Name'} <span className="text-error font-black">*</span></span>
+                        <button type="button" onClick={handleAIAnalyze} disabled={isAnalyzing} className="text-[10px] bg-primary-container text-on-surface px-2 py-1 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
+                          <Icon name="sparkles" size={12} /> {isAnalyzing ? 'Analyzing...' : 'Auto-fill with AI'}
+                        </button>
                       </label>
                       <input 
                         required 
@@ -1862,80 +2125,40 @@ export default function MerchantProducts() {
                   className={`w-full ${formErrors.imageUrls ? 'bg-error text-white' : 'bg-on-surface text-surface'} uppercase font-black px-6 py-3 flex justify-between items-center text-left`}
                 >
                   <span className="flex items-center gap-2">
-                    3. Media
+                    3. Media & Product Images
                     {formErrors.imageUrls && <span className="text-xs bg-white text-error font-black px-2 py-0.5 uppercase">Needs Attention</span>}
                   </span>
                   <span className="text-xl">{openSections.media ? "−" : "+"}</span>
                 </button>
                 {openSections.media && (
-                  <div className="p-6 bg-surface grid grid-cols-1 md:grid-cols-2 gap-6 border-t-4 border-on-surface animate-in fade-in duration-200">
-                    <div className="space-y-4 md:col-span-2">
-                      <label className="font-bold text-sm uppercase block flex items-center gap-1">
-                        Main & Gallery Images <span className="text-error font-black">*</span>
-                      </label>
-                      {formErrors.imageUrls && (
-                        <div className="p-3 bg-error/10 border-2 border-error text-error text-xs font-bold uppercase">
-                          {formErrors.imageUrls}
-                        </div>
-                      )}
-                      {(editForm.imageUrls || ['']).map((url: string, index: number) => (
-                        <div key={index} className="flex flex-col md:flex-row gap-2 mb-4 p-4 border-2 border-on-surface bg-surface relative">
-                          {index === 0 && <span className="absolute -top-3 -left-2 bg-primary-container text-on-surface text-[10px] font-black px-2 py-1 uppercase border-2 border-on-surface">Main Image</span>}
-                          <div className="flex-1 space-y-2 relative">
-                            <div className="flex w-full gap-2 items-center">
-                              <input 
-                                required={index === 0}
-                                value={url} 
-                                onChange={(e) => handleImageUrlChange(index, e.target.value)} 
-                                placeholder="Image URL (https://...)"
-                                className={`flex-1 border-2 p-2 focus:ring-0 outline-none ${index === 0 && formErrors.imageUrls ? 'border-error bg-error/5' : 'border-on-surface'}`} 
-                              />
-                              <label className="bg-primary-container text-on-primary-container border-2 border-on-surface px-4 py-2 font-bold cursor-pointer hover:bg-surface-container hover:text-on-surface transition-colors flex items-center justify-center min-w-[100px]">
-                                <input 
-                                  type="file" 
-                                  className="hidden" 
-                                  accept="image/*" 
-                                  onChange={(e) => handleFileUpload(e, index)}
-                                />
-                                <span className="text-xs uppercase tracking-wider">Upload File</span>
-                              </label>
-                            </div>
-                            <input 
-                              value={(editForm.imageAltTexts && editForm.imageAltTexts[url]) || ''} 
-                              onChange={(e) => handleImageAltChange(url, e.target.value)} 
-                              placeholder={index === 0 ? "Alternative text (recommended for SEO)" : "Alternative text (optional)"}
-                              className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
-                            />
-                            <button 
-                              type="button" 
-                              onClick={() => handleRemoveImage(index)} 
-                              className="absolute -top-4 -right-4 bg-error text-white w-6 h-6 flex items-center justify-center font-bold border-2 border-on-surface hover:scale-110 transition-transform"
-                              title="Remove Image"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      <button type="button" onClick={handleAddImageUrl} className="text-sm font-bold underline hover:text-primary-container">
-                        + Add another gallery image
-                      </button>
-                    </div>
+                  <div className="p-6 bg-surface space-y-6 border-t-4 border-on-surface animate-in fade-in duration-200">
+                    {/* Error Banner */}
+                    {formErrors.imageUrls && (
+                      <div className="p-3 bg-error/10 border-2 border-error text-error text-xs font-bold uppercase flex items-center gap-2">
+                        <Icon name="error" className="text-base" />
+                        {formErrors.imageUrls}
+                      </div>
+                    )}
 
+                    {/* DRAG & DROP UPLOAD ZONE */}
                     <div 
-                      className={`mt-4 p-8 border-4 border-dashed transition-colors flex flex-col items-center justify-center text-center cursor-pointer md:col-span-2 ${
-                        isDragging ? 'border-primary-container bg-primary-container/10' : 'border-on-surface/40 bg-surface hover:bg-surface-container-low'
+                      className={`p-8 border-4 border-dashed transition-all flex flex-col items-center justify-center text-center cursor-pointer select-none ${
+                        isDragging 
+                          ? 'border-primary-container bg-primary-container/20 ring-4 ring-primary-container/40 scale-[1.01]' 
+                          : 'border-on-surface/40 bg-surface-container-lowest hover:bg-surface-container-low hover:border-on-surface'
                       }`}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
-                      onClick={() => document.getElementById('multi-file-upload')?.click()}
+                      onClick={() => document.getElementById('media-full-file-upload')?.click()}
                     >
-                      <Icon name="cloud_upload" className="text-4xl mb-2 text-secondary" />
-                      <p className="text-sm font-bold uppercase mb-1">Drag & Drop images here</p>
-                      <p className="text-xs text-secondary mb-4 uppercase tracking-wider">or click to browse</p>
+                      <Icon name="cloud_upload" className="text-5xl mb-2 text-secondary" />
+                      <p className="text-base font-black uppercase mb-1">Drag & Drop Product Images Here</p>
+                      <p className="text-xs text-secondary font-bold uppercase tracking-wider mb-2">
+                        Supports multiple files (PNG, JPG, WEBP, AVIF) or click to browse
+                      </p>
                       <input 
-                        id="multi-file-upload"
+                        id="media-full-file-upload"
                         type="file" 
                         accept="image/*" 
                         multiple 
@@ -1943,12 +2166,194 @@ export default function MerchantProducts() {
                         disabled={isUploading}
                         className="hidden"
                       />
-                      {isUploading && <p className="text-sm font-bold mt-2 animate-pulse text-primary-container">Uploading images...</p>}
+                      {isUploading ? (
+                        <div className="mt-3 flex items-center gap-2 text-sm font-black uppercase text-primary-container bg-surface p-2 border-2 border-on-surface animate-pulse">
+                          <Icon name="sync" className="animate-spin text-base" />
+                          Uploading images to cloud storage...
+                        </div>
+                      ) : (
+                        <span className="mt-2 text-xs font-bold uppercase bg-on-surface text-surface px-4 py-1.5 border-2 border-on-surface shadow-[2px_2px_0px_0px_var(--color-primary-container)]">
+                          Browse Files
+                        </span>
+                      )}
                     </div>
 
-                    <div className="space-y-2 md:col-span-2 mt-4">
-                      <label className="font-bold text-sm uppercase">Video URL</label>
-                      <input type="url" name="videoUrl" value={editForm.videoUrl || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" placeholder="YouTube or Vimeo link..." />
+                    {/* DRAGGABLE GALLERY GRID */}
+                    {((editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '')).length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-on-surface/20 pb-2">
+                          <div>
+                            <h4 className="font-black text-sm uppercase flex items-center gap-2">
+                              <Icon name="collections" className="text-base text-primary-container" />
+                              Product Image Gallery ({(editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '').length})
+                            </h4>
+                            <p className="text-[11px] text-secondary font-semibold uppercase">
+                              Drag and drop cards to reorder. First card is the Main cover image.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                          {(editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '').map((url: string, index: number) => {
+                            const isMain = index === 0;
+                            const isDragged = draggedImageIndex === index;
+                            const isDropTarget = dragOverImageIndex === index;
+
+                            return (
+                              <div
+                                key={`${url}-${index}`}
+                                draggable={true}
+                                onDragStart={() => handleDragStartImage(index)}
+                                onDragOver={(e) => handleDragOverImage(e, index)}
+                                onDragLeave={handleDragLeaveImage}
+                                onDrop={(e) => handleDropImageReorder(e, index)}
+                                onDragEnd={handleDragEndImage}
+                                className={`group relative border-4 p-2.5 bg-surface flex flex-col justify-between transition-all duration-150 select-none ${
+                                  isDragged ? 'opacity-30 scale-95 border-dashed border-secondary' : ''
+                                } ${
+                                  isDropTarget 
+                                    ? 'border-primary-container ring-4 ring-primary-container/40 scale-105 shadow-lg' 
+                                    : (isMain ? 'border-primary-container shadow-[3px_3px_0px_0px_var(--color-on-surface)]' : 'border-on-surface hover:shadow-[3px_3px_0px_0px_var(--color-on-surface)]')
+                                }`}
+                              >
+                                {/* Card Header / Badges / Drag Handle */}
+                                <div className="flex items-center justify-between mb-1.5">
+                                  {isMain ? (
+                                    <span className="bg-primary-container text-on-surface font-black px-1.5 py-0.5 text-[10px] uppercase border border-on-surface flex items-center gap-1">
+                                      ★ Main Image
+                                    </span>
+                                  ) : (
+                                    <span className="bg-surface-dim text-secondary font-bold px-1.5 py-0.5 text-[10px] uppercase border border-on-surface/30">
+                                      #{index + 1}
+                                    </span>
+                                  )}
+                                  <div 
+                                    className="cursor-grab active:cursor-grabbing text-secondary hover:text-on-surface p-0.5" 
+                                    title="Click and drag to reorder"
+                                  >
+                                    <Icon name="drag_indicator" className="text-base" />
+                                  </div>
+                                </div>
+
+                                {/* Thumbnail Image */}
+                                <div className="relative aspect-square w-full bg-surface-dim border-2 border-on-surface overflow-hidden mb-2">
+                                  <img 
+                                    src={url} 
+                                    alt={(editForm.imageAltTexts && editForm.imageAltTexts[url]) || `Product image ${index + 1}`} 
+                                    className="w-full h-full object-cover pointer-events-none" 
+                                  />
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-on-surface/20">
+                                  {!isMain ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSetMainImage(index)}
+                                      className="text-[10px] font-black uppercase text-primary-container hover:underline"
+                                      title="Set this as the main product image"
+                                    >
+                                      ★ Set Main
+                                    </button>
+                                  ) : (
+                                    <span className="text-[10px] font-bold text-secondary uppercase">Cover</span>
+                                  )}
+
+                                  <div className="flex items-center gap-1">
+                                    {index > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMoveImage(index, 'left')}
+                                        className="text-[10px] px-1 py-0.5 text-secondary hover:text-on-surface border border-on-surface/30 hover:border-on-surface font-bold"
+                                        title="Move left"
+                                      >
+                                        ◀
+                                      </button>
+                                    )}
+                                    {index < (editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '').length - 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMoveImage(index, 'right')}
+                                        className="text-[10px] px-1 py-0.5 text-secondary hover:text-on-surface border border-on-surface/30 hover:border-on-surface font-bold"
+                                        title="Move right"
+                                      >
+                                        ▶
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveImage(index)}
+                                      className="bg-error text-white text-xs w-5 h-5 flex items-center justify-center font-black border border-on-surface hover:scale-110 ml-0.5"
+                                      title="Delete image"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Alt Text Input */}
+                                <div className="mt-2">
+                                  <input
+                                    value={(editForm.imageAltTexts && editForm.imageAltTexts[url]) || ''}
+                                    onChange={(e) => handleImageAltChange(url, e.target.value)}
+                                    placeholder={isMain ? "Alt text (Main SEO)" : "Alt text (optional)"}
+                                    className="w-full text-[10px] p-1 border border-on-surface/30 focus:border-on-surface outline-none bg-surface"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ADD BY URL OPTION */}
+                    <div className="p-4 border-2 border-on-surface bg-surface-dim space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black uppercase flex items-center gap-1.5">
+                          <Icon name="link" className="text-base" />
+                          Add Image via Direct URL
+                        </label>
+                        <span className="text-[10px] text-secondary font-semibold uppercase">External Link</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={newImageUrlInput}
+                          onChange={(e) => setNewImageUrlInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddCustomImageUrl();
+                            }
+                          }}
+                          placeholder="Paste image link: https://example.com/image.jpg..."
+                          className="flex-1 border-2 border-on-surface p-2 text-xs outline-none bg-surface"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomImageUrl}
+                          className="bg-primary-container text-on-surface px-4 py-2 text-xs font-black uppercase border-2 border-on-surface hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
+                        >
+                          Add to Gallery
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Video URL */}
+                    <div className="space-y-2 pt-2 border-t-2 border-on-surface/20">
+                      <label className="font-bold text-sm uppercase flex items-center gap-1.5">
+                        <Icon name="videocam" className="text-base" />
+                        Video URL (Optional)
+                      </label>
+                      <input 
+                        type="url" 
+                        name="videoUrl" 
+                        value={editForm.videoUrl || ''} 
+                        onChange={handleChange} 
+                        className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface text-sm" 
+                        placeholder="YouTube or Vimeo link..." 
+                      />
                     </div>
                   </div>
                 )}
