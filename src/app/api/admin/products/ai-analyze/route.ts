@@ -94,7 +94,7 @@ Do not include any markdown code block wrapping like \`\`\`json around the outpu
               'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
             },
             body: JSON.stringify({
-              model: 'qwen-2.5-32b',
+              model: 'qwen/qwen3.6-27b',
               messages: [{ role: 'user', content: prompt }],
               response_format: { type: 'json_object' }
             })
