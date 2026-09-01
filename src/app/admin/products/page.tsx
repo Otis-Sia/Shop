@@ -165,12 +165,26 @@ export default function MerchantProducts() {
           category: data.category || prev.category,
           brand: data.brand || prev.brand,
           countryOfOrigin: data.countryOfOrigin || prev.countryOfOrigin,
+          supplierName: data.supplierName || prev.supplierName,
+          sku: data.sku || prev.sku,
+          price: data.price !== null && data.price !== undefined ? data.price : prev.price,
+          salePrice: data.salePrice !== null && data.salePrice !== undefined ? data.salePrice : prev.salePrice,
+          costPrice: data.costPrice !== null && data.costPrice !== undefined ? data.costPrice : prev.costPrice,
+          stock: data.stock !== null && data.stock !== undefined ? data.stock : prev.stock,
           subcategories: Array.isArray(data.subcategories) && data.subcategories.length > 0 
             ? data.subcategories.join(', ') : (typeof data.subcategories === 'string' ? data.subcategories : prev.subcategories),
           tags: Array.isArray(data.tags) && data.tags.length > 0 
             ? data.tags.join(', ') : (typeof data.tags === 'string' ? data.tags : prev.tags),
           labels: Array.isArray(data.labels) && data.labels.length > 0 
             ? data.labels.join(', ') : (typeof data.labels === 'string' ? data.labels : prev.labels),
+          colors: Array.isArray(data.colors) && data.colors.length > 0 
+            ? data.colors.join(', ') : (typeof data.colors === 'string' ? data.colors : prev.colors),
+          sizes: Array.isArray(data.sizes) && data.sizes.length > 0 
+            ? data.sizes.join(', ') : (typeof data.sizes === 'string' ? data.sizes : prev.sizes),
+          grades: Array.isArray(data.grades) && data.grades.length > 0 
+            ? data.grades.join(', ') : (typeof data.grades === 'string' ? data.grades : prev.grades),
+          hasVariants: Array.isArray(data.variants) && data.variants.length > 0 ? true : prev.hasVariants,
+          variants: Array.isArray(data.variants) && data.variants.length > 0 ? data.variants : prev.variants,
           imageAltTexts: Object.keys(altTextsObj).length > 0 ? altTextsObj : prev.imageAltTexts,
         };
       });
@@ -1394,6 +1408,7 @@ export default function MerchantProducts() {
         labels: typeof editForm.labels === 'string' ? editForm.labels.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.labels || []),
         colors: typeof editForm.colors === 'string' ? editForm.colors.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.colors || []),
         sizes: typeof editForm.sizes === 'string' ? editForm.sizes.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.sizes || []),
+        grades: typeof editForm.grades === 'string' ? editForm.grades.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.grades || []),
         
         hasVariants: editForm.hasVariants || false,
         variants: editForm.hasVariants && editForm.variants ? editForm.variants : [],

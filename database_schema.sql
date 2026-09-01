@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS products (
     labels TEXT[] DEFAULT '{}'::text[],
     colors TEXT[] DEFAULT '{}'::text[],
     sizes TEXT[] DEFAULT '{}'::text[],
+    grades TEXT[] DEFAULT '{}'::text[],
     has_variants BOOLEAN DEFAULT FALSE,
     supplier_name VARCHAR(255),
     cost_price DECIMAL(10, 2),
