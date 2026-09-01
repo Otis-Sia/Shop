@@ -96,18 +96,18 @@ Do not include any markdown code block wrapping like \`\`\`json around the outpu
         });
         responseText = response.text || '';
       } catch (genAiError1: any) {
-        console.warn('Gemini 3.6 Flash failed, attempting Gemini 3.6 Pro:', genAiError1.message);
+        console.warn('Gemini 3.6 Flash failed, attempting Gemini 3.7 Flash:', genAiError1.message);
         
         try {
-          // 3. Fallback to gemini-3.6-pro
+          // 3. Fallback to gemini-3.7-flash
           const response2 = await ai.models.generateContent({
-            model: 'gemini-3.6-pro',
+            model: 'gemini-3.7-flash',
             contents: prompt,
             config: { responseMimeType: 'application/json' }
           });
           responseText = response2.text || '';
         } catch (genAiError2: any) {
-          console.warn('Gemini 1.5 Pro failed, attempting DeepSeek fallback:', genAiError2.message);
+          console.warn('Gemini 3.7 Flash failed, attempting DeepSeek fallback:', genAiError2.message);
           
           // 4. Fallback to DeepSeek
           if (!process.env.DEEPSEEK_API_KEY) {
