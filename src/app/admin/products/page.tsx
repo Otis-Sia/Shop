@@ -77,6 +77,7 @@ export default function MerchantProducts() {
         ...prev,
         shortDescription: data.shortDescription || prev.shortDescription,
         description: data.description || prev.description,
+        groupCategory: data.groupCategory || prev.groupCategory,
         category: data.category || prev.category,
         subcategories: Array.isArray(data.subcategories) && data.subcategories.length > 0 
           ? data.subcategories.join(', ') : prev.subcategories,

@@ -33,7 +33,8 @@ Product Name: "${name}"
 Return your response strictly as a JSON object with the following fields:
 - shortDescription: A punchy 1-2 sentence description highlighting the main benefit.
 - description: A detailed, engaging long-form description (2-3 paragraphs) suitable for a product page. Use markdown formatting if helpful (e.g. bolding, bullet points).
-- category: A single, primary high-level category string (e.g., "Electronics", "Home & Garden").
+- groupCategory: A broad, top-level product grouping (e.g., "Apparel", "Electronics & Gadgets").
+- category: A single, primary high-level category string (e.g., "Menswear", "Audio").
 - subcategories: An array of strings representing more specific subcategories.
 - tags: An array of 5-8 relevant search tags.
 - labels: An array of 1-3 promotional or descriptive labels (e.g., "Bestseller", "New Arrival", "Eco-friendly").
