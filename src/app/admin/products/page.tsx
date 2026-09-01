@@ -97,23 +97,22 @@ export default function MerchantProducts() {
 
   // Auto SKU Generation Helper
   const generateSku = (supplierName: string = '', productName: string = '') => {
-    const cleanSupplier = (supplierName || '')
-      .trim()
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-    const cleanProduct = (productName || '')
-      .trim()
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
+    // 1. Get first four unique letters of supplier name
+    const cleanSupplier = (supplierName || '').toUpperCase().replace(/[^A-Z]/g, '');
+    const uniqueSupplierLetters = Array.from(new Set(cleanSupplier.split(''))).slice(0, 4).join('');
+    
+    // 2. Generate a deterministic short code from the product name
+    let hash = 0;
+    const nameToHash = productName || 'DEFAULT';
+    for (let i = 0; i < nameToHash.length; i++) {
+      hash = (hash << 5) - hash + nameToHash.charCodeAt(i);
+      hash |= 0;
+    }
+    const productCode = Math.abs(hash).toString(36).toUpperCase().padStart(4, '0').slice(0, 4);
 
-    if (!cleanSupplier && !cleanProduct) return '';
-    if (!cleanSupplier) return cleanProduct;
-    if (!cleanProduct) return cleanSupplier;
-    return `${cleanSupplier}-${cleanProduct}`;
+    if (!uniqueSupplierLetters && !productName) return '';
+    if (!uniqueSupplierLetters) return productCode;
+    return `${uniqueSupplierLetters}-${productCode}`;
   };
 
   const handleFullSync = async () => {
@@ -1559,20 +1558,27 @@ export default function MerchantProducts() {
                   <span>Supplier Name</span>
                   <span className="text-[10px] text-secondary font-semibold uppercase">Dropship Supplier</span>
                 </label>
-                <input 
-                  type="text"
-                  name="supplierName" 
-                  list="quick-supplier-suggestions"
-                  value={editForm.supplierName || ''} 
-                  onChange={handleChange} 
-                  placeholder="e.g. Shenzhen Tech, CJ Dropship..."
-                  className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
-                />
-                <datalist id="quick-supplier-suggestions">
-                  {uniqueSuppliers.map(sup => (
-                    <option key={sup} value={sup}>{sup}</option>
-                  ))}
-                </datalist>
+                <div className="relative flex items-center">
+                  <input 
+                    type="text"
+                    name="supplierName"
+                    value={editForm.supplierName || ''}
+                    onChange={handleChange}
+                    placeholder="e.g. Shenzhen Tech, CJ Dropship..."
+                    className="w-full border-2 border-on-surface p-2 pr-8 focus:ring-0 outline-none bg-surface"
+                  />
+                  <select 
+                    className="absolute right-0 top-0 h-full w-8 opacity-0 cursor-pointer"
+                    onChange={(e) => handleChange({ target: { name: 'supplierName', value: e.target.value } } as any)}
+                    title="Select an existing supplier"
+                  >
+                    <option value="">Select...</option>
+                    {uniqueSuppliers.map(sup => (
+                      <option key={sup} value={sup}>{sup}</option>
+                    ))}
+                  </select>
+                  <Icon name="arrow_drop_down" className="absolute right-2 pointer-events-none text-secondary" />
+                </div>
               </div>
 
               {/* Auto-Generated / Custom SKU */}
@@ -1949,20 +1955,27 @@ export default function MerchantProducts() {
                         <span>Supplier / Merchant Name</span>
                         <span className="text-[10px] text-secondary font-semibold uppercase">Dropship Source</span>
                       </label>
-                      <input 
-                        type="text"
-                        name="supplierName" 
-                        list="core-supplier-suggestions"
-                        value={editForm.supplierName || ''} 
-                        onChange={handleChange} 
-                        placeholder="e.g. Shenzhen Tech, CJ Dropship..."
-                        className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
-                      />
-                      <datalist id="core-supplier-suggestions">
-                        {uniqueSuppliers.map(sup => (
-                          <option key={sup} value={sup}>{sup}</option>
-                        ))}
-                      </datalist>
+                      <div className="relative flex items-center">
+                        <input 
+                          type="text"
+                          name="supplierName"
+                          value={editForm.supplierName || ''}
+                          onChange={handleChange}
+                          placeholder="e.g. Shenzhen Tech, CJ Dropship..."
+                          className="w-full border-2 border-on-surface p-2 pr-8 focus:ring-0 outline-none bg-surface"
+                        />
+                        <select 
+                          className="absolute right-0 top-0 h-full w-8 opacity-0 cursor-pointer"
+                          onChange={(e) => handleChange({ target: { name: 'supplierName', value: e.target.value } } as any)}
+                          title="Select an existing supplier"
+                        >
+                          <option value="">Select...</option>
+                          {uniqueSuppliers.map(sup => (
+                            <option key={sup} value={sup}>{sup}</option>
+                          ))}
+                        </select>
+                        <Icon name="arrow_drop_down" className="absolute right-2 pointer-events-none text-secondary" />
+                      </div>
                     </div>
 
                     {/* SKU in Core Info */}
