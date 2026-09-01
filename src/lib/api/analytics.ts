@@ -27,7 +27,7 @@ export const trackProductEvent = async (
   event: TrackingEventType,
   quantity: number = 1
 ): Promise<TrackEventResponse | null> => {
-  if (!productId) return null;
+  if (productId === undefined || productId === null || String(productId).trim() === '') return null;
 
   try {
     const res = await fetch('/api/analytics/track', {
@@ -36,7 +36,7 @@ export const trackProductEvent = async (
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        productId: String(productId),
+        productId: String(productId).trim(),
         event,
         quantity
       })

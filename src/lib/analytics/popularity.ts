@@ -51,10 +51,10 @@ export function normalizeTrackingEventType(event: unknown): TrackingEventType | 
   if (typeof event !== 'string') return null;
   const lower = event.trim().toLowerCase();
 
-  if (['view', 'views', 'product_view'].includes(lower)) return 'view';
-  if (['cart_add', 'cart_addition', 'cart', 'add_to_cart', 'cart_adds'].includes(lower)) return 'cart_add';
-  if (['wishlist_add', 'wishlist_addition', 'wishlist', 'add_to_wishlist', 'wishlist_adds'].includes(lower)) return 'wishlist_add';
-  if (['purchase', 'purchases', 'order', 'buy', 'purchased'].includes(lower)) return 'purchase';
+  if (['view', 'views', 'product_view', 'product-view', 'product_views', 'product-views'].includes(lower)) return 'view';
+  if (['cart_add', 'cart_addition', 'cart_additions', 'cart', 'add_to_cart', 'add-to-cart', 'cart_adds', 'cart-add', 'cart-adds', 'cart-addition', 'cart-additions'].includes(lower)) return 'cart_add';
+  if (['wishlist_add', 'wishlist_addition', 'wishlist_additions', 'wishlist', 'add_to_wishlist', 'add-to-wishlist', 'wishlist_adds', 'wishlist-add', 'wishlist-adds', 'wishlist-addition', 'wishlist-additions'].includes(lower)) return 'wishlist_add';
+  if (['purchase', 'purchases', 'order', 'orders', 'buy', 'purchased', 'checkout', 'buy_now', 'buy-now'].includes(lower)) return 'purchase';
 
   return null;
 }

@@ -55,8 +55,10 @@ describe('Database Schema & SQL Verification', () => {
     assert.ok(schemaSql.includes('calculate_product_popularity_score'), 'calculate_product_popularity_score function must exist');
     assert.ok(schemaSql.includes('update_product_analytics_score'), 'trigger function must exist');
     assert.ok(schemaSql.includes('update_product_analytics_score_trigger'), 'trigger must exist');
+    assert.ok(schemaSql.includes('BEFORE INSERT OR UPDATE ON product_analytics'), 'trigger must fire on insert or update');
     assert.ok(schemaSql.includes('ALTER TABLE product_analytics ENABLE ROW LEVEL SECURITY'), 'RLS must be enabled');
     assert.ok(schemaSql.includes('Public read access for product analytics'), 'Public read RLS policy must exist');
     assert.ok(schemaSql.includes('track_product_event'), 'track_product_event RPC function must exist');
+    assert.ok(schemaSql.includes('SECURITY DEFINER SET search_path = public'), 'RPC must be SECURITY DEFINER with search_path');
   });
 });

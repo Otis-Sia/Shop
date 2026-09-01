@@ -7,6 +7,7 @@ import { getProducts, getCategories, getAvailableTags } from '@/lib/api/products
 import { useCategories } from '@/hooks/useCategories';
 import { addToCart } from '@/lib/api/cart';
 import { addToWishlist, removeFromWishlist, getWishlist } from '@/lib/api/wishlist';
+import { trackAddToCart, trackAddToWishlist } from '@/lib/api/analytics';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserProfile, User } from '@/lib/api/auth';
@@ -180,7 +181,10 @@ function ProductsPageContent() {
     } else {
       newW.add(productId);
       setWishlistedIds(newW);
-      try { await addToWishlist(productId); } catch(e) { console.error(e); }
+      try {
+        await addToWishlist(productId);
+        trackAddToWishlist(productId);
+      } catch(e) { console.error(e); }
     }
   };
 
@@ -223,6 +227,7 @@ function ProductsPageContent() {
     setAddingToCart(prev => ({ ...prev, [productId]: true }));
     try {
       await addToCart(productId, 1);
+      trackAddToCart(productId, 1);
       setAddedToCart(prev => ({ ...prev, [productId]: true }));
       setTimeout(() => {
         setAddedToCart(prev => ({ ...prev, [productId]: false }));

@@ -328,7 +328,7 @@ DO $$ BEGIN
 
     DROP TRIGGER IF EXISTS update_product_analytics_score_trigger ON product_analytics;
     CREATE TRIGGER update_product_analytics_score_trigger
-    BEFORE INSERT OR UPDATE OF views, cart_additions, wishlist_additions, purchases ON product_analytics
+    BEFORE INSERT OR UPDATE ON product_analytics
     FOR EACH ROW EXECUTE FUNCTION update_product_analytics_score();
 
     DROP TRIGGER IF EXISTS update_product_analytics_modtime ON product_analytics;
@@ -394,6 +394,16 @@ BEGIN
         RAISE EXCEPTION 'Product with ID % does not exist', p_product_id;
     END IF;
 
+    -- Validate event type
+    IF p_event_type NOT IN (
+        'view', 'views', 'product_view', 'product-view', 'product_views', 'product-views',
+        'cart_add', 'cart_addition', 'cart_additions', 'cart', 'add_to_cart', 'add-to-cart', 'cart_adds', 'cart-add', 'cart-adds', 'cart-addition', 'cart-additions',
+        'wishlist_add', 'wishlist_addition', 'wishlist_additions', 'wishlist', 'add_to_wishlist', 'add-to-wishlist', 'wishlist_adds', 'wishlist-add', 'wishlist-adds', 'wishlist-addition', 'wishlist-additions',
+        'purchase', 'purchases', 'order', 'orders', 'buy', 'purchased', 'checkout', 'buy_now', 'buy-now'
+    ) THEN
+        RAISE EXCEPTION 'Invalid event type: %', p_event_type;
+    END IF;
+
     -- Upsert analytics row
     INSERT INTO product_analytics (
         product_id,
@@ -406,24 +416,24 @@ BEGIN
     )
     VALUES (
         p_product_id,
-        CASE WHEN p_event_type IN ('view', 'views') THEN v_qty ELSE 0 END,
-        CASE WHEN p_event_type IN ('cart_add', 'cart_addition', 'cart', 'add_to_cart') THEN v_qty ELSE 0 END,
-        CASE WHEN p_event_type IN ('wishlist_add', 'wishlist_addition', 'wishlist', 'add_to_wishlist') THEN v_qty ELSE 0 END,
-        CASE WHEN p_event_type IN ('purchase', 'purchases', 'order', 'buy') THEN v_qty ELSE 0 END,
+        CASE WHEN p_event_type IN ('view', 'views', 'product_view', 'product-view', 'product_views', 'product-views') THEN v_qty ELSE 0 END,
+        CASE WHEN p_event_type IN ('cart_add', 'cart_addition', 'cart_additions', 'cart', 'add_to_cart', 'add-to-cart', 'cart_adds', 'cart-add', 'cart-adds', 'cart-addition', 'cart-additions') THEN v_qty ELSE 0 END,
+        CASE WHEN p_event_type IN ('wishlist_add', 'wishlist_addition', 'wishlist_additions', 'wishlist', 'add_to_wishlist', 'add-to-wishlist', 'wishlist_adds', 'wishlist-add', 'wishlist-adds', 'wishlist-addition', 'wishlist-additions') THEN v_qty ELSE 0 END,
+        CASE WHEN p_event_type IN ('purchase', 'purchases', 'order', 'orders', 'buy', 'purchased', 'checkout', 'buy_now', 'buy-now') THEN v_qty ELSE 0 END,
         0.00,
         NOW()
     )
     ON CONFLICT (product_id) DO UPDATE SET
-        views = product_analytics.views + (CASE WHEN p_event_type IN ('view', 'views') THEN v_qty ELSE 0 END),
-        cart_additions = product_analytics.cart_additions + (CASE WHEN p_event_type IN ('cart_add', 'cart_addition', 'cart', 'add_to_cart') THEN v_qty ELSE 0 END),
-        wishlist_additions = product_analytics.wishlist_additions + (CASE WHEN p_event_type IN ('wishlist_add', 'wishlist_addition', 'wishlist', 'add_to_wishlist') THEN v_qty ELSE 0 END),
-        purchases = product_analytics.purchases + (CASE WHEN p_event_type IN ('purchase', 'purchases', 'order', 'buy') THEN v_qty ELSE 0 END),
+        views = product_analytics.views + (CASE WHEN p_event_type IN ('view', 'views', 'product_view', 'product-view', 'product_views', 'product-views') THEN v_qty ELSE 0 END),
+        cart_additions = product_analytics.cart_additions + (CASE WHEN p_event_type IN ('cart_add', 'cart_addition', 'cart_additions', 'cart', 'add_to_cart', 'add-to-cart', 'cart_adds', 'cart-add', 'cart-adds', 'cart-addition', 'cart-additions') THEN v_qty ELSE 0 END),
+        wishlist_additions = product_analytics.wishlist_additions + (CASE WHEN p_event_type IN ('wishlist_add', 'wishlist_addition', 'wishlist_additions', 'wishlist', 'add_to_wishlist', 'add-to-wishlist', 'wishlist_adds', 'wishlist-add', 'wishlist-adds', 'wishlist-addition', 'wishlist-additions') THEN v_qty ELSE 0 END),
+        purchases = product_analytics.purchases + (CASE WHEN p_event_type IN ('purchase', 'purchases', 'order', 'orders', 'buy', 'purchased', 'checkout', 'buy_now', 'buy-now') THEN v_qty ELSE 0 END),
         updated_at = NOW()
     RETURNING * INTO v_result;
 
     RETURN v_result;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Note: All authenticated mutations (checkout, order updates, merchant product creation, user profile updates)
 -- are executed server-side via Next.js Route Handlers using the Supabase Service Role Key after verifying the

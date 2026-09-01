@@ -60,6 +60,7 @@ describe('Event Type Normalization', () => {
     assert.equal(normalizeTrackingEventType('view'), 'view');
     assert.equal(normalizeTrackingEventType('views'), 'view');
     assert.equal(normalizeTrackingEventType('product_view'), 'view');
+    assert.equal(normalizeTrackingEventType('product-view'), 'view');
     assert.equal(normalizeTrackingEventType('VIEW'), 'view');
     assert.equal(normalizeTrackingEventType('  view  '), 'view');
   });
@@ -69,7 +70,9 @@ describe('Event Type Normalization', () => {
     assert.equal(normalizeTrackingEventType('cart_addition'), 'cart_add');
     assert.equal(normalizeTrackingEventType('cart'), 'cart_add');
     assert.equal(normalizeTrackingEventType('add_to_cart'), 'cart_add');
+    assert.equal(normalizeTrackingEventType('add-to-cart'), 'cart_add');
     assert.equal(normalizeTrackingEventType('cart_adds'), 'cart_add');
+    assert.equal(normalizeTrackingEventType('cart-add'), 'cart_add');
     assert.equal(normalizeTrackingEventType('CART_ADD'), 'cart_add');
   });
 
@@ -78,7 +81,9 @@ describe('Event Type Normalization', () => {
     assert.equal(normalizeTrackingEventType('wishlist_addition'), 'wishlist_add');
     assert.equal(normalizeTrackingEventType('wishlist'), 'wishlist_add');
     assert.equal(normalizeTrackingEventType('add_to_wishlist'), 'wishlist_add');
+    assert.equal(normalizeTrackingEventType('add-to-wishlist'), 'wishlist_add');
     assert.equal(normalizeTrackingEventType('wishlist_adds'), 'wishlist_add');
+    assert.equal(normalizeTrackingEventType('wishlist-add'), 'wishlist_add');
   });
 
   it('should normalize purchase events', () => {
@@ -96,6 +101,8 @@ describe('Event Type Normalization', () => {
     assert.equal(normalizeTrackingEventType(undefined), null);
     assert.equal(normalizeTrackingEventType(123), null);
     assert.equal(normalizeTrackingEventType({}), null);
+    assert.equal(normalizeTrackingEventType([]), null);
+    assert.equal(normalizeTrackingEventType(true), null);
   });
 });
 
@@ -112,7 +119,25 @@ describe('Tracking API Route Handlers (POST /api/analytics/track)', () => {
     assert.match(data.error, /Invalid JSON/i);
   });
 
-  it('should reject missing productId with 400', async () => {
+  it('should reject array or primitive JSON payloads with 400', async () => {
+    const arrayReq = new Request('http://localhost/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([1, 2, 3])
+    });
+    const resArr = await POST(arrayReq);
+    assert.equal(resArr.status, 400);
+
+    const primReq = new Request('http://localhost/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify('just a string')
+    });
+    const resPrim = await POST(primReq);
+    assert.equal(resPrim.status, 400);
+  });
+
+  it('should reject missing or blank productId with 400', async () => {
     const fakeRequest = new Request('http://localhost/api/analytics/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -123,6 +148,27 @@ describe('Tracking API Route Handlers (POST /api/analytics/track)', () => {
     assert.equal(response.status, 400);
     const data = await response.json();
     assert.match(data.error, /productId is required/i);
+
+    const blankRequest = new Request('http://localhost/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId: '   ', event: 'view' })
+    });
+    const resBlank = await POST(blankRequest);
+    assert.equal(resBlank.status, 400);
+  });
+
+  it('should reject excessively long productId with 400', async () => {
+    const fakeRequest = new Request('http://localhost/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId: 'p'.repeat(300), event: 'view' })
+    });
+
+    const response = await POST(fakeRequest);
+    assert.equal(response.status, 400);
+    const data = await response.json();
+    assert.match(data.error, /exceeds maximum length/i);
   });
 
   it('should reject invalid event type with 400', async () => {

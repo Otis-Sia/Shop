@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getWishlist, removeFromWishlist } from '@/lib/api/wishlist';
 import { addToCart } from '@/lib/api/cart';
+import { trackAddToCart } from '@/lib/api/analytics';
 import { Product } from '@/lib/data/products-data';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -97,6 +98,7 @@ export default function WishlistPage() {
     setAddingToCart(prev => ({ ...prev, [productId]: true }));
     try {
       await addToCart(productId, 1);
+      trackAddToCart(productId, 1);
       setAddedToCart(prev => ({ ...prev, [productId]: true }));
       showToast('Item added to cart!', 'success');
       setTimeout(() => {

@@ -160,6 +160,19 @@ export async function POST(request: Request) {
     // 6. Clear user cart items in Supabase
     await supabase.from('user_cart_items').delete().eq('user_id', secureUserId);
 
+    // 7. Track analytics purchase events for purchased products
+    for (const item of items) {
+      try {
+        await supabase.rpc('track_product_event', {
+          p_product_id: item.productId.toString(),
+          p_event_type: 'purchase',
+          p_quantity: Math.max(1, Number(item.quantity) || 1)
+        });
+      } catch (analyticsErr) {
+        console.warn('Analytics purchase tracking warning:', analyticsErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       firstOrderId,

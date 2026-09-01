@@ -3,18 +3,20 @@ import assert from 'node:assert/strict';
 import { trackProductView, trackAddToCart, trackAddToWishlist, trackPurchase, getProductAnalytics } from '../src/lib/api/analytics';
 
 describe('Client-Side Analytics Helpers', () => {
-  it('should return null when productId is empty or missing', async () => {
-    const viewResult = await trackProductView('');
-    assert.equal(viewResult, null);
+  it('should return null when productId is empty or missing or whitespace', async () => {
+    assert.equal(await trackProductView(''), null);
+    assert.equal(await trackProductView('   '), null);
+    assert.equal(await trackProductView(null as any), null);
+    assert.equal(await trackProductView(undefined as any), null);
 
-    const cartResult = await trackAddToCart('');
-    assert.equal(cartResult, null);
+    assert.equal(await trackAddToCart(''), null);
+    assert.equal(await trackAddToCart('   '), null);
 
-    const wishlistResult = await trackAddToWishlist('');
-    assert.equal(wishlistResult, null);
+    assert.equal(await trackAddToWishlist(''), null);
+    assert.equal(await trackAddToWishlist('   '), null);
 
-    const purchaseResult = await trackPurchase('');
-    assert.equal(purchaseResult, null);
+    assert.equal(await trackPurchase(''), null);
+    assert.equal(await trackPurchase('   '), null);
   });
 
   it('should format fetch request correctly when calling trackProductView', async () => {
@@ -81,6 +83,78 @@ describe('Client-Side Analytics Helpers', () => {
       assert.equal(body.event, 'cart_add');
       assert.equal(body.quantity, 3);
       assert.equal(result?.success, true);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('should format fetch request correctly when calling trackAddToWishlist', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestedOptions: any = null;
+
+    globalThis.fetch = (async (url: string, options: any) => {
+      requestedOptions = options;
+      return {
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: { productId: 'prod_wish', event: 'wishlist_add', popularityScore: 3.0 }
+        })
+      };
+    }) as any;
+
+    try {
+      const result = await trackAddToWishlist('prod_wish');
+      const body = JSON.parse(requestedOptions.body);
+      assert.equal(body.productId, 'prod_wish');
+      assert.equal(body.event, 'wishlist_add');
+      assert.equal(body.quantity, 1);
+      assert.equal(result?.success, true);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('should format fetch request correctly when calling trackPurchase with numeric ID', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestedOptions: any = null;
+
+    globalThis.fetch = (async (url: string, options: any) => {
+      requestedOptions = options;
+      return {
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: { productId: '555', event: 'purchase', popularityScore: 20.0 }
+        })
+      };
+    }) as any;
+
+    try {
+      const result = await trackPurchase(555, 2);
+      const body = JSON.parse(requestedOptions.body);
+      assert.equal(body.productId, '555');
+      assert.equal(body.event, 'purchase');
+      assert.equal(body.quantity, 2);
+      assert.equal(result?.success, true);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('should handle non-200 HTTP responses gracefully', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      return {
+        ok: false,
+        status: 404,
+        json: async () => ({ error: 'Product not found' })
+      };
+    }) as any;
+
+    try {
+      const result = await trackProductView('non_existent_prod');
+      assert.equal(result, null);
     } finally {
       globalThis.fetch = originalFetch;
     }

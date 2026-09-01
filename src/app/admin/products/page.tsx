@@ -97,10 +97,58 @@ export default function MerchantProducts() {
 
   // Auto SKU Generation Helper
   const generateSku = (supplierName: string = '', productName: string = '') => {
-    // 1. Get first four unique letters of supplier name
-    const cleanSupplier = (supplierName || '').toUpperCase().replace(/[^A-Z]/g, '');
-    const uniqueSupplierLetters = Array.from(new Set(cleanSupplier.split(''))).slice(0, 4).join('');
+    const cleanTarget = (supplierName || '').toUpperCase().replace(/[^A-Z]/g, '');
+    let uniqueSupplierLetters = 'XXXX';
     
+    if (cleanTarget) {
+      // Build an ordered list of all existing suppliers to ensure stable deterministic prefixes
+      const allSuppliers = Array.from(new Set(products.map(p => p.supplierName).filter(Boolean)));
+      const list = [...new Set(allSuppliers)].map(s => s.toUpperCase().replace(/[^A-Z]/g, '')).filter(Boolean);
+      if (!list.includes(cleanTarget)) list.push(cleanTarget);
+
+      const assignedPrefixes = new Map<string, string>();
+      const usedPrefixes = new Set<string>();
+
+      for (const sup of list) {
+        if (assignedPrefixes.has(sup)) continue;
+        
+        let base = sup;
+        if (base.length < 4) base = base.padEnd(4, 'X');
+        let prefix = base.slice(0, 4);
+        
+        if (!usedPrefixes.has(prefix)) {
+          assignedPrefixes.set(sup, prefix);
+          usedPrefixes.add(prefix);
+        } else {
+          // Collision: try replacing 4th letter
+          let found = false;
+          for (let i = 4; i < base.length; i++) {
+            let candidate = base.slice(0, 3) + base[i];
+            if (!usedPrefixes.has(candidate)) {
+               prefix = candidate;
+               found = true;
+               break;
+            }
+          }
+          // If still collision, append a number
+          if (!found) {
+             let counter = 1;
+             while (true) {
+                let candidate = (base.slice(0, 3) + counter.toString()).slice(0, 4);
+                if (!usedPrefixes.has(candidate)) {
+                   prefix = candidate;
+                   break;
+                }
+                counter++;
+             }
+          }
+          assignedPrefixes.set(sup, prefix);
+          usedPrefixes.add(prefix);
+        }
+      }
+      uniqueSupplierLetters = assignedPrefixes.get(cleanTarget) || 'XXXX';
+    }
+
     // 2. Generate a deterministic short code from the product name
     let hash = 0;
     const nameToHash = productName || 'DEFAULT';
@@ -110,8 +158,7 @@ export default function MerchantProducts() {
     }
     const productCode = Math.abs(hash).toString(36).toUpperCase().padStart(4, '0').slice(0, 4);
 
-    if (!uniqueSupplierLetters && !productName) return '';
-    if (!uniqueSupplierLetters) return productCode;
+    if (uniqueSupplierLetters === 'XXXX' && !productName) return '';
     return `${uniqueSupplierLetters}-${productCode}`;
   };
 
@@ -181,6 +228,7 @@ export default function MerchantProducts() {
     media: true,
     pricing: true
   });
+  const [viewTab, setViewTab] = useState<'catalog' | 'suppliers'>('catalog');
 
   const [bulkSizes, setBulkSizes] = useState('');
   const [bulkColors, setBulkColors] = useState('');
@@ -1424,11 +1472,29 @@ export default function MerchantProducts() {
       )}
 
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
-        <h1 className="font-headline-lg font-black text-2xl sm:text-4xl uppercase border-b-4 border-on-surface inline-block pb-2">
-          {'My Products'}
-        </h1>
+        <div className="flex flex-col gap-2">
+          <h1 className="font-headline-lg font-black text-2xl sm:text-4xl uppercase border-b-4 border-on-surface inline-block pb-2">
+            {'My Products'}
+          </h1>
+          {(!isAdding && editingId === null) && (
+            <div className="flex gap-4 border-b-2 border-surface-container mt-2">
+              <button 
+                onClick={() => setViewTab('catalog')}
+                className={`pb-2 text-sm font-black uppercase tracking-wider ${viewTab === 'catalog' ? 'text-primary-container border-b-4 border-primary-container' : 'text-secondary hover:text-on-surface'}`}
+              >
+                Catalog
+              </button>
+              <button 
+                onClick={() => setViewTab('suppliers')}
+                className={`pb-2 text-sm font-black uppercase tracking-wider ${viewTab === 'suppliers' ? 'text-primary-container border-b-4 border-primary-container' : 'text-secondary hover:text-on-surface'}`}
+              >
+                Suppliers & SKUs
+              </button>
+            </div>
+          )}
+        </div>
         {(!isAdding && editingId === null) && (
-          <div className="flex flex-wrap gap-2 sm:gap-4">
+          <div className="flex flex-wrap gap-2 sm:gap-4 mt-2 sm:mt-0">
             <button 
               onClick={handleFullSync}
               disabled={isSyncingCatalog}
@@ -2706,7 +2772,7 @@ export default function MerchantProducts() {
             </div>
           </div>
         </form>
-      ) : (
+      ) : viewTab === 'catalog' ? (
         <div className="space-y-6">
           {/* SEARCH & FILTER TOOLBAR */}
           <div className="bg-surface border-4 border-on-surface p-4 shadow-[4px_4px_0px_0px_var(--color-on-surface)] space-y-4">
@@ -3099,6 +3165,44 @@ export default function MerchantProducts() {
                 );
               })
             )}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-surface border-4 border-on-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)]">
+          <h2 className="font-bold text-xl uppercase mb-6 border-b-2 border-on-surface/20 pb-2 flex items-center gap-2">
+            <Icon name="inventory" />
+            Supplier & SKU Directory
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="bg-surface-container-low border-b-2 border-on-surface">
+                  <th className="p-3 text-xs font-black uppercase tracking-wider border-r-2 border-on-surface/20">Supplier</th>
+                  <th className="p-3 text-xs font-black uppercase tracking-wider border-r-2 border-on-surface/20">Product Name</th>
+                  <th className="p-3 text-xs font-black uppercase tracking-wider">SKU</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...products].sort((a, b) => (a.supplierName || 'Unknown').localeCompare(b.supplierName || 'Unknown')).map((product) => (
+                  <tr key={product.id} className="border-b-2 border-on-surface/10 hover:bg-surface-dim transition-colors">
+                    <td className="p-3 text-sm font-bold border-r-2 border-on-surface/10">{product.supplierName || <span className="text-secondary italic">No Supplier</span>}</td>
+                    <td className="p-3 text-sm border-r-2 border-on-surface/10">{product.name}</td>
+                    <td className="p-3">
+                      <span className="font-mono text-xs bg-primary-container text-on-surface px-2 py-1 font-bold border border-on-surface shadow-sm">
+                        {product.sku || 'N/A'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {products.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="p-8 text-center text-secondary font-bold uppercase text-sm">
+                      No products found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

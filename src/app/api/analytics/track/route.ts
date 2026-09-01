@@ -20,6 +20,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json(
+        { error: 'Request body must be a JSON object' },
+        { status: 400 }
+      );
+    }
+
     const rawProductId = body.productId ?? body.product_id;
     const rawEvent = body.event ?? body.eventType ?? body.type;
     const rawQuantity = body.quantity ?? body.count ?? body.increment ?? 1;
@@ -32,6 +39,13 @@ export async function POST(request: Request) {
     }
 
     const productId = String(rawProductId).trim();
+    if (productId.length > 255) {
+      return NextResponse.json(
+        { error: 'Product ID exceeds maximum length of 255 characters' },
+        { status: 400 }
+      );
+    }
+
     const eventType = normalizeTrackingEventType(rawEvent);
 
     if (!eventType) {
@@ -43,7 +57,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const quantity = Math.max(1, parseInt(String(rawQuantity), 10) || 1);
+    const parsedQty = parseInt(String(rawQuantity), 10);
+    const quantity = Math.min(100000, Math.max(1, Number.isFinite(parsedQty) ? parsedQty : 1));
     const supabase = getServiceSupabase();
 
     // Strategy 1: Try database RPC function if installed
@@ -69,12 +84,36 @@ export async function POST(request: Request) {
             updatedAt: rpcData.updated_at
           }
         });
+      } else if (rpcError) {
+        const errorMsg = String(rpcError.message || '');
+        if (errorMsg.includes('does not exist') || errorMsg.includes('not found')) {
+          return NextResponse.json({ error: errorMsg }, { status: 404 });
+        }
+        // If other RPC error (e.g. function doesn't exist yet in Supabase), fallback to table queries below
       }
-    } catch {
+    } catch (err: any) {
+      const msg = String(err?.message || '');
+      if (msg.includes('does not exist') || msg.includes('not found')) {
+        return NextResponse.json({ error: msg }, { status: 404 });
+      }
       // RPC not available, fallback to table query execution below
     }
 
     // Strategy 2: Direct Supabase table operations (with automatic upsert and score calculation)
+    // Check if product exists in products table
+    const { data: productExists, error: productCheckError } = await supabase
+      .from('products')
+      .select('id')
+      .eq('id', productId)
+      .maybeSingle();
+
+    if (!productCheckError && !productExists) {
+      return NextResponse.json(
+        { error: `Product with ID '${productId}' does not exist` },
+        { status: 404 }
+      );
+    }
+
     const { data: existingRow, error: fetchError } = await supabase
       .from('product_analytics')
       .select('*')
@@ -165,6 +204,46 @@ export async function POST(request: Request) {
         .single();
 
       if (insertError) {
+        if (insertError.code === '23503') {
+          // Foreign key violation: product not in products table
+          return NextResponse.json(
+            { error: `Product with ID '${productId}' does not exist` },
+            { status: 404 }
+          );
+        }
+        if (insertError.code === '23505') {
+          // Unique key violation: concurrent insertion, retry update
+          const { data: retryUpdated } = await supabase
+            .from('product_analytics')
+            .update({
+              views: newViews,
+              cart_additions: newCartAdditions,
+              wishlist_additions: newWishlistAdditions,
+              purchases: newPurchases,
+              popularity_score: calculatedScore,
+              updated_at: now
+            })
+            .eq('product_id', productId)
+            .select()
+            .single();
+
+          if (retryUpdated) {
+            return NextResponse.json({
+              success: true,
+              message: 'Event tracked successfully',
+              data: {
+                productId,
+                event: eventType,
+                views: Number(retryUpdated?.views ?? newViews),
+                cartAdditions: Number(retryUpdated?.cart_additions ?? newCartAdditions),
+                wishlistAdditions: Number(retryUpdated?.wishlist_additions ?? newWishlistAdditions),
+                purchases: Number(retryUpdated?.purchases ?? newPurchases),
+                popularityScore: Number(retryUpdated?.popularity_score ?? calculatedScore),
+                updatedAt: retryUpdated?.updated_at || now
+              }
+            });
+          }
+        }
         console.error('Error inserting product analytics:', insertError);
         return NextResponse.json({ error: insertError.message }, { status: 500 });
       }
@@ -196,8 +275,11 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const productId = searchParams.get('productId') || searchParams.get('product_id');
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+    const rawProductId = searchParams.get('productId') || searchParams.get('product_id');
+    const productId = rawProductId ? rawProductId.trim() : null;
+    const rawLimit = searchParams.get('limit');
+    const parsedLimit = rawLimit ? parseInt(rawLimit, 10) : 20;
+    const limit = Number.isFinite(parsedLimit) ? Math.min(100, Math.max(1, parsedLimit)) : 20;
 
     const supabase = getServiceSupabase();
 
