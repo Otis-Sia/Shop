@@ -52,6 +52,7 @@ Return your response strictly as a JSON object with the following fields:
 - tags: An array of 5-8 relevant search tags.
 - labels: An array of 1-3 promotional or descriptive labels.
 - imageAltTexts: An array of 2-3 generic but highly relevant alt text strings.
+- brand: The brand name of the product. Extract this from the product name/images if present, otherwise suggest a fitting generic brand or leave it blank.
 
 Do not include any markdown code block wrapping like \`\`\`json around the output. Output raw JSON only.
 `;

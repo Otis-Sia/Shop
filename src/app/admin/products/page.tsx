@@ -73,19 +73,32 @@ export default function MerchantProducts() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to analyze product');
       
-      setEditForm((prev: any) => ({
-        ...prev,
-        shortDescription: data.shortDescription || prev.shortDescription,
-        description: data.description || prev.description,
-        groupCategory: data.groupCategory || prev.groupCategory,
-        category: data.category || prev.category,
-        subcategories: Array.isArray(data.subcategories) && data.subcategories.length > 0 
-          ? data.subcategories.join(', ') : prev.subcategories,
-        tags: Array.isArray(data.tags) && data.tags.length > 0 
-          ? data.tags.join(', ') : prev.tags,
-        labels: Array.isArray(data.labels) && data.labels.length > 0 
-          ? data.labels.join(', ') : prev.labels,
-      }));
+      setEditForm((prev: any) => {
+        const altTextsObj = { ...(prev.imageAltTexts || {}) };
+        if (Array.isArray(data.imageAltTexts) && prev.imageUrls) {
+          prev.imageUrls.forEach((url: string, idx: number) => {
+            if (data.imageAltTexts[idx]) {
+              altTextsObj[url] = data.imageAltTexts[idx];
+            }
+          });
+        }
+        
+        return {
+          ...prev,
+          shortDescription: data.shortDescription || prev.shortDescription,
+          description: data.description || prev.description,
+          groupCategory: data.groupCategory || prev.groupCategory,
+          category: data.category || prev.category,
+          brand: data.brand || prev.brand,
+          subcategories: Array.isArray(data.subcategories) && data.subcategories.length > 0 
+            ? data.subcategories.join(', ') : prev.subcategories,
+          tags: Array.isArray(data.tags) && data.tags.length > 0 
+            ? data.tags.join(', ') : prev.tags,
+          labels: Array.isArray(data.labels) && data.labels.length > 0 
+            ? data.labels.join(', ') : prev.labels,
+          imageAltTexts: Object.keys(altTextsObj).length > 0 ? altTextsObj : prev.imageAltTexts,
+        };
+      });
       showToast("AI Analysis complete!", "success");
     } catch (err: any) {
       console.error(err);
