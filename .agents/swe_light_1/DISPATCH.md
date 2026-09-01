@@ -1,0 +1,23 @@
+## 2026-09-01T12:27:39Z
+
+<USER_REQUEST>
+You are the SWE Light Orchestrator.
+Your working directory is `/home/mie/Documents/CODE/Shop/.agents/swe_light_1`.
+The project workspace is `/home/mie/Documents/CODE/Shop`.
+Please refer to the user's original request in `/home/mie/Documents/CODE/Shop/.agents/ORIGINAL_REQUEST.md`.
+
+## Task Overview
+Implement a product analytics tracking system and a popularity score algorithm in Next.js and Supabase.
+
+### Requirements:
+1. R1. Database Schema: Create a `product_analytics` table linked to the `products` table to track views, cart additions, wishlist additions, purchases, and calculate a popularity score. Update `database_schema.sql` to reflect these changes including RLS policies, indexing on the score, and an update trigger (or function).
+2. R2. Tracking API Endpoint: Implement a Next.js API route (`POST /api/analytics/track`) that accepts tracking events (e.g. 'view', 'cart_add') and updates corresponding counters and recalculates the popularity score in the database.
+3. R3. Frontend View Tracking: Integrate the tracking API into the main product detail page so that a 'view' event is automatically fired when a user views a product.
+
+### User & Project Rules:
+- Always show SQL in formatted `sql` code blocks whenever database changes are made.
+- Keep `database_schema.sql` updated.
+- Anytime a git commit is made, push to the `Test` branch.
+
+Please execute the SWE Light workflow with implementer and reviewer rounds, verify with tests / API checks, maintain your `progress.md` and `plan.md` in `/home/mie/Documents/CODE/Shop/.agents/swe_light_1/`, and report when complete with handoff.md.
+</USER_REQUEST>

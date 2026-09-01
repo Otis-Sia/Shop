@@ -590,8 +590,10 @@ function ProductsPageContent() {
                 if (aVerified && !bVerified) return -1;
                 if (!aVerified && bVerified) return 1;
 
-                const priceA = a.discount ? a.price * (1 - a.discount / 100) : a.price;
-                const priceB = b.discount ? b.price * (1 - b.discount / 100) : b.price;
+                const salePriceA = a.salePrice ? parseFloat(String(a.salePrice)) : 0;
+                const priceA = (salePriceA > 0 && salePriceA < a.price) ? salePriceA : a.price;
+                const salePriceB = b.salePrice ? parseFloat(String(b.salePrice)) : 0;
+                const priceB = (salePriceB > 0 && salePriceB < b.price) ? salePriceB : b.price;
                 switch (sortBy) {
                   case 'price-asc': return priceA - priceB;
                   case 'price-desc': return priceB - priceA;
@@ -600,9 +602,11 @@ function ProductsPageContent() {
                   default: return 0;
                 }
               }).map((product, idx) => {
-                const discount = product.discount || 0;
                 const originalPrice = parseFloat(String(product.price));
-                const finalPrice = discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
+                const salePrice = product.salePrice ? parseFloat(String(product.salePrice)) : 0;
+                const hasDiscount = salePrice > 0 && salePrice < originalPrice;
+                const finalPrice = hasDiscount ? salePrice : originalPrice;
+                const exactSavings = hasDiscount ? originalPrice - salePrice : 0;
                 const isVerified = product.merchantStatus === 'approved' || product.merchantStatus === 'verified';
                 const sellerAgeTag = formatSellerAge(product.merchantCreatedAt);
 
@@ -624,9 +628,9 @@ function ProductsPageContent() {
                             <Icon name="verified_user" className="text-[12px]" /> Verified ID
                           </span>
                         )}
-                        {discount > 0 && (
+                        {hasDiscount && (
                           <span className="bg-error text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-max shadow-sm">
-                            -{discount}% OFF
+                            Ksh {exactSavings.toFixed(0)} OFF
                           </span>
                         )}
                         {!isVerified && (
@@ -645,9 +649,16 @@ function ProductsPageContent() {
                         <Icon name={wishlistedIds.has(product.id) ? "favorite" : "favorite_border"} className="text-xl" />
                       </button>
                       
-                      <p className="text-primary-container font-extrabold text-lg mb-1">
-                        Ksh {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                      </p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-primary-container font-extrabold text-lg">
+                          Ksh {finalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </p>
+                        {hasDiscount && (
+                          <p className="text-secondary line-through font-bold text-xs mt-1">
+                            Ksh {originalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </p>
+                        )}
+                      </div>
 
                       {product.category && (
                         <p className="text-[10px] text-secondary font-medium mb-1 truncate flex items-center gap-1">

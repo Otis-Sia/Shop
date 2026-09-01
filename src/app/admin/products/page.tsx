@@ -1624,8 +1624,26 @@ export default function MerchantProducts() {
                 {formErrors.price && <p className="text-xs text-error font-bold">{formErrors.price}</p>}
               </div>
 
-              {/* Cost Price (Optional) */}
+              {/* Sale Price */}
               <div className="space-y-2">
+                <label className="font-bold text-sm uppercase flex items-center justify-between">
+                  <span>Sale Price ({CURRENCY_CONFIG.symbol})</span>
+                  <span className="text-[10px] text-secondary font-semibold uppercase">Optional</span>
+                </label>
+                <input 
+                  type="number" 
+                  min="0" 
+                  step="0.01" 
+                  name="salePrice" 
+                  value={editForm.salePrice === 0 && !editForm.salePrice.toString().match(/^0$/) ? '' : (editForm.salePrice ?? '')} 
+                  onChange={handleChange} 
+                  placeholder="e.g. 19.99"
+                  className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
+                />
+              </div>
+
+              {/* Cost Price (Optional) */}
+              <div className="space-y-2 md:col-span-2">
                 <label className="font-bold text-sm uppercase flex items-center justify-between">
                   <span>Cost Price ({CURRENCY_CONFIG.symbol})</span>
                   <span className="text-[10px] text-secondary font-semibold uppercase">Optional Supplier Cost</span>
@@ -1640,10 +1658,20 @@ export default function MerchantProducts() {
                   placeholder="e.g. 15.00"
                   className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" 
                 />
-                {editForm.price > 0 && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
+                {(Number(editForm.price) > 0 || Number(editForm.salePrice) > 0) && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
                   <div className="text-[11px] font-bold p-1 bg-surface-dim border border-on-surface/30 flex justify-between">
-                    <span>Est. Profit: <strong className={Number(editForm.price) - Number(editForm.costPrice) >= 0 ? 'text-green-700' : 'text-error'}>{CURRENCY_CONFIG.symbol} {(Number(editForm.price) - Number(editForm.costPrice)).toFixed(2)}</strong></span>
-                    <span className="text-secondary">({(((Number(editForm.price) - Number(editForm.costPrice)) / Number(editForm.price)) * 100).toFixed(1)}% margin)</span>
+                    {(() => {
+                      const activePrice = Number(editForm.salePrice) > 0 ? Number(editForm.salePrice) : Number(editForm.price);
+                      const cost = Number(editForm.costPrice);
+                      const profit = activePrice - cost;
+                      const margin = activePrice > 0 ? (profit / activePrice) * 100 : 0;
+                      return (
+                        <>
+                          <span>Est. Profit (using {Number(editForm.salePrice) > 0 ? 'Sale Price' : 'Regular Price'}): <strong className={profit >= 0 ? 'text-green-700' : 'text-error'}>{CURRENCY_CONFIG.symbol} {profit.toFixed(2)}</strong></span>
+                          <span className="text-secondary">({margin.toFixed(1)}% margin)</span>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -2550,10 +2578,20 @@ export default function MerchantProducts() {
                         placeholder="e.g. 15.00" 
                         className="w-full max-w-sm border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
                       />
-                      {editForm.price > 0 && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
+                      {(Number(editForm.price) > 0 || Number(editForm.salePrice) > 0) && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
                         <div className="mt-2 text-xs font-bold p-2 bg-surface border border-on-surface flex items-center justify-between max-w-sm">
-                          <span>Estimated Profit: <strong className={Number(editForm.price) - Number(editForm.costPrice) >= 0 ? 'text-green-700' : 'text-error'}>{CURRENCY_CONFIG.symbol} {(Number(editForm.price) - Number(editForm.costPrice)).toFixed(2)}</strong></span>
-                          <span className="text-secondary font-semibold">({(((Number(editForm.price) - Number(editForm.costPrice)) / Number(editForm.price)) * 100).toFixed(1)}% margin)</span>
+                          {(() => {
+                            const activePrice = Number(editForm.salePrice) > 0 ? Number(editForm.salePrice) : Number(editForm.price);
+                            const cost = Number(editForm.costPrice);
+                            const profit = activePrice - cost;
+                            const margin = activePrice > 0 ? (profit / activePrice) * 100 : 0;
+                            return (
+                              <>
+                                <span>Estimated Profit (using {Number(editForm.salePrice) > 0 ? 'Sale Price' : 'Regular Price'}): <strong className={profit >= 0 ? 'text-green-700' : 'text-error'}>{CURRENCY_CONFIG.symbol} {profit.toFixed(2)}</strong></span>
+                                <span className="text-secondary font-semibold">({margin.toFixed(1)}% margin)</span>
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>

@@ -220,6 +220,18 @@ CREATE TABLE IF NOT EXISTS product_templates (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 14. Product Analytics Table
+CREATE TABLE IF NOT EXISTS product_analytics (
+    product_id VARCHAR(255) PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
+    views INTEGER NOT NULL DEFAULT 0,
+    cart_additions INTEGER NOT NULL DEFAULT 0,
+    wishlist_additions INTEGER NOT NULL DEFAULT 0,
+    purchases INTEGER NOT NULL DEFAULT 0,
+    popularity_score DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ============================================================================
 -- PERFORMANCE INDEXES (Idempotent creation)
 -- ============================================================================
@@ -238,13 +250,49 @@ CREATE INDEX IF NOT EXISTS idx_user_cart_items_user ON user_cart_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_wishlist_items_user ON user_wishlist_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_drafts_merchant ON drafts(merchant_id);
 CREATE INDEX IF NOT EXISTS idx_product_templates_merchant ON product_templates(merchant_id);
+CREATE INDEX IF NOT EXISTS idx_product_analytics_popularity ON product_analytics(popularity_score DESC);
+CREATE INDEX IF NOT EXISTS idx_product_analytics_views ON product_analytics(views DESC);
 
 -- ============================================================================
--- AUTO-UPDATE TIMESTAMPS TRIGGER
+-- AUTO-UPDATE TIMESTAMPS & POPULARITY SCORE TRIGGERS
 -- ============================================================================
 CREATE OR REPLACE FUNCTION update_modified_column()
 RETURNS TRIGGER AS $$
 BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Popularity score calculation helper function:
+-- Formula: (views * 1) + (wishlist_additions * 3) + (cart_additions * 5) + (purchases * 10)
+CREATE OR REPLACE FUNCTION calculate_product_popularity_score(
+    p_views INTEGER,
+    p_wishlist_additions INTEGER,
+    p_cart_additions INTEGER,
+    p_purchases INTEGER
+)
+RETURNS DECIMAL(10, 2) AS $$
+BEGIN
+    RETURN (
+        (COALESCE(p_views, 0) * 1.0) +
+        (COALESCE(p_wishlist_additions, 0) * 3.0) +
+        (COALESCE(p_cart_additions, 0) * 5.0) +
+        (COALESCE(p_purchases, 0) * 10.0)
+    );
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Trigger function to update product analytics popularity score
+CREATE OR REPLACE FUNCTION update_product_analytics_score()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.popularity_score = calculate_product_popularity_score(
+        NEW.views,
+        NEW.wishlist_additions,
+        NEW.cart_additions,
+        NEW.purchases
+    );
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
@@ -277,6 +325,14 @@ DO $$ BEGIN
 
     DROP TRIGGER IF EXISTS update_product_templates_modtime ON product_templates;
     CREATE TRIGGER update_product_templates_modtime BEFORE UPDATE ON product_templates FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+    DROP TRIGGER IF EXISTS update_product_analytics_score_trigger ON product_analytics;
+    CREATE TRIGGER update_product_analytics_score_trigger
+    BEFORE INSERT OR UPDATE OF views, cart_additions, wishlist_additions, purchases ON product_analytics
+    FOR EACH ROW EXECUTE FUNCTION update_product_analytics_score();
+
+    DROP TRIGGER IF EXISTS update_product_analytics_modtime ON product_analytics;
+    CREATE TRIGGER update_product_analytics_modtime BEFORE UPDATE ON product_analytics FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 END $$;
 
 -- ============================================================================
@@ -297,6 +353,7 @@ ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE drafts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_analytics ENABLE ROW LEVEL SECURITY;
 
 -- Public Read Policies (Allow frontend public anon clients to read catalog & categories)
 DO $$ BEGIN
@@ -314,7 +371,59 @@ DO $$ BEGIN
 
     DROP POLICY IF EXISTS "Public insert access for contact messages" ON contact_messages;
     CREATE POLICY "Public insert access for contact messages" ON contact_messages FOR INSERT WITH CHECK (true);
+
+    DROP POLICY IF EXISTS "Public read access for product analytics" ON product_analytics;
+    CREATE POLICY "Public read access for product analytics" ON product_analytics FOR SELECT USING (true);
 END $$;
+
+-- ============================================================================
+-- PRODUCT ANALYTICS RPC FUNCTIONS
+-- ============================================================================
+CREATE OR REPLACE FUNCTION track_product_event(
+    p_product_id VARCHAR(255),
+    p_event_type VARCHAR(50),
+    p_quantity INTEGER DEFAULT 1
+)
+RETURNS product_analytics AS $$
+DECLARE
+    v_qty INTEGER := GREATEST(COALESCE(p_quantity, 1), 1);
+    v_result product_analytics;
+BEGIN
+    -- Ensure product exists
+    IF NOT EXISTS (SELECT 1 FROM products WHERE id = p_product_id) THEN
+        RAISE EXCEPTION 'Product with ID % does not exist', p_product_id;
+    END IF;
+
+    -- Upsert analytics row
+    INSERT INTO product_analytics (
+        product_id,
+        views,
+        cart_additions,
+        wishlist_additions,
+        purchases,
+        popularity_score,
+        updated_at
+    )
+    VALUES (
+        p_product_id,
+        CASE WHEN p_event_type IN ('view', 'views') THEN v_qty ELSE 0 END,
+        CASE WHEN p_event_type IN ('cart_add', 'cart_addition', 'cart', 'add_to_cart') THEN v_qty ELSE 0 END,
+        CASE WHEN p_event_type IN ('wishlist_add', 'wishlist_addition', 'wishlist', 'add_to_wishlist') THEN v_qty ELSE 0 END,
+        CASE WHEN p_event_type IN ('purchase', 'purchases', 'order', 'buy') THEN v_qty ELSE 0 END,
+        0.00,
+        NOW()
+    )
+    ON CONFLICT (product_id) DO UPDATE SET
+        views = product_analytics.views + (CASE WHEN p_event_type IN ('view', 'views') THEN v_qty ELSE 0 END),
+        cart_additions = product_analytics.cart_additions + (CASE WHEN p_event_type IN ('cart_add', 'cart_addition', 'cart', 'add_to_cart') THEN v_qty ELSE 0 END),
+        wishlist_additions = product_analytics.wishlist_additions + (CASE WHEN p_event_type IN ('wishlist_add', 'wishlist_addition', 'wishlist', 'add_to_wishlist') THEN v_qty ELSE 0 END),
+        purchases = product_analytics.purchases + (CASE WHEN p_event_type IN ('purchase', 'purchases', 'order', 'buy') THEN v_qty ELSE 0 END),
+        updated_at = NOW()
+    RETURNING * INTO v_result;
+
+    RETURN v_result;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Note: All authenticated mutations (checkout, order updates, merchant product creation, user profile updates)
 -- are executed server-side via Next.js Route Handlers using the Supabase Service Role Key after verifying the

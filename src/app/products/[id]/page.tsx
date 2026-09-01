@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getProduct } from '@/lib/api/products';
@@ -11,6 +11,7 @@ import { getUserProfile } from '@/lib/api/auth';
 import { canAddToCartRole } from '@/lib/access';
 import { addToWishlist, removeFromWishlist, isInWishlist } from '@/lib/api/wishlist';
 import { Product } from '@/lib/data/products-data';
+import { trackProductView, trackAddToCart, trackAddToWishlist } from '@/lib/api/analytics';
 import Icon from '@/components/Icon';
 import ProductReviews from '@/components/shop/ProductReviews';
 import ProductRatingBadge from '@/components/shop/ProductRatingBadge';
@@ -44,6 +45,7 @@ export default function ProductDetailPage() {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [userRole, setUserRole] = useState<'customer' | 'admin' | 'merchant' | 'guest'>('guest');
+  const lastTrackedProductId = useRef<string | null>(null);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -59,6 +61,12 @@ export default function ProductDetailPage() {
         
         const wishlisted = await isInWishlist(productId);
         setIsWishlisted(wishlisted);
+
+        // Fire product view tracking event
+        if (lastTrackedProductId.current !== productId) {
+          lastTrackedProductId.current = productId;
+          trackProductView(productId);
+        }
       } catch {
         setError(true);
       } finally {
@@ -162,6 +170,7 @@ export default function ProductDetailPage() {
         selectedSize || undefined, 
         selectedVariantIndex !== null ? selectedVariantIndex : undefined
       );
+      trackAddToCart(product.id, quantity);
       setCartStatus('added');
       setTimeout(() => setCartStatus('idle'), 2000);
     } catch (err: any) {
@@ -179,6 +188,7 @@ export default function ProductDetailPage() {
         setIsWishlisted(false);
       } else {
         await addToWishlist(product.id);
+        trackAddToWishlist(product.id);
         setIsWishlisted(true);
       }
     } catch (err) {
@@ -224,8 +234,10 @@ export default function ProductDetailPage() {
     }
   }
 
-  const discount = product.discount || 0;
-  const finalPrice = discount > 0 ? basePrice * (1 - discount / 100) : basePrice;
+  const salePrice = product.salePrice ? parseFloat(String(product.salePrice)) : 0;
+  const hasDiscount = salePrice > 0 && salePrice < basePrice;
+  const finalPrice = hasDiscount ? salePrice : basePrice;
+  const exactSavings = hasDiscount ? basePrice - salePrice : 0;
 
   return (
     <main className="max-w-[1440px] mx-auto px-6 md:px-16 py-12 flex-grow space-y-8">
@@ -259,9 +271,9 @@ export default function ProductDetailPage() {
                 ))}
               </div>
             )}
-            {discount > 0 && (
+            {hasDiscount && (
               <span className="absolute top-4 right-4 bg-red-50 text-error border-2 border-error text-[10px] font-black uppercase px-2.5 py-1">
-                -{discount}% OFF
+                Ksh {exactSavings.toFixed(0)} OFF
               </span>
             )}
           </div>
@@ -312,7 +324,7 @@ export default function ProductDetailPage() {
             
             <div className="flex items-center gap-3 pt-1">
               <span className="font-headline-md text-2xl font-black text-on-surface">Ksh {finalPrice.toFixed(2)}</span>
-              {discount > 0 && (
+              {hasDiscount && (
                 <span className="text-secondary line-through font-bold text-sm">Ksh {basePrice.toFixed(2)}</span>
               )}
               {currentStock > 0 && currentStock !== 99999 && (
