@@ -102,7 +102,7 @@ export default function MerchantProducts() {
     
     if (cleanTarget) {
       // Build an ordered list of all existing suppliers to ensure stable deterministic prefixes
-      const allSuppliers = Array.from(new Set(products.map(p => p.supplierName).filter(Boolean)));
+      const allSuppliers = Array.from(new Set(products.map(p => p.supplierName).filter((s): s is string => Boolean(s))));
       const list = [...new Set(allSuppliers)].map(s => s.toUpperCase().replace(/[^A-Z]/g, '')).filter(Boolean);
       if (!list.includes(cleanTarget)) list.push(cleanTarget);
 
@@ -2772,8 +2772,9 @@ export default function MerchantProducts() {
             </div>
           </div>
         </form>
-      ) : viewTab === 'catalog' ? (
-        <div className="space-y-6">
+      ) : (
+        viewTab === 'catalog' ? (
+          <div className="space-y-6">
           {/* SEARCH & FILTER TOOLBAR */}
           <div className="bg-surface border-4 border-on-surface p-4 shadow-[4px_4px_0px_0px_var(--color-on-surface)] space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -3205,7 +3206,8 @@ export default function MerchantProducts() {
             </table>
           </div>
         </div>
-      )}
+      )
+    )}
 
       {/* WhatsApp Sharing Modal */}
       {whatsAppModalProduct && (
