@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import Icon from '@/components/Icon';
-import Countdown from '@/components/Countdown';
 import { STORE_CONFIG } from '@/lib/config/store';
 import { getProducts } from '@/lib/api/products';
 
@@ -87,11 +86,6 @@ export default function HomePage() {
           <p className="font-body-md text-base md:text-lg text-white/70 max-w-xl mb-10 leading-relaxed font-medium">
             {STORE_CONFIG.name} redefines the online shopping experience. Premium products, seamless checkout, and unmatched quality — all in one place.
           </p>
-
-          <div className="mb-10 w-full max-w-3xl">
-            <h3 className="font-extrabold text-xs text-primary-container uppercase tracking-[0.25em] mb-[-10px]">Grand Opening In</h3>
-            <Countdown />
-          </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
             <Link

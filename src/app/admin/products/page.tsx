@@ -1538,7 +1538,7 @@ export default function MerchantProducts() {
                 <label className="font-bold text-sm uppercase flex items-center justify-between w-full">
                   <span className="flex items-center gap-1">Product Name <span className="text-error font-black">*</span></span>
                   <button type="button" onClick={handleAIAnalyze} disabled={isAnalyzing} className="text-[10px] bg-primary-container text-on-surface px-2 py-1 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
-                    <Icon name="sparkles" size={12} /> {isAnalyzing ? 'Analyzing...' : 'Auto-fill with AI'}
+                    <Icon name="auto_awesome" className="text-xs" /> {isAnalyzing ? 'Analyzing...' : 'Auto-fill with AI'}
                   </button>
                 </label>
                 <input 
@@ -1900,7 +1900,7 @@ export default function MerchantProducts() {
                       <label className="font-bold text-sm uppercase flex items-center justify-between w-full">
                         <span className="flex items-center gap-1">{'Product Name'} <span className="text-error font-black">*</span></span>
                         <button type="button" onClick={handleAIAnalyze} disabled={isAnalyzing} className="text-[10px] bg-primary-container text-on-surface px-2 py-1 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
-                          <Icon name="sparkles" size={12} /> {isAnalyzing ? 'Analyzing...' : 'Auto-fill with AI'}
+                          <Icon name="auto_awesome" className="text-xs" /> {isAnalyzing ? 'Analyzing...' : 'Auto-fill with AI'}
                         </button>
                       </label>
                       <input 
