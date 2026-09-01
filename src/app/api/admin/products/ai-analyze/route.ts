@@ -38,7 +38,7 @@ Generate compelling, SEO-optimized content for this product.
 Product Name: "${name}"
 
 Here are the existing categories in the database:
-${JSON.stringify(categoriesContext, null, 2)}
+${JSON.stringify(categoriesContext)}
 
 Try to fit the product into an existing groupCategory, category, and use existing subcategories if they perfectly match.
 IF AND ONLY IF the existing categories do not fit well, you may invent a NEW groupCategory, category, or new subcategories.
@@ -94,7 +94,7 @@ Do not include any markdown code block wrapping like \`\`\`json around the outpu
               'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
             },
             body: JSON.stringify({
-              model: 'llama-3.3-70b-versatile',
+              model: 'qwen-2.5-32b',
               messages: [{ role: 'user', content: prompt }],
               response_format: { type: 'json_object' }
             })

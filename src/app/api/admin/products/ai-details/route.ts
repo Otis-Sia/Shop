@@ -33,7 +33,7 @@ Raw product details:
 """${rawDetails}"""
 
 Existing categories (for reference):
-${JSON.stringify(categoriesContext, null, 2)}
+${JSON.stringify(categoriesContext)}
 
 Return a JSON object containing the following fields:
 - name: concise, high-converting product title/name.
@@ -96,7 +96,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
               'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
             },
             body: JSON.stringify({
-              model: 'llama-3.3-70b-versatile',
+              model: 'qwen-2.5-32b',
               messages: [{ role: 'user', content: prompt }],
               response_format: { type: 'json_object' }
             })
