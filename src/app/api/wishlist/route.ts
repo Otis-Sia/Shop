@@ -40,7 +40,6 @@ export async function GET(request: Request) {
           category,
           stock,
           image_urls,
-          image_url,
           tags,
           colors,
           sizes,

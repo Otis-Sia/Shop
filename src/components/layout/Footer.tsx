@@ -3,12 +3,19 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import Icon from '@/components/Icon';
 import { STORE_CONFIG } from '@/lib/config/store';
 
 export default function Footer() {
+  const pathname = usePathname();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+
+  // Don't render the storefront footer on admin pages
+  if (pathname.startsWith('/admin')) {
+    return null;
+  }
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,8 +50,8 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-4 space-y-6">
             <div className="flex items-center gap-3">
-              <Image src="/Logo.svg" alt="Logo" width={44} height={44} className="w-auto h-11 invert hue-rotate-180" style={{ width: 'auto' }} />
-              <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={40} className="w-auto h-7 invert hue-rotate-180" />
+              <Image src="/Logo.svg" alt="Logo" width={44} height={44} className="w-auto h-11 invert hue-rotate-180" style={{ width: 'auto', height: 'auto' }} />
+              <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={40} style={{ width: 'auto', height: 'auto' }} className="w-auto h-7 invert hue-rotate-180" />
             </div>
             <p className="text-sm font-medium text-white/60 leading-relaxed max-w-xs">
               Your premium marketplace for quality products. Built for the modern shopper who demands the best.

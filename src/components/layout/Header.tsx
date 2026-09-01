@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { subscribeToAuthChanges, logout, getUserProfile } from '@/lib/api/auth';
 import { getCart } from '@/lib/api/cart';
 import { getWishlistCount } from '@/lib/api/wishlist';
@@ -14,6 +14,7 @@ import { STORE_CONFIG } from '@/lib/config/store';
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<{ first_name: string; email: string; uid: string; role?: string } | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -95,13 +96,18 @@ export default function Header() {
     }
   };
 
+  // Don't render the storefront header on admin pages (admin has its own layout)
+  if (pathname.startsWith('/admin')) {
+    return null;
+  }
+
   if (!mounted) {
     return (
       <header className="bg-surface sticky top-0 z-50 border-b-2 border-on-surface">
         <nav className="flex justify-between items-center w-full px-6 md:px-16 py-4 max-w-[1440px] mx-auto">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="hidden sm:block w-auto h-10 dark:invert dark:hue-rotate-180" style={{ width: 'auto' }} />
-            <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={40} className="w-auto h-6 dark:invert dark:hue-rotate-180" />
+            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="hidden sm:block w-auto h-10 dark:invert dark:hue-rotate-180" style={{ width: 'auto', height: 'auto' }} />
+            <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={40} style={{ width: 'auto', height: 'auto' }} className="w-auto h-6 dark:invert dark:hue-rotate-180" />
           </Link>
         </nav>
       </header>
@@ -144,8 +150,8 @@ export default function Header() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="hidden sm:block w-auto h-10 dark:invert dark:hue-rotate-180" style={{ width: 'auto' }} />
-          <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={40} className="w-auto h-6 dark:invert dark:hue-rotate-180" />
+          <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="hidden sm:block w-auto h-10 dark:invert dark:hue-rotate-180" style={{ width: 'auto', height: 'auto' }} />
+          <Image src="/name.svg" alt={STORE_CONFIG.name} width={100} height={40} style={{ width: 'auto', height: 'auto' }} className="w-auto h-6 dark:invert dark:hue-rotate-180" />
         </Link>
 
         {/* Desktop Links */}
