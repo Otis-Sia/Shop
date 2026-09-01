@@ -64,22 +64,22 @@ Do not include any markdown code block wrapping like \`\`\`json around the outpu
       const response = await ai.models.generateContent({
         model: 'gemini-3.6-flash',
         contents: prompt,
-        config: { responseMimeType: "application/json" }
+        config: { responseMimeType: 'application/json' }
       });
       responseText = response.text || '';
     } catch (genAiError1: any) {
-      console.warn('Gemini 3.6 Flash failed, attempting Gemini 2.5 Flash:', genAiError1.message);
+      console.warn('Gemini 3.6 Flash failed, attempting Gemini 3.6 Pro:', genAiError1.message);
       
       try {
-        // 2. Fallback to gemini-2.5-flash
+        // 2. Fallback to gemini-3.6-pro
         const response2 = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-pro',
           contents: prompt,
-          config: { responseMimeType: "application/json" }
+          config: { responseMimeType: 'application/json' }
         });
         responseText = response2.text || '';
       } catch (genAiError2: any) {
-        console.warn('Gemini 2.5 Flash failed, attempting Groq fallback:', genAiError2.message);
+        console.warn('Gemini 3.6 Pro failed, attempting Groq fallback:', genAiError2.message);
         
         try {
           // 3. Fallback to Groq
