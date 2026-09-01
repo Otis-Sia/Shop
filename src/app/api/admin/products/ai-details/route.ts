@@ -61,56 +61,55 @@ Return a JSON object containing the following fields:
 Do not include markdown code fences (like \`\`\`json). Output raw valid JSON only.`;
 
     let responseText = '';
+    
+    // 1. Try Groq (Qwen)
     try {
-      // 1. Try gemini-1.5-flash first
-      const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
-        contents: prompt,
-        config: { responseMimeType: 'application/json' }
+      if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY is not configured.');
+      
+      const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'qwen/qwen3.6-27b',
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' }
+        })
       });
-      responseText = response.text || '';
-    } catch (genAiError1: any) {
-      console.warn('Gemini 1.5 Flash failed, attempting Gemini 1.5 Pro:', genAiError1.message);
+      
+      if (!groqResponse.ok) {
+        const errText = await groqResponse.text();
+        throw new Error(`Groq API failed: ${groqResponse.status} ${errText}`);
+      }
+      
+      const groqData = await groqResponse.json();
+      responseText = groqData.choices?.[0]?.message?.content || '';
+    } catch (groqError: any) {
+      console.warn('Groq failed, attempting Gemini 1.5 Flash:', groqError.message);
       
       try {
-        // 2. Fallback to gemini-1.5-pro
-        const response2 = await ai.models.generateContent({
-          model: 'gemini-1.5-pro',
+        // 2. Fallback to gemini-1.5-flash
+        const response = await ai.models.generateContent({
+          model: 'gemini-1.5-flash',
           contents: prompt,
           config: { responseMimeType: 'application/json' }
         });
-        responseText = response2.text || '';
-      } catch (genAiError2: any) {
-        console.warn('Gemini 3.6 Pro failed, attempting Groq fallback:', genAiError2.message);
+        responseText = response.text || '';
+      } catch (genAiError1: any) {
+        console.warn('Gemini 1.5 Flash failed, attempting Gemini 1.5 Pro:', genAiError1.message);
         
         try {
-          // 3. Fallback to Groq
-          if (!process.env.GROQ_API_KEY) {
-            throw new Error('GROQ_API_KEY is not configured.');
-          }
-          
-          const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
-            },
-            body: JSON.stringify({
-              model: 'qwen/qwen3.6-27b',
-              messages: [{ role: 'user', content: prompt }],
-              response_format: { type: 'json_object' }
-            })
+          // 3. Fallback to gemini-1.5-pro
+          const response2 = await ai.models.generateContent({
+            model: 'gemini-1.5-pro',
+            contents: prompt,
+            config: { responseMimeType: 'application/json' }
           });
-          
-          if (!groqResponse.ok) {
-            const errText = await groqResponse.text();
-            throw new Error(`Groq API failed: ${groqResponse.status} ${errText}`);
-          }
-          
-          const groqData = await groqResponse.json();
-          responseText = groqData.choices?.[0]?.message?.content || '';
-        } catch (groqError: any) {
-          console.warn('Groq failed, attempting DeepSeek fallback:', groqError.message);
+          responseText = response2.text || '';
+        } catch (genAiError2: any) {
+          console.warn('Gemini 1.5 Pro failed, attempting DeepSeek fallback:', genAiError2.message);
           
           // 4. Fallback to DeepSeek
           if (!process.env.DEEPSEEK_API_KEY) {
