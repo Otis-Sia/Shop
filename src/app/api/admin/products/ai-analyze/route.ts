@@ -85,23 +85,23 @@ Do not include any markdown code block wrapping like \`\`\`json around the outpu
       const groqData = await groqResponse.json();
       responseText = groqData.choices?.[0]?.message?.content || '';
     } catch (groqError: any) {
-      console.warn('Groq failed, attempting Gemini 1.5 Flash:', groqError.message);
+      console.warn('Groq failed, attempting Gemini 3.6 Flash:', groqError.message);
       
       try {
-        // 2. Fallback to gemini-1.5-flash
+        // 2. Fallback to gemini-3.6-flash
         const response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-3.6-flash',
           contents: prompt,
           config: { responseMimeType: 'application/json' }
         });
         responseText = response.text || '';
       } catch (genAiError1: any) {
-        console.warn('Gemini 1.5 Flash failed, attempting Gemini 1.5 Pro:', genAiError1.message);
+        console.warn('Gemini 3.6 Flash failed, attempting Gemini 3.6 Pro:', genAiError1.message);
         
         try {
-          // 3. Fallback to gemini-1.5-pro
+          // 3. Fallback to gemini-3.6-pro
           const response2 = await ai.models.generateContent({
-            model: 'gemini-1.5-pro',
+            model: 'gemini-3.6-pro',
             contents: prompt,
             config: { responseMimeType: 'application/json' }
           });
