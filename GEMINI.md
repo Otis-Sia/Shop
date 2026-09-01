@@ -10,4 +10,7 @@
 
 ## AI API Integrations
 - **JSON Minification**: Whenever injecting data structures or database contexts into AI prompts, always minify the JSON (e.g., `JSON.stringify(context)`) rather than pretty-printing it. This conserves tokens and prevents rate-limit errors (like the 8K TPM limit).
-- **Groq Model Preference**: Use `qwen/qwen3.6-27b` as the designated model for Groq API fallbacks/generation.
+- **Approved Model Versions (Do NOT Downgrade)**: 
+  - **Google GenAI**: Always use `gemini-3.6-flash` or `gemini-3.6-pro`. 
+  - **Groq API**: Always use `qwen/qwen3.6-27b`. 
+  *(Never "correct" these to older versions like 1.5 or 2.5, as they are fully supported in this environment).*
