@@ -7,3 +7,7 @@
 
 ## Git Workflow
 - **Push Commits to Test Branch**: Anytime a commit is made, always push it to the `Test` branch (e.g., `git push origin HEAD:Test` or pushing directly to `Test`).
+
+## AI API Integrations
+- **JSON Minification**: Whenever injecting data structures or database contexts into AI prompts, always minify the JSON (e.g., `JSON.stringify(context)`) rather than pretty-printing it. This conserves tokens and prevents rate-limit errors (like the 8K TPM limit).
+- **Groq Model Preference**: Use `qwen/qwen3.6-27b` as the designated model for Groq API fallbacks/generation.
