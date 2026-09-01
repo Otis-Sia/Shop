@@ -98,6 +98,8 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE products ADD CONSTRAINT unique_sku UNIQUE (sku);
+
 -- 3. Product Variants Table
 CREATE TABLE IF NOT EXISTS product_variants (
     id VARCHAR(255) PRIMARY KEY,

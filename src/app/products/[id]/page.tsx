@@ -320,8 +320,8 @@ export default function ProductDetailPage() {
               {product.name}
             </h1>
 
-            {product.brand && (
-              <p className="text-[11px] font-bold uppercase tracking-wider text-secondary">
+            {product.brand && product.brand.toLowerCase() !== 'generic' && (
+              <p className="text-[10px] text-secondary/80 font-semibold uppercase tracking-wide mb-1 truncate">
                 Brand: {product.brand}
               </p>
             )}
