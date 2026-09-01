@@ -70,7 +70,7 @@ export interface Product {
   saleStartDate?: TimestampType | null;
   saleEndDate?: TimestampType | null;
   discount?: number;
-  brand?: string;
+  rawDetails?: string;
   countryOfOrigin?: string;
   currency: string; // e.g., 'USD'
   trackInventory?: boolean;

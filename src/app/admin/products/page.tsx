@@ -52,6 +52,7 @@ export default function MerchantProducts() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [draftToResume, setDraftToResume] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingFromDetails, setIsGeneratingFromDetails] = useState(false);
 
   const handleAIAnalyze = async () => {
     if (!editForm.name) {
@@ -108,6 +109,31 @@ export default function MerchantProducts() {
       setIsAnalyzing(false);
     }
   };
+
+  // Generate fields from free‑form details using AI
+  const handleAIFromDetails = async () => {
+    if (!editForm.rawDetails) {
+      showToast('Please enter free‑form details first.', 'error');
+      return;
+    }
+    setIsGeneratingFromDetails(true);
+    try {
+      const res = await fetch('/api/admin/products/ai-details', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawDetails: editForm.rawDetails }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'AI details parsing failed');
+      setEditForm(prev => ({ ...prev, ...data }));
+      showToast('AI generated fields successfully.', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast(e.message || 'Unexpected error during AI parsing.', 'error');
+    }
+    setIsGeneratingFromDetails(false);
+  };
+
 
   // Auto SKU Generation Helper
   const generateSku = (supplierName: string = '', productName: string = '') => {
@@ -2097,6 +2123,11 @@ export default function MerchantProducts() {
                     <div className="space-y-2 md:col-span-2">
                       <label className="font-bold text-sm uppercase">Full Description</label>
                       <textarea name="description" value={editForm.description || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-32 focus:ring-0 outline-none" placeholder="Detailed product description..."></textarea>
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="font-bold text-sm uppercase">Free‑form details</label>
+                      <textarea name="rawDetails" value={editForm.rawDetails || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-24 focus:ring-0 outline-none" placeholder="Paste product description, specs, etc."></textarea>
+                      <button type="button" onClick={handleAIFromDetails} className="mt-2 px-4 py-2 bg-primary text-white rounded">✨ Generate fields from details</button>
                     </div>
 
                     <div className="space-y-2">
