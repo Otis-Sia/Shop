@@ -3,6 +3,7 @@
   "name": "shop",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-08-15",
+  "account_id": "39e34bbaefe5495583fa6ce9e52ca9a2",
   "compatibility_flags": [
     "nodejs_compat"
   ],

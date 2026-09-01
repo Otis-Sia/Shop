@@ -111,6 +111,27 @@ export default function MerchantProducts() {
   };
 
   // Generate fields from free‑form details using AI
+  const saveAIAutoFill = async (rawDetails: string, generatedJson: any) => {
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : '';
+      await fetch('/api/ai-fills/auto-save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          rawDetails,
+          generatedJson,
+          productId: editingId !== null ? products.find((p: any) => p.internalId === editingId || p.id === editingId)?.id : null
+        })
+      });
+    } catch (err) {
+      console.error('Failed to save AI auto-fill data', err);
+    }
+  };
+
   const handleAIFromDetails = async () => {
     if (!editForm.rawDetails || !editForm.rawDetails.trim()) {
       showToast('Please enter free‑form product details first.', 'warning');
@@ -144,21 +165,65 @@ export default function MerchantProducts() {
           category: data.category || prev.category,
           brand: data.brand || prev.brand,
           countryOfOrigin: data.countryOfOrigin || prev.countryOfOrigin,
+          supplierName: data.supplierName || prev.supplierName,
+          sku: data.sku || prev.sku,
+          price: data.price !== null && data.price !== undefined ? data.price : prev.price,
+          salePrice: data.salePrice !== null && data.salePrice !== undefined ? data.salePrice : prev.salePrice,
+          costPrice: data.costPrice !== null && data.costPrice !== undefined ? data.costPrice : prev.costPrice,
+          stock: data.stock !== null && data.stock !== undefined ? data.stock : prev.stock,
           subcategories: Array.isArray(data.subcategories) && data.subcategories.length > 0 
             ? data.subcategories.join(', ') : (typeof data.subcategories === 'string' ? data.subcategories : prev.subcategories),
           tags: Array.isArray(data.tags) && data.tags.length > 0 
             ? data.tags.join(', ') : (typeof data.tags === 'string' ? data.tags : prev.tags),
           labels: Array.isArray(data.labels) && data.labels.length > 0 
             ? data.labels.join(', ') : (typeof data.labels === 'string' ? data.labels : prev.labels),
+          colors: Array.isArray(data.colors) && data.colors.length > 0 
+            ? data.colors.join(', ') : (typeof data.colors === 'string' ? data.colors : prev.colors),
+          sizes: Array.isArray(data.sizes) && data.sizes.length > 0 
+            ? data.sizes.join(', ') : (typeof data.sizes === 'string' ? data.sizes : prev.sizes),
+          grades: Array.isArray(data.grades) && data.grades.length > 0 
+            ? data.grades.join(', ') : (typeof data.grades === 'string' ? data.grades : prev.grades),
+          hasVariants: Array.isArray(data.variants) && data.variants.length > 0 ? true : prev.hasVariants,
+          variants: Array.isArray(data.variants) && data.variants.length > 0 ? data.variants : prev.variants,
           imageAltTexts: Object.keys(altTextsObj).length > 0 ? altTextsObj : prev.imageAltTexts,
         };
       });
       showToast('Product fields populated from details!', 'success');
+      
+      // Save the auto-fill data to db
+      await saveAIAutoFill(editForm.rawDetails, data);
+      showToast('Auto-fill data saved.', 'info');
+      
     } catch (e: any) {
       console.error(e);
       showToast(e.message || 'Unexpected error during AI parsing.', 'error');
     } finally {
       setIsGeneratingFromDetails(false);
+    }
+  };
+
+  const handleLoadPreviousAIFill = async () => {
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : '';
+      const res = await fetch('/api/ai-fills/latest', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to load previous AI fill');
+      if (json.data) {
+        setEditForm((prev: any) => ({
+          ...prev,
+          rawDetails: json.data.raw_details,
+          ...json.data.generated_json,
+        }));
+        showToast('Previous AI fill loaded successfully!', 'success');
+      } else {
+        showToast('No previous AI fill found.', 'info');
+      }
+    } catch (e: any) {
+      console.error(e);
+      showToast(e.message || 'Failed to load previous AI fill.', 'error');
     }
   };
 
@@ -1260,8 +1325,13 @@ export default function MerchantProducts() {
     }
 
     const price = Number(editForm.price);
-    if (editForm.price === undefined || editForm.price === null || editForm.price === '' || isNaN(price) || price < 0) {
-      errors.price = 'A valid price (>= 0) is required.';
+    if (editForm.price === undefined || editForm.price === null || editForm.price === '' || isNaN(price) || price <= 0) {
+      errors.price = 'A valid price (> 0) is required.';
+    }
+
+    const costPrice = Number(editForm.costPrice);
+    if (editForm.costPrice === undefined || editForm.costPrice === null || editForm.costPrice === '' || isNaN(costPrice) || costPrice <= 0) {
+      errors.costPrice = 'A valid cost (> 0) is required.';
     }
 
     const category = (editForm.category || '').trim();
@@ -1343,6 +1413,7 @@ export default function MerchantProducts() {
         labels: typeof editForm.labels === 'string' ? editForm.labels.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.labels || []),
         colors: typeof editForm.colors === 'string' ? editForm.colors.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.colors || []),
         sizes: typeof editForm.sizes === 'string' ? editForm.sizes.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.sizes || []),
+        grades: typeof editForm.grades === 'string' ? editForm.grades.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.grades || []),
         
         hasVariants: editForm.hasVariants || false,
         variants: editForm.hasVariants && editForm.variants ? editForm.variants : [],
@@ -1755,15 +1826,24 @@ export default function MerchantProducts() {
                     <Icon name="auto_awesome" className="text-primary-container text-base" />
                     <span>Arbitrary Product Details (AI Auto-Fill)</span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleAIFromDetails}
-                    disabled={isGeneratingFromDetails}
-                    className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                  >
-                    <Icon name="auto_awesome" className="text-sm" />
-                    {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleLoadPreviousAIFill}
+                      className="text-xs bg-surface text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase hover:bg-surface-container-highest transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    >
+                      Load Previous
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAIFromDetails}
+                      disabled={isGeneratingFromDetails}
+                      className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    >
+                      <Icon name="auto_awesome" className="text-sm" />
+                      {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
+                    </button>
+                  </div>
                 </div>
                 <textarea
                   name="rawDetails"
@@ -1810,13 +1890,13 @@ export default function MerchantProducts() {
                 />
               </div>
 
-              {/* Cost Price (Optional) */}
+              {/* Cost Price */}
               <div className="space-y-2 md:col-span-2">
-                <label className="font-bold text-sm uppercase flex items-center justify-between">
-                  <span>Cost Price ({CURRENCY_CONFIG.symbol})</span>
-                  <span className="text-[10px] text-secondary font-semibold uppercase">Optional Supplier Cost</span>
+                <label className="font-bold text-sm uppercase flex items-center gap-1">
+                  Cost Price ({CURRENCY_CONFIG.symbol}) <span className="text-error font-black">*</span>
                 </label>
                 <input 
+                  required
                   type="number" 
                   min="0" 
                   step="0.01" 
@@ -1824,8 +1904,9 @@ export default function MerchantProducts() {
                   value={editForm.costPrice === 0 && !editForm.costPrice.toString().match(/^0$/) ? '' : (editForm.costPrice ?? '')} 
                   onChange={handleChange} 
                   placeholder="e.g. 15.00"
-                  className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" 
+                  className={`w-full border-2 p-2 focus:ring-0 outline-none ${formErrors.costPrice ? 'border-error bg-error/5' : 'border-on-surface'}`} 
                 />
+                {formErrors.costPrice && <p className="text-xs text-error font-bold">{formErrors.costPrice}</p>}
                 {(Number(editForm.price) > 0 || Number(editForm.salePrice) > 0) && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
                   <div className="text-[11px] font-bold p-1 bg-surface-dim border border-on-surface/30 flex justify-between">
                     {(() => {
@@ -2185,15 +2266,24 @@ export default function MerchantProducts() {
                           <Icon name="auto_awesome" className="text-primary-container text-base" />
                           <span>Arbitrary Product Details (AI Auto-Fill)</span>
                         </label>
-                        <button
-                          type="button"
-                          onClick={handleAIFromDetails}
-                          disabled={isGeneratingFromDetails}
-                          className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                        >
-                          <Icon name="auto_awesome" className="text-sm" />
-                          {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleLoadPreviousAIFill}
+                            className="text-xs bg-surface text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase hover:bg-surface-container-highest transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                          >
+                            Load Previous
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleAIFromDetails}
+                            disabled={isGeneratingFromDetails}
+                            className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                          >
+                            <Icon name="auto_awesome" className="text-sm" />
+                            {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
+                          </button>
+                        </div>
                       </div>
                       <textarea
                         name="rawDetails"
@@ -2767,11 +2857,11 @@ export default function MerchantProducts() {
 
                     {/* Cost Price (Supplier Cost) */}
                     <div className="space-y-2 md:col-span-2 p-4 border-2 border-on-surface/20 bg-surface-dim">
-                      <label className="font-bold text-sm uppercase flex items-center justify-between">
-                        <span>Supplier Cost Price ({CURRENCY_CONFIG.symbol})</span>
-                        <span className="text-[10px] text-secondary font-semibold uppercase">Dropshipping Item Cost</span>
+                      <label className="font-bold text-sm uppercase flex items-center gap-1">
+                        Supplier Cost Price ({CURRENCY_CONFIG.symbol}) <span className="text-error font-black">*</span>
                       </label>
                       <input 
+                        required
                         type="number" 
                         min="0" 
                         step="0.01" 
@@ -2779,8 +2869,9 @@ export default function MerchantProducts() {
                         value={editForm.costPrice === 0 && !editForm.costPrice.toString().match(/^0$/) ? '' : (editForm.costPrice ?? '')} 
                         onChange={handleChange} 
                         placeholder="e.g. 15.00" 
-                        className="w-full max-w-sm border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
+                        className={`w-full max-w-sm border-2 p-2 focus:ring-0 outline-none ${formErrors.costPrice ? 'border-error bg-error/5' : 'border-on-surface bg-surface'}`} 
                       />
+                      {formErrors.costPrice && <p className="text-xs text-error font-bold">{formErrors.costPrice}</p>}
                       {(Number(editForm.price) > 0 || Number(editForm.salePrice) > 0) && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
                         <div className="mt-2 text-xs font-bold p-2 bg-surface border border-on-surface flex items-center justify-between max-w-sm">
                           {(() => {

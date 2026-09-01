@@ -49,6 +49,7 @@ Return a JSON object containing the following fields:
 - stock: inventory quantity / units available as an integer (e.g. 50 or null if not found).
 - colors: array of distinct color names mentioned (e.g. ["Black", "White", "Navy Blue"]). If no colors are mentioned, return empty array [].
 - sizes: array of distinct sizes or dimensions mentioned (e.g. ["S", "M", "L", "XL"] or ["40", "41", "42"]). If no sizes are mentioned, return empty array [].
+- grades: array of distinct grades or qualities mentioned (e.g. ["Grade A", "Grade B", "Premium"]). If no grades are mentioned, return empty array [].
 - variants: array of variant objects if specific variant combinations, SKUs, or color/size options with individual prices/stock are listed in the text: [{"color": "...", "size": "...", "price": 0, "stock": 0}]. Return empty array [] if none specifically listed.
 - groupCategory: top‑level category group (match existing if possible, or provide appropriate new name).
 - category: primary category under the group (match existing if possible, or create appropriate new name).
@@ -59,14 +60,89 @@ Return a JSON object containing the following fields:
 
 Do not include markdown code fences (like \`\`\`json). Output raw valid JSON only.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
-      contents: prompt,
-      config: { responseMimeType: 'application/json' }
-    });
+    let responseText = '';
+    try {
+      // 1. Try gemini-3.6-flash first
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' }
+      });
+      responseText = response.text || '';
+    } catch (genAiError1: any) {
+      console.warn('Gemini 3.6 Flash failed, attempting Gemini 2.5 Flash:', genAiError1.message);
+      
+      try {
+        // 2. Fallback to gemini-2.5-flash
+        const response2 = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: { responseMimeType: 'application/json' }
+        });
+        responseText = response2.text || '';
+      } catch (genAiError2: any) {
+        console.warn('Gemini 2.5 Flash failed, attempting Groq fallback:', genAiError2.message);
+        
+        try {
+          // 3. Fallback to Groq
+          if (!process.env.GROQ_API_KEY) {
+            throw new Error('GROQ_API_KEY is not configured.');
+          }
+          
+          const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+              model: 'qwen-2.5-32b',
+              messages: [{ role: 'user', content: prompt }],
+              response_format: { type: 'json_object' }
+            })
+          });
+          
+          if (!groqResponse.ok) {
+            const errText = await groqResponse.text();
+            throw new Error(`Groq API failed: ${groqResponse.status} ${errText}`);
+          }
+          
+          const groqData = await groqResponse.json();
+          responseText = groqData.choices?.[0]?.message?.content || '';
+        } catch (groqError: any) {
+          console.warn('Groq failed, attempting DeepSeek fallback:', groqError.message);
+          
+          // 4. Fallback to DeepSeek
+          if (!process.env.DEEPSEEK_API_KEY) {
+            throw new Error('All other models failed and DEEPSEEK_API_KEY is not configured.');
+          }
+          
+          const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+            },
+            body: JSON.stringify({
+              model: 'deepseek-chat',
+              messages: [{ role: 'user', content: prompt }],
+              response_format: { type: 'json_object' }
+            })
+          });
+          
+          if (!dsResponse.ok) {
+            const errText = await dsResponse.text();
+            throw new Error(`DeepSeek API failed: ${dsResponse.status} ${errText}`);
+          }
+          
+          const dsData = await dsResponse.json();
+          responseText = dsData.choices?.[0]?.message?.content || '';
+        }
+      }
+    }
 
-    if (response.text) {
-      const parsed = JSON.parse(response.text);
+    if (responseText) {
+      const parsed = JSON.parse(responseText);
 
       // Insert or update categories if needed
       if (parsed.groupCategory && parsed.category) {

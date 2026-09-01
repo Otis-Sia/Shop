@@ -677,11 +677,11 @@ function ProductsPageContent() {
                         </p>
                       )}
 
-                      {product.brand && (
-                        <p className="text-[10px] text-secondary/80 font-semibold uppercase tracking-wide mb-1 truncate">
-                          Brand: {product.brand}
-                        </p>
-                      )}
+                      {product.brand && product.brand.toLowerCase() !== 'generic' && (
+            <p className="text-[10px] text-secondary/80 font-semibold uppercase tracking-wide mb-1 truncate">
+              Brand: {product.brand}
+            </p>
+          )}
                       
                       <Link href={`/products/${product.id}`}>
                         <h3 className="font-bold text-sm text-on-surface line-clamp-2 mb-2 pr-8 hover:underline">{product.name}</h3>
