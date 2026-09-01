@@ -62,20 +62,20 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
 
     let responseText = '';
     try {
-      // 1. Try gemini-3.6-flash first
+      // 1. Try gemini-1.5-flash first
       const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-1.5-flash',
         contents: prompt,
         config: { responseMimeType: 'application/json' }
       });
       responseText = response.text || '';
     } catch (genAiError1: any) {
-      console.warn('Gemini 3.6 Flash failed, attempting Gemini 3.6 Pro:', genAiError1.message);
+      console.warn('Gemini 1.5 Flash failed, attempting Gemini 1.5 Pro:', genAiError1.message);
       
       try {
-        // 2. Fallback to gemini-3.6-pro
+        // 2. Fallback to gemini-1.5-pro
         const response2 = await ai.models.generateContent({
-          model: 'gemini-3.6-pro',
+          model: 'gemini-1.5-pro',
           contents: prompt,
           config: { responseMimeType: 'application/json' }
         });
@@ -96,7 +96,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
               'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
             },
             body: JSON.stringify({
-              model: 'qwen/qwen3.6-27b',
+              model: 'llama-3.3-70b-versatile',
               messages: [{ role: 'user', content: prompt }],
               response_format: { type: 'json_object' }
             })
