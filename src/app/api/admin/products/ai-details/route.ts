@@ -96,7 +96,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
               'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
             },
             body: JSON.stringify({
-              model: 'openai/gpt-oss-120b',
+              model: 'qwen/qwen3.6-27b',
               messages: [{ role: 'user', content: prompt }],
               response_format: { type: 'json_object' }
             })
