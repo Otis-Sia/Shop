@@ -1325,8 +1325,13 @@ export default function MerchantProducts() {
     }
 
     const price = Number(editForm.price);
-    if (editForm.price === undefined || editForm.price === null || editForm.price === '' || isNaN(price) || price < 0) {
-      errors.price = 'A valid price (>= 0) is required.';
+    if (editForm.price === undefined || editForm.price === null || editForm.price === '' || isNaN(price) || price <= 0) {
+      errors.price = 'A valid price (> 0) is required.';
+    }
+
+    const costPrice = Number(editForm.costPrice);
+    if (editForm.costPrice === undefined || editForm.costPrice === null || editForm.costPrice === '' || isNaN(costPrice) || costPrice <= 0) {
+      errors.costPrice = 'A valid cost (> 0) is required.';
     }
 
     const category = (editForm.category || '').trim();
@@ -1885,13 +1890,13 @@ export default function MerchantProducts() {
                 />
               </div>
 
-              {/* Cost Price (Optional) */}
+              {/* Cost Price */}
               <div className="space-y-2 md:col-span-2">
-                <label className="font-bold text-sm uppercase flex items-center justify-between">
-                  <span>Cost Price ({CURRENCY_CONFIG.symbol})</span>
-                  <span className="text-[10px] text-secondary font-semibold uppercase">Optional Supplier Cost</span>
+                <label className="font-bold text-sm uppercase flex items-center gap-1">
+                  Cost Price ({CURRENCY_CONFIG.symbol}) <span className="text-error font-black">*</span>
                 </label>
                 <input 
+                  required
                   type="number" 
                   min="0" 
                   step="0.01" 
@@ -1899,8 +1904,9 @@ export default function MerchantProducts() {
                   value={editForm.costPrice === 0 && !editForm.costPrice.toString().match(/^0$/) ? '' : (editForm.costPrice ?? '')} 
                   onChange={handleChange} 
                   placeholder="e.g. 15.00"
-                  className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" 
+                  className={`w-full border-2 p-2 focus:ring-0 outline-none ${formErrors.costPrice ? 'border-error bg-error/5' : 'border-on-surface'}`} 
                 />
+                {formErrors.costPrice && <p className="text-xs text-error font-bold">{formErrors.costPrice}</p>}
                 {(Number(editForm.price) > 0 || Number(editForm.salePrice) > 0) && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
                   <div className="text-[11px] font-bold p-1 bg-surface-dim border border-on-surface/30 flex justify-between">
                     {(() => {
@@ -2851,11 +2857,11 @@ export default function MerchantProducts() {
 
                     {/* Cost Price (Supplier Cost) */}
                     <div className="space-y-2 md:col-span-2 p-4 border-2 border-on-surface/20 bg-surface-dim">
-                      <label className="font-bold text-sm uppercase flex items-center justify-between">
-                        <span>Supplier Cost Price ({CURRENCY_CONFIG.symbol})</span>
-                        <span className="text-[10px] text-secondary font-semibold uppercase">Dropshipping Item Cost</span>
+                      <label className="font-bold text-sm uppercase flex items-center gap-1">
+                        Supplier Cost Price ({CURRENCY_CONFIG.symbol}) <span className="text-error font-black">*</span>
                       </label>
                       <input 
+                        required
                         type="number" 
                         min="0" 
                         step="0.01" 
@@ -2863,8 +2869,9 @@ export default function MerchantProducts() {
                         value={editForm.costPrice === 0 && !editForm.costPrice.toString().match(/^0$/) ? '' : (editForm.costPrice ?? '')} 
                         onChange={handleChange} 
                         placeholder="e.g. 15.00" 
-                        className="w-full max-w-sm border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
+                        className={`w-full max-w-sm border-2 p-2 focus:ring-0 outline-none ${formErrors.costPrice ? 'border-error bg-error/5' : 'border-on-surface bg-surface'}`} 
                       />
+                      {formErrors.costPrice && <p className="text-xs text-error font-bold">{formErrors.costPrice}</p>}
                       {(Number(editForm.price) > 0 || Number(editForm.salePrice) > 0) && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
                         <div className="mt-2 text-xs font-bold p-2 bg-surface border border-on-surface flex items-center justify-between max-w-sm">
                           {(() => {
