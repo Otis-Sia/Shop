@@ -71,6 +71,7 @@ export interface Product {
   saleEndDate?: TimestampType | null;
   discount?: number;
   brand?: string;
+  countryOfOrigin?: string;
   currency: string; // e.g., 'USD'
   trackInventory?: boolean;
   stock: number | null;

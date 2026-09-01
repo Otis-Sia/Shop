@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS products (
     sale_end_date TIMESTAMP WITH TIME ZONE,
     discount DECIMAL(10, 2),
     brand VARCHAR(100),
+    country_of_origin VARCHAR(100),
     currency VARCHAR(10) NOT NULL DEFAULT 'XAF',
     track_inventory BOOLEAN DEFAULT FALSE,
     stock INTEGER DEFAULT 0,

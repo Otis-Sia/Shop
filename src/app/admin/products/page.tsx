@@ -90,6 +90,7 @@ export default function MerchantProducts() {
           groupCategory: data.groupCategory || prev.groupCategory,
           category: data.category || prev.category,
           brand: data.brand || prev.brand,
+          countryOfOrigin: data.countryOfOrigin || prev.countryOfOrigin,
           subcategories: Array.isArray(data.subcategories) && data.subcategories.length > 0 
             ? data.subcategories.join(', ') : prev.subcategories,
           tags: Array.isArray(data.tags) && data.tags.length > 0 
@@ -1278,6 +1279,7 @@ export default function MerchantProducts() {
         supplierName: editForm.supplierName || '',
         costPrice: editForm.costPrice !== undefined && editForm.costPrice !== null && editForm.costPrice !== '' ? Number(editForm.costPrice) : null,
         brand: editForm.brand || '',
+        countryOfOrigin: editForm.countryOfOrigin || '',
         
         groupCategory: editForm.groupCategory || selectedGroupNode?.name || '',
         category: editForm.category || '',
@@ -2097,9 +2099,13 @@ export default function MerchantProducts() {
                       <textarea name="description" value={editForm.description || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-32 focus:ring-0 outline-none" placeholder="Detailed product description..."></textarea>
                     </div>
 
-                    <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2">
                       <label className="font-bold text-sm uppercase">Brand / Manufacturer</label>
                       <input name="brand" value={editForm.brand || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="font-bold text-sm uppercase">Country of Origin</label>
+                      <input name="countryOfOrigin" value={editForm.countryOfOrigin || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" />
                     </div>
                   </div>
                 )}
