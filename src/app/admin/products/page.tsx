@@ -111,6 +111,27 @@ export default function MerchantProducts() {
   };
 
   // Generate fields from free‑form details using AI
+  const saveAIAutoFill = async (rawDetails: string, generatedJson: any) => {
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : '';
+      await fetch('/api/ai-fills/auto-save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          rawDetails,
+          generatedJson,
+          productId: editingId !== null ? products.find((p: any) => p.internalId === editingId || p.id === editingId)?.id : null
+        })
+      });
+    } catch (err) {
+      console.error('Failed to save AI auto-fill data', err);
+    }
+  };
+
   const handleAIFromDetails = async () => {
     if (!editForm.rawDetails || !editForm.rawDetails.trim()) {
       showToast('Please enter free‑form product details first.', 'warning');
@@ -154,11 +175,41 @@ export default function MerchantProducts() {
         };
       });
       showToast('Product fields populated from details!', 'success');
+      
+      // Save the auto-fill data to db
+      await saveAIAutoFill(editForm.rawDetails, data);
+      showToast('Auto-fill data saved.', 'info');
+      
     } catch (e: any) {
       console.error(e);
       showToast(e.message || 'Unexpected error during AI parsing.', 'error');
     } finally {
       setIsGeneratingFromDetails(false);
+    }
+  };
+
+  const handleLoadPreviousAIFill = async () => {
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : '';
+      const res = await fetch('/api/ai-fills/latest', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to load previous AI fill');
+      if (json.data) {
+        setEditForm((prev: any) => ({
+          ...prev,
+          rawDetails: json.data.raw_details,
+          ...json.data.generated_json,
+        }));
+        showToast('Previous AI fill loaded successfully!', 'success');
+      } else {
+        showToast('No previous AI fill found.', 'info');
+      }
+    } catch (e: any) {
+      console.error(e);
+      showToast(e.message || 'Failed to load previous AI fill.', 'error');
     }
   };
 
@@ -1755,15 +1806,24 @@ export default function MerchantProducts() {
                     <Icon name="auto_awesome" className="text-primary-container text-base" />
                     <span>Arbitrary Product Details (AI Auto-Fill)</span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleAIFromDetails}
-                    disabled={isGeneratingFromDetails}
-                    className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                  >
-                    <Icon name="auto_awesome" className="text-sm" />
-                    {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleLoadPreviousAIFill}
+                      className="text-xs bg-surface text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase hover:bg-surface-container-highest transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    >
+                      Load Previous
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAIFromDetails}
+                      disabled={isGeneratingFromDetails}
+                      className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    >
+                      <Icon name="auto_awesome" className="text-sm" />
+                      {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
+                    </button>
+                  </div>
                 </div>
                 <textarea
                   name="rawDetails"
@@ -2185,15 +2245,24 @@ export default function MerchantProducts() {
                           <Icon name="auto_awesome" className="text-primary-container text-base" />
                           <span>Arbitrary Product Details (AI Auto-Fill)</span>
                         </label>
-                        <button
-                          type="button"
-                          onClick={handleAIFromDetails}
-                          disabled={isGeneratingFromDetails}
-                          className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                        >
-                          <Icon name="auto_awesome" className="text-sm" />
-                          {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleLoadPreviousAIFill}
+                            className="text-xs bg-surface text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase hover:bg-surface-container-highest transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                          >
+                            Load Previous
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleAIFromDetails}
+                            disabled={isGeneratingFromDetails}
+                            className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                          >
+                            <Icon name="auto_awesome" className="text-sm" />
+                            {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
+                          </button>
+                        </div>
                       </div>
                       <textarea
                         name="rawDetails"

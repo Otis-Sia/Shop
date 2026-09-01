@@ -234,6 +234,19 @@ CREATE TABLE IF NOT EXISTS product_analytics (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+-- 15. AI Auto-Fill Table
+CREATE TABLE IF NOT EXISTS ai_fills (
+    id VARCHAR(255) PRIMARY KEY,
+    merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+    product_id VARCHAR(255) REFERENCES products(id) ON DELETE SET NULL,
+    raw_details TEXT NOT NULL,
+    generated_json JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_fills_merchant ON ai_fills(merchant_id);
+CREATE INDEX IF NOT EXISTS idx_ai_fills_product ON ai_fills(product_id);
 
 -- ============================================================================
 -- PERFORMANCE INDEXES (Idempotent creation)
