@@ -10,6 +10,7 @@ import { ProductVariantManager } from "./ProductVariantManager";
 import { ProductMediaManager } from "./ProductMediaManager";
 import { ProductFulfillmentForm } from "./ProductFulfillmentForm";
 import { ProductSEOForm } from "./ProductSEOForm";
+import { ProductAIAssistant } from "./ProductAIAssistant";
 
 interface ProductEditorProps {
   initialData?: Partial<CreateProductInput>;
@@ -103,7 +104,6 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel }: Produ
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <ProductDetailsForm data={formData} onChange={handleUpdate} />
-          <ProductMediaManager media={formData.media} onChange={(val) => handleUpdate('media', val)} />
           <ProductPricingForm pricing={formData.pricing} onChange={(val) => handleUpdate('pricing', val)} />
           <ProductInventoryForm stockQuantity={formData.stockQuantity} inventory={formData.inventory} onChangeInventory={(val) => handleUpdate('inventory', val)} onChangeStock={(val) => handleUpdate('stockQuantity', val)} />
           <ProductVariantManager variants={formData.variants} attributes={formData.attributes} onChangeVariants={(val) => handleUpdate('variants', val)} onChangeAttributes={(val) => handleUpdate('attributes', val)} />
@@ -141,6 +141,9 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel }: Produ
               </div>
             </div>
           </div>
+          
+          <ProductAIAssistant currentData={formData} onApply={(updates) => setFormData(prev => ({ ...prev, ...updates }))} />
+          <ProductMediaManager media={formData.media} onChange={(val) => handleUpdate('media', val)} />
         </div>
       </div>
     </form>
