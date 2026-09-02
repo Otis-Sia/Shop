@@ -10,8 +10,8 @@ interface ProductDetailsFormProps {
 
 export function ProductDetailsForm({ data, onChange }: ProductDetailsFormProps) {
   return (
-    <div className="p-6 border-2 border-on-surface bg-surface space-y-4">
-      <h3 className="font-bold text-xl mb-4 border-b-2 border-on-surface pb-2">Basic Details</h3>
+    <div className="p-6 border border-outline/20 bg-surface rounded-xl space-y-4">
+      <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">Basic Details</h3>
       
       <div>
         <label className="block font-bold uppercase text-sm mb-1">Name *</label>
@@ -19,7 +19,7 @@ export function ProductDetailsForm({ data, onChange }: ProductDetailsFormProps) 
           type="text"
           value={data.name || ""}
           onChange={(e) => onChange("name", e.target.value)}
-          className="w-full p-2 border-2 border-on-surface bg-background"
+          className="w-full p-2 border border-outline/30 bg-background rounded-lg"
           required
         />
       </div>
@@ -30,7 +30,7 @@ export function ProductDetailsForm({ data, onChange }: ProductDetailsFormProps) 
           type="text"
           value={data.sku || ""}
           onChange={(e) => onChange("sku", e.target.value)}
-          className="w-full p-2 border-2 border-on-surface bg-background"
+          className="w-full p-2 border border-outline/30 bg-background rounded-lg"
           required
         />
       </div>
@@ -40,7 +40,7 @@ export function ProductDetailsForm({ data, onChange }: ProductDetailsFormProps) 
         <textarea
           value={data.shortDescription || ""}
           onChange={(e) => onChange("shortDescription", e.target.value)}
-          className="w-full p-2 border-2 border-on-surface bg-background h-20"
+          className="w-full p-2 border border-outline/30 bg-background rounded-lg h-20"
         />
       </div>
 
@@ -49,7 +49,7 @@ export function ProductDetailsForm({ data, onChange }: ProductDetailsFormProps) 
         <textarea
           value={data.description || ""}
           onChange={(e) => onChange("description", e.target.value)}
-          className="w-full p-2 border-2 border-on-surface bg-background min-h-[150px]"
+          className="w-full p-2 border border-outline/30 bg-background rounded-lg min-h-[150px]"
           required
         />
       </div>
@@ -61,7 +61,7 @@ export function ProductDetailsForm({ data, onChange }: ProductDetailsFormProps) 
             type="text"
             value={data.brand || ""}
             onChange={(e) => onChange("brand", e.target.value)}
-            className="w-full p-2 border-2 border-on-surface bg-background"
+            className="w-full p-2 border border-outline/30 bg-background rounded-lg"
           />
         </div>
         {/* Placeholder for actual Category picker component */}
@@ -72,7 +72,7 @@ export function ProductDetailsForm({ data, onChange }: ProductDetailsFormProps) 
             placeholder="comma separated UUIDs"
             value={(data.categoryIds || []).join(", ")}
             onChange={(e) => onChange("categoryIds", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
-            className="w-full p-2 border-2 border-on-surface bg-background"
+            className="w-full p-2 border border-outline/30 bg-background rounded-lg"
           />
         </div>
       </div>

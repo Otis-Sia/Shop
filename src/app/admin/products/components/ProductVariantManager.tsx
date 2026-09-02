@@ -55,8 +55,8 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
   };
 
   return (
-    <div className="p-6 border-2 border-on-surface bg-surface space-y-6">
-      <h3 className="font-bold text-xl border-b-2 border-on-surface pb-2">Variants & Attributes</h3>
+    <div className="p-6 border border-outline/20 bg-surface rounded-xl space-y-6">
+      <h3 className="font-bold text-xl border-b border-outline/10 pb-2">Variants & Attributes</h3>
       
       {/* Global Attributes Configuration */}
       <div className="space-y-4">
@@ -68,14 +68,14 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
             placeholder="Name (e.g. Color)"
             value={newAttrName}
             onChange={(e) => setNewAttrName(e.target.value)}
-            className="flex-1 p-2 border-2 border-on-surface bg-background"
+            className="flex-1 p-2 border border-outline/30 bg-background rounded-lg"
           />
           <input
             type="text"
             placeholder="Value (e.g. Red)"
             value={newAttrValue}
             onChange={(e) => setNewAttrValue(e.target.value)}
-            className="flex-1 p-2 border-2 border-on-surface bg-background"
+            className="flex-1 p-2 border border-outline/30 bg-background rounded-lg"
           />
           <button
             type="button"
@@ -89,7 +89,7 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
         {attributes.length > 0 && (
           <ul className="flex flex-wrap gap-2 mt-2">
             {attributes.map((attr, idx) => (
-              <li key={idx} className="flex items-center gap-2 p-2 border-2 border-on-surface bg-background text-sm">
+              <li key={idx} className="flex items-center gap-2 p-2 border border-outline/30 bg-background rounded-lg text-sm">
                 <span className="font-bold">{attr.name}:</span>
                 <span>{attr.value}</span>
                 <button type="button" onClick={() => removeAttribute(idx)} className="text-error font-bold ml-2">X</button>
@@ -100,13 +100,13 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
       </div>
 
       {/* Variants List */}
-      <div className="space-y-4 pt-4 border-t-2 border-on-surface">
+      <div className="space-y-4 pt-4 border-t border-outline/10">
         <div className="flex justify-between items-center">
           <h4 className="font-bold uppercase text-sm">Variants</h4>
           <button
             type="button"
             onClick={addEmptyVariant}
-            className="px-4 py-1 border-2 border-on-surface text-sm font-bold uppercase hover:bg-surface-dim"
+            className="px-4 py-1 border border-outline/30 rounded-lg text-sm font-bold uppercase hover:bg-surface-dim"
           >
             + Add Variant
           </button>
@@ -117,7 +117,7 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
         ) : (
           <div className="space-y-4">
             {variants.map((variant, idx) => (
-              <div key={idx} className="p-4 border-2 border-on-surface bg-background space-y-2 relative">
+              <div key={idx} className="p-4 border border-outline/30 bg-background rounded-lg space-y-2 relative">
                 <button
                   type="button"
                   onClick={() => removeVariant(idx)}
@@ -132,7 +132,7 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
                       type="text"
                       value={variant.sku}
                       onChange={(e) => updateVariant(idx, "sku", e.target.value)}
-                      className="w-full p-1 border-2 border-on-surface"
+                      className="w-full p-1 border border-outline/30 rounded-lg"
                     />
                   </div>
                   <div>
@@ -142,7 +142,7 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
                       min="0"
                       value={variant.stockQuantity}
                       onChange={(e) => updateVariant(idx, "stockQuantity", parseInt(e.target.value, 10) || 0)}
-                      className="w-full p-1 border-2 border-on-surface"
+                      className="w-full p-1 border border-outline/30 rounded-lg"
                     />
                   </div>
                 </div>
@@ -155,7 +155,7 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
                       placeholder="Leave blank for base price"
                       value={variant.price || ""}
                       onChange={(e) => updateVariant(idx, "price", parseFloat(e.target.value) || undefined)}
-                      className="w-full p-1 border-2 border-on-surface"
+                      className="w-full p-1 border border-outline/30 rounded-lg"
                     />
                   </div>
                 </div>

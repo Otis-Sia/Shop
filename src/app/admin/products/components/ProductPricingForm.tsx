@@ -21,8 +21,8 @@ export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProp
   };
 
   return (
-    <div className="p-6 border-2 border-on-surface bg-surface space-y-4">
-      <h3 className="font-bold text-xl mb-4 border-b-2 border-on-surface pb-2">Pricing</h3>
+    <div className="p-6 border border-outline/20 bg-surface rounded-xl space-y-4">
+      <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">Pricing</h3>
       
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -33,7 +33,7 @@ export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProp
             step="0.01"
             value={currentPricing.price}
             onChange={(e) => updateField("price", parseFloat(e.target.value) || 0)}
-            className="w-full p-2 border-2 border-on-surface bg-background"
+            className="w-full p-2 border border-outline/30 bg-background rounded-lg"
             required
           />
         </div>
@@ -45,7 +45,7 @@ export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProp
             step="0.01"
             value={currentPricing.compareAtPrice || ""}
             onChange={(e) => updateField("compareAtPrice", parseFloat(e.target.value) || undefined)}
-            className="w-full p-2 border-2 border-on-surface bg-background"
+            className="w-full p-2 border border-outline/30 bg-background rounded-lg"
           />
         </div>
       </div>
@@ -59,7 +59,7 @@ export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProp
             step="0.01"
             value={currentPricing.costPrice || ""}
             onChange={(e) => updateField("costPrice", parseFloat(e.target.value) || undefined)}
-            className="w-full p-2 border-2 border-on-surface bg-background"
+            className="w-full p-2 border border-outline/30 bg-background rounded-lg"
           />
         </div>
         <div>
@@ -69,7 +69,7 @@ export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProp
             maxLength={3}
             value={currentPricing.currency}
             onChange={(e) => updateField("currency", e.target.value.toUpperCase())}
-            className="w-full p-2 border-2 border-on-surface bg-background"
+            className="w-full p-2 border border-outline/30 bg-background rounded-lg"
             required
           />
         </div>

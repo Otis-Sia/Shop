@@ -122,8 +122,8 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
   };
 
   return (
-    <div className="p-6 border-2 border-on-surface bg-surface-dim space-y-4">
-      <h3 className="font-bold text-xl mb-4 border-b-2 border-on-surface pb-2">AI Assistants</h3>
+    <div className="p-6 border border-outline/20 bg-surface-dim rounded-xl space-y-4">
+      <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">AI Assistants</h3>
       
       {/* Auto SKU & SEO */}
       <div className="flex gap-2">
@@ -143,7 +143,7 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
         </button>
       </div>
 
-      <div className="border-t-2 border-on-surface pt-4 mt-4">
+      <div className="border-t border-outline/10 pt-4 mt-4">
         <p className="text-xs font-bold uppercase mb-2">Analyze Product Media</p>
         <button
           type="button"
@@ -158,19 +158,19 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
         </p>
       </div>
 
-      <div className="border-t-2 border-on-surface pt-4 mt-4 space-y-2">
+      <div className="border-t border-outline/10 pt-4 mt-4 space-y-2">
         <p className="text-xs font-bold uppercase">AI Free-form Auto Fill</p>
         <textarea
           value={rawDetails}
           onChange={(e) => setRawDetails(e.target.value)}
           placeholder="Paste raw supplier info or type a messy description here..."
-          className="w-full p-2 border-2 border-on-surface bg-background text-sm h-24"
+          className="w-full p-2 border border-outline/30 bg-background rounded-lg text-sm h-24"
         />
         <button
           type="button"
           onClick={handleAIAutoFill}
           disabled={isGeneratingDetails || !rawDetails.trim()}
-          className="w-full px-4 py-2 border-2 border-primary text-primary font-bold uppercase text-xs hover:bg-primary/10 disabled:opacity-50"
+          className="w-full px-4 py-2 border border-primary rounded-lg text-primary font-bold uppercase text-xs hover:bg-primary/10 disabled:opacity-50"
         >
           {isGeneratingDetails ? "Generating..." : "Generate & Fill Fields"}
         </button>

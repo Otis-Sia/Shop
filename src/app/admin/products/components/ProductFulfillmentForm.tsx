@@ -34,8 +34,8 @@ export function ProductFulfillmentForm({
     };
 
     return (
-      <div className="p-6 border-2 border-on-surface bg-surface space-y-4">
-        <h3 className="font-bold text-xl mb-4 border-b-2 border-on-surface pb-2">Shipping Information</h3>
+      <div className="p-6 border border-outline/20 bg-surface rounded-xl space-y-4">
+        <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">Shipping Information</h3>
         
         <div className="flex items-center gap-2 mb-4">
           <input
@@ -60,7 +60,7 @@ export function ProductFulfillmentForm({
                 step="0.01"
                 value={currentShipping.weight?.value || ""}
                 onChange={(e) => updateShipping("weight", { ...currentShipping.weight, value: parseFloat(e.target.value) || 0, unit: currentShipping.weight?.unit || "kg" })}
-                className="w-full p-2 border-2 border-on-surface bg-background"
+                className="w-full p-2 border border-outline/30 bg-background rounded-lg"
               />
             </div>
             <div>
@@ -68,7 +68,7 @@ export function ProductFulfillmentForm({
               <select
                 value={currentShipping.weight?.unit || "kg"}
                 onChange={(e) => updateShipping("weight", { ...currentShipping.weight, value: currentShipping.weight?.value || 0, unit: e.target.value })}
-                className="w-full p-2 border-2 border-on-surface bg-background"
+                className="w-full p-2 border border-outline/30 bg-background rounded-lg"
               >
                 <option value="kg">kg</option>
                 <option value="g">g</option>
@@ -84,7 +84,7 @@ export function ProductFulfillmentForm({
                 maxLength={2}
                 value={currentShipping.countryOfOrigin || ""}
                 onChange={(e) => updateShipping("countryOfOrigin", e.target.value.toUpperCase())}
-                className="w-full p-2 border-2 border-on-surface bg-background"
+                className="w-full p-2 border border-outline/30 bg-background rounded-lg"
                 placeholder="e.g. US, KE"
               />
             </div>
@@ -106,8 +106,8 @@ export function ProductFulfillmentForm({
     };
 
     return (
-      <div className="p-6 border-2 border-on-surface bg-surface space-y-4">
-        <h3 className="font-bold text-xl mb-4 border-b-2 border-on-surface pb-2">Service Details</h3>
+      <div className="p-6 border border-outline/20 bg-surface rounded-xl space-y-4">
+        <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">Service Details</h3>
         
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -117,7 +117,7 @@ export function ProductFulfillmentForm({
               min="1"
               value={currentService.durationMinutes}
               onChange={(e) => updateService("durationMinutes", parseInt(e.target.value, 10) || 60)}
-              className="w-full p-2 border-2 border-on-surface bg-background"
+              className="w-full p-2 border border-outline/30 bg-background rounded-lg"
               required
             />
           </div>
@@ -128,7 +128,7 @@ export function ProductFulfillmentForm({
               min="0"
               value={currentService.bufferMinutes || ""}
               onChange={(e) => updateService("bufferMinutes", parseInt(e.target.value, 10) || undefined)}
-              className="w-full p-2 border-2 border-on-surface bg-background"
+              className="w-full p-2 border border-outline/30 bg-background rounded-lg"
             />
           </div>
           
@@ -137,7 +137,7 @@ export function ProductFulfillmentForm({
             <select
               value={currentService.locationType}
               onChange={(e) => updateService("locationType", e.target.value)}
-              className="w-full p-2 border-2 border-on-surface bg-background"
+              className="w-full p-2 border border-outline/30 bg-background rounded-lg"
             >
               <option value="on_site">On Site</option>
               <option value="remote">Remote / Virtual</option>
@@ -151,8 +151,8 @@ export function ProductFulfillmentForm({
 
   if (productType === "digital") {
     return (
-      <div className="p-6 border-2 border-on-surface bg-surface space-y-4">
-        <h3 className="font-bold text-xl mb-4 border-b-2 border-on-surface pb-2">Digital Delivery</h3>
+      <div className="p-6 border border-outline/20 bg-surface rounded-xl space-y-4">
+        <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">Digital Delivery</h3>
         
         <div>
           <label className="block font-bold uppercase text-sm mb-1">Download URL *</label>
@@ -160,7 +160,7 @@ export function ProductFulfillmentForm({
             type="url"
             value={downloadUrl || ""}
             onChange={(e) => onChangeDownloadUrl(e.target.value)}
-            className="w-full p-2 border-2 border-on-surface bg-background"
+            className="w-full p-2 border border-outline/30 bg-background rounded-lg"
             placeholder="https://..."
             required={productType === "digital"}
           />

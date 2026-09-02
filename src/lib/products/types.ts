@@ -150,6 +150,7 @@ export interface Product {
   categoryIds: string[];
   tags: string[];
   brand?: string;
+  supplierName?: string;
 
   // Pricing & inventory
   pricing: ProductPricing;
@@ -220,6 +221,7 @@ export interface CreateProductInput {
   categoryIds: string[];
   tags?: string[];
   brand?: string;
+  supplierName?: string;
 
   pricing: ProductPricing;
   inventory: InventoryPolicy;

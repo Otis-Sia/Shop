@@ -59,7 +59,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: false,
       error: "InternalServerError",
-      message: "Something went wrong while creating the product",
+      message: err instanceof Error ? err.message : "Something went wrong while creating the product",
+      stack: err instanceof Error ? err.stack : undefined
     }, { status: 500 });
   }
 }

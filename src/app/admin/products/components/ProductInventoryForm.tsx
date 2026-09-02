@@ -22,8 +22,8 @@ export function ProductInventoryForm({ inventory, stockQuantity, onChangeInvento
   };
 
   return (
-    <div className="p-6 border-2 border-on-surface bg-surface space-y-4">
-      <h3 className="font-bold text-xl mb-4 border-b-2 border-on-surface pb-2">Inventory</h3>
+    <div className="p-6 border border-outline/20 bg-surface rounded-xl space-y-4">
+      <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">Inventory</h3>
       
       <div className="flex items-center gap-2 mb-4">
         <input
@@ -48,7 +48,7 @@ export function ProductInventoryForm({ inventory, stockQuantity, onChangeInvento
                 min="0"
                 value={stockQuantity || 0}
                 onChange={(e) => onChangeStock(parseInt(e.target.value, 10) || 0)}
-                className="w-full p-2 border-2 border-on-surface bg-background"
+                className="w-full p-2 border border-outline/30 bg-background rounded-lg"
               />
             </div>
             <div>
@@ -58,7 +58,7 @@ export function ProductInventoryForm({ inventory, stockQuantity, onChangeInvento
                 min="0"
                 value={currentInventory.lowStockThreshold || ""}
                 onChange={(e) => updateField("lowStockThreshold", parseInt(e.target.value, 10) || undefined)}
-                className="w-full p-2 border-2 border-on-surface bg-background"
+                className="w-full p-2 border border-outline/30 bg-background rounded-lg"
               />
             </div>
           </div>

@@ -117,15 +117,15 @@ export function ProductMediaManager({ media = [], onChange }: ProductMediaManage
   };
 
   return (
-    <div className="p-6 border-2 border-on-surface bg-surface space-y-4">
-      <h3 className="font-bold text-xl mb-4 border-b-2 border-on-surface pb-2">Media Gallery</h3>
+    <div className="p-6 border border-outline/20 bg-surface rounded-xl space-y-4">
+      <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">Media Gallery</h3>
       
       {/* Drop Zone */}
       <div 
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`w-full p-8 border-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-primary bg-primary/10' : 'border-on-surface/30 hover:border-on-surface/50'}`}
+        className={`w-full p-8 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-primary bg-primary/10' : 'border-on-surface/30 hover:border-on-surface/50'}`}
       >
         <span className="font-bold uppercase text-on-surface-variant mb-2">
           {isUploading ? "Uploading..." : "Drag & Drop Images Here"}
@@ -148,7 +148,7 @@ export function ProductMediaManager({ media = [], onChange }: ProductMediaManage
           placeholder="https://..."
           value={newUrl}
           onChange={(e) => setNewUrl(e.target.value)}
-          className="flex-1 p-2 border-2 border-on-surface bg-background text-sm"
+          className="flex-1 p-2 border border-outline/30 bg-background rounded-lg text-sm"
         />
         <button
           type="button"
@@ -161,7 +161,7 @@ export function ProductMediaManager({ media = [], onChange }: ProductMediaManage
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
         {media.map((m, idx) => (
-          <div key={idx} className={`relative border-2 p-1 ${m.isPrimary ? 'border-primary' : 'border-on-surface'}`}>
+          <div key={idx} className={`relative border rounded-lg overflow-hidden p-1 ${m.isPrimary ? 'border-primary' : 'border-on-surface'}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={m.url} alt="Product media" className="w-full h-32 object-cover bg-background" />
             

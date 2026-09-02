@@ -58,8 +58,8 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel }: Produ
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-surface border-4 border-on-surface p-8 mb-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b-2 border-on-surface pb-4">
+    <form onSubmit={handleSubmit} className="bg-surface border border-outline/20 rounded-2xl p-6 md:p-8 shadow-sm mb-8 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-outline/10 pb-4">
         <div>
           <h2 className="font-bold text-2xl uppercase">
             {isAdding ? "Add New" : "Edit"} Product (v2)
@@ -70,14 +70,14 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel }: Produ
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="px-6 py-2 border-2 border-on-surface font-bold uppercase hover:bg-surface-dim"
+            className="px-6 py-2 border border-outline/30 rounded-lg font-bold uppercase hover:bg-surface-dim"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-2 bg-primary text-on-primary border-2 border-on-surface font-bold uppercase hover:bg-primary/90 disabled:opacity-50"
+            className="px-6 py-2 bg-primary text-on-primary border-0 rounded-lg font-bold uppercase hover:bg-primary/90 disabled:opacity-50"
           >
             {isSubmitting ? "Saving..." : "Save Product"}
           </button>
@@ -85,7 +85,7 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel }: Produ
       </div>
 
       {errors.submit && (
-        <div className="p-4 bg-error/10 text-error border-2 border-error font-bold mb-6">
+        <div className="p-4 bg-error/10 text-error border border-error rounded-lg font-bold mb-6">
           {errors.submit}
         </div>
       )}
@@ -112,15 +112,15 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel }: Produ
         </div>
         
         <div className="space-y-6">
-          <div className="p-6 border-2 border-on-surface bg-surface">
-            <h3 className="font-bold text-xl mb-4 border-b-2 border-on-surface pb-2">Organization</h3>
+          <div className="p-6 border border-outline/20 bg-surface rounded-xl">
+            <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">Organization</h3>
             <div className="space-y-4">
               <div>
                 <label className="block font-bold uppercase text-sm mb-1">Product Type</label>
                 <select
                   value={formData.productType || "physical"}
                   onChange={(e) => handleUpdate("productType", e.target.value as ProductType)}
-                  className="w-full p-2 border-2 border-on-surface bg-background"
+                  className="w-full p-2 border border-outline/30 bg-background rounded-lg"
                 >
                   <option value="physical">Physical Product</option>
                   <option value="digital">Digital Download</option>
@@ -132,7 +132,7 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel }: Produ
                 <select
                   value={formData.status || "draft"}
                   onChange={(e) => handleUpdate("status", e.target.value)}
-                  className="w-full p-2 border-2 border-on-surface bg-background"
+                  className="w-full p-2 border border-outline/30 bg-background rounded-lg"
                 >
                   <option value="draft">Draft</option>
                   <option value="active">Active</option>
