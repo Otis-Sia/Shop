@@ -31,6 +31,7 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
       if (!res.ok) throw new Error(data.error || "Failed to analyze product");
 
       onApply({
+        name: data.name || currentData.name,
         shortDescription: data.shortDescription || currentData.shortDescription,
         description: data.description || currentData.description,
         categoryIds: data.category ? [...(currentData.categoryIds || []), data.category] : currentData.categoryIds,

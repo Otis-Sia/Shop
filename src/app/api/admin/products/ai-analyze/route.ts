@@ -8,8 +8,8 @@ export async function POST(req: Request) {
   try {
     const { name, images = [] } = await req.json();
 
-    if (!name) {
-      return NextResponse.json({ error: 'Product name is required.' }, { status: 400 });
+    if (!name && (!images || images.length === 0)) {
+      return NextResponse.json({ error: 'Please provide either a product name or at least one image.' }, { status: 400 });
     }
 
     if (!process.env.GEMINI_API_KEY) {
@@ -32,10 +32,10 @@ export async function POST(req: Request) {
 
     const prompt = `
 You are an expert e-commerce copywriter and SEO specialist. 
-Analyze the following product name.
+Analyze the provided product name and/or images.
 Generate compelling, SEO-optimized content for this product.
 
-Product Name: "${name}"
+${name ? `Product Name: "${name}"` : 'Product Name: (Not provided, please generate one based on the images)'}
 
 Here are the existing categories in the database:
 ${JSON.stringify(categoriesContext)}
@@ -44,6 +44,7 @@ Try to fit the product into an existing groupCategory, category, and use existin
 IF AND ONLY IF the existing categories do not fit well, you may invent a NEW groupCategory, category, or new subcategories.
 
 Return your response strictly as a JSON object with the following fields:
+- name: A concise, high-converting product title/name. (Required if not provided, otherwise output the optimized version).
 - shortDescription: A punchy 1-2 sentence description.
 - description: A detailed, engaging long-form description (2-3 paragraphs).
 - groupCategory: A broad, top-level product grouping (e.g., "Apparel").
@@ -58,13 +59,53 @@ Return your response strictly as a JSON object with the following fields:
 Do not include any markdown code block wrapping like \`\`\`json around the output. Output raw JSON only.
 `;
 
+
+    // Process up to 3 images for AI vision
+    const imageParts = await Promise.all(
+      (images || []).slice(0, 3).map(async (url: string) => {
+        try {
+          const imgRes = await fetch(url);
+          if (!imgRes.ok) return null;
+          const arrayBuffer = await imgRes.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64Data = btoa(binary);
+          const mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+          return {
+            inlineData: {
+              data: base64Data,
+              mimeType
+            }
+          };
+        } catch (e) {
+          console.error("Failed to process image:", url, e);
+          return null;
+        }
+      })
+    );
+    const validImageParts = imageParts.filter(Boolean);
+
+    const requestContents = [
+      {
+        role: 'user',
+        parts: [
+          { text: prompt },
+          ...validImageParts
+        ]
+      }
+    ];
+
     let responseText = '';
+
     
     // 1. Try gemini-3.6-flash first
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-3.6-flash',
-        contents: prompt,
+        contents: requestContents as any,
         config: { responseMimeType: 'application/json' }
       });
       responseText = response.text || '';
@@ -76,7 +117,7 @@ Do not include any markdown code block wrapping like \`\`\`json around the outpu
         // 2. Fallback to gemini-3.7-flash
         const response2 = await ai.models.generateContent({
           model: 'gemini-3.7-flash',
-          contents: prompt,
+          contents: requestContents as any,
           config: { responseMimeType: 'application/json' }
         });
         responseText = response2.text || '';
