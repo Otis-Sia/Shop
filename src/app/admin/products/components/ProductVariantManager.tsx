@@ -37,7 +37,7 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
         sku: `VAR-${Date.now()}`,
         attributes: [],
         stockQuantity: 0,
-        isActive: true,
+       ,
       }
     ]);
   };

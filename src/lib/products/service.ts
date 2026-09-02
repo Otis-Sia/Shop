@@ -267,7 +267,7 @@ export class ProductService {
       categoryIds: input.categoryIds,
       tags: input.tags ?? [],
       brand: input.brand,
-      supplier_name: input.supplierName,
+      supplierName: input.supplierName,
 
       pricing: input.pricing,
       inventory: input.inventory,

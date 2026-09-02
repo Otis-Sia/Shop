@@ -149,6 +149,7 @@ export interface Product {
   // Categorization
   categoryIds: string[];
   tags: string[];
+  features?: string[];
   brand?: string;
   supplierName?: string;
 
@@ -220,6 +221,7 @@ export interface CreateProductInput {
 
   categoryIds: string[];
   tags?: string[];
+  features?: string[];
   brand?: string;
   supplierName?: string;
 
