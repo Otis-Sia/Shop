@@ -41,6 +41,14 @@ export default function MerchantProducts() {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
   const searchParams = useSearchParams();
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState(searchParams?.get("supplier") || "");
+
+  useEffect(() => {
+    const supplierParam = searchParams?.get("supplier");
+    if (supplierParam !== null && supplierParam !== undefined) {
+      setSelectedSupplierFilter(supplierParam);
+    }
+  }, [searchParams]);
+
   const [selectedStockFilter, setSelectedStockFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
@@ -1547,7 +1555,7 @@ export default function MerchantProducts() {
     }
 
     if (selectedSupplierFilter) {
-      result = result.filter(p => p.supplierName === selectedSupplierFilter);
+      result = result.filter(p => p.supplierName?.toLowerCase().trim() === selectedSupplierFilter.toLowerCase().trim());
     }
 
     if (selectedStockFilter === 'in_stock') {
