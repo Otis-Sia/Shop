@@ -64,6 +64,19 @@ export function ProductDetailsForm({ data, onChange }: ProductDetailsFormProps) 
             className="w-full p-2 border border-outline/30 bg-background rounded-lg"
           />
         </div>
+        <div>
+          <label className="block font-bold uppercase text-sm mb-1">Supplier</label>
+          <input
+            type="text"
+            value={data.supplierName || ""}
+            onChange={(e) => onChange("supplierName", e.target.value)}
+            className="w-full p-2 border border-outline/30 bg-background rounded-lg"
+            placeholder="e.g. Cedar Supply"
+          />
+        </div>
+      </div>
+      
+      <div>
         {/* Placeholder for actual Category picker component */}
         <div>
           <label className="block font-bold uppercase text-sm mb-1">Category IDs</label>

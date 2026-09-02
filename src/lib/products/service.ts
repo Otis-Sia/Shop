@@ -148,6 +148,7 @@ export class SupabaseProductRepository implements ProductRepository {
       categoryIds: dbProduct.category_ids || [],
       tags: dbProduct.tags || [],
       brand: dbProduct.brand,
+      supplierName: dbProduct.supplier_name,
       pricing: dbProduct.pricing || { price: dbProduct.price, currency: dbProduct.currency, taxable: false },
       inventory: dbProduct.inventory || { trackInventory: dbProduct.track_inventory || false, allowBackorder: dbProduct.allow_backorders || false },
       stockQuantity: dbProduct.stock_quantity || dbProduct.stock || 0,
@@ -266,6 +267,7 @@ export class ProductService {
       categoryIds: input.categoryIds,
       tags: input.tags ?? [],
       brand: input.brand,
+      supplier_name: input.supplierName,
 
       pricing: input.pricing,
       inventory: input.inventory,

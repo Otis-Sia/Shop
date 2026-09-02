@@ -99,9 +99,26 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
   };
 
   const generateSKU = () => {
-    const cleanTarget = (currentData.brand || currentData.name || 'PRD').toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
-    const uniqueHash = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const newSku = `${cleanTarget || 'SKU'}-${uniqueHash}`;
+    const cleanTarget = (currentData.supplierName || "").toUpperCase().replace(/[^A-Z]/g, '');
+    let uniqueSupplierLetters = 'XXXX';
+    
+    if (cleanTarget) {
+      let base = cleanTarget;
+      const uniqueChars = Array.from(new Set(base.split('')));
+      let prefix = uniqueChars.join('');
+      if (prefix.length < 4) prefix = prefix.padEnd(4, 'X');
+      uniqueSupplierLetters = prefix.slice(0, 4);
+    } else {
+      const fallbackTarget = (currentData.brand || currentData.name || 'PRD').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const uniqueChars = Array.from(new Set(fallbackTarget.split('')));
+      let prefix = uniqueChars.join('');
+      if (prefix.length < 4) prefix = prefix.padEnd(4, 'X');
+      uniqueSupplierLetters = prefix.slice(0, 4);
+    }
+    
+    const productCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const newSku = `${uniqueSupplierLetters}-${productCode}`;
+    
     onApply({ sku: newSku });
     showToast(`Generated SKU: ${newSku}`, "success");
   };
