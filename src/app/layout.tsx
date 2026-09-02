@@ -41,6 +41,9 @@ export const metadata: Metadata = {
     description: 'Discover amazing products at unbeatable prices. Your premium shopping experience starts here.',
     images: ['/Logo.svg'],
   },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+  },
   robots: {
     index: true,
     follow: true,
