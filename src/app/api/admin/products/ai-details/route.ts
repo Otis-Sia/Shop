@@ -76,6 +76,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
         },
         body: JSON.stringify({
           model: 'qwen/qwen3.6-27b',
+          max_tokens: 8000,
           messages: [{ role: 'user', content: prompt }]
         })
       });
@@ -87,6 +88,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
       
       const groqData = await groqResponse.json();
       responseText = groqData.choices?.[0]?.message?.content || '';
+      JSON.parse(responseText.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim());
     } catch (groqError: any) {
       console.warn('Groq failed, attempting Gemini 3.6 Flash:', groqError.message);
       
@@ -98,6 +100,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
           config: { responseMimeType: 'application/json' }
         });
         responseText = response.text || '';
+      JSON.parse(responseText.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim());
       } catch (genAiError1: any) {
         console.warn('Gemini 3.6 Flash failed, attempting Gemini 3.7 Flash:', genAiError1.message);
         
@@ -109,6 +112,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
             config: { responseMimeType: 'application/json' }
           });
           responseText = response2.text || '';
+        JSON.parse(responseText.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim());
         } catch (genAiError2: any) {
           console.warn('Gemini 3.7 Flash failed, attempting DeepSeek fallback:', genAiError2.message);
           
@@ -125,6 +129,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
             },
             body: JSON.stringify({
               model: 'deepseek-chat',
+              max_tokens: 8000,
               messages: [{ role: 'user', content: prompt }]
             })
           });
@@ -136,13 +141,14 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
           
           const dsData = await dsResponse.json();
           responseText = dsData.choices?.[0]?.message?.content || '';
+          JSON.parse(responseText.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim());
         }
       }
     }
 
     if (responseText) {
       const cleanJson = responseText
-        .replace(/<think>[\s\S]*?<\/think>/gi, '')
+        .replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '')
         .replace(/```json\n?/gi, '')
         .replace(/```\n?/gi, '')
         .trim();
