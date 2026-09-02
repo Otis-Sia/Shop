@@ -8,12 +8,42 @@ import {
 import { getServiceSupabase } from "@/lib/supabase/server";
 
 export interface ProductRepository {
+  findById(id: string): Promise<Product | null>;
   findBySku(merchantId: string, sku: string): Promise<Product | null>;
   findBySlug(slug: string): Promise<Product | null>;
+  findAll(merchantId?: string): Promise<Product[]>;
   save(product: Product): Promise<Product>;
+  delete(id: string): Promise<void>;
 }
 
 export class SupabaseProductRepository implements ProductRepository {
+  async findById(id: string): Promise<Product | null> {
+    const supabase = getServiceSupabase();
+    const { data, error } = await supabase
+      .from("products")
+      .select("*, product_variants(*)")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return this.mapToDomain(data);
+  }
+
+  async findAll(merchantId?: string): Promise<Product[]> {
+    const supabase = getServiceSupabase();
+    let query = supabase.from("products").select("*, product_variants(*)");
+    if (merchantId) query = query.eq("merchant_id", merchantId);
+    
+    const { data, error } = await query;
+    if (error || !data) return [];
+    return data.map(d => this.mapToDomain(d));
+  }
+
+  async delete(id: string): Promise<void> {
+    const supabase = getServiceSupabase();
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) throw new Error(`Failed to delete product: ${error.message}`);
+  }
   async findBySku(merchantId: string, sku: string): Promise<Product | null> {
     const supabase = getServiceSupabase();
     const { data, error } = await supabase
@@ -122,7 +152,21 @@ export class SupabaseProductRepository implements ProductRepository {
       inventory: dbProduct.inventory || { trackInventory: dbProduct.track_inventory || false, allowBackorder: dbProduct.allow_backorders || false },
       stockQuantity: dbProduct.stock_quantity || dbProduct.stock || 0,
       attributes: dbProduct.attributes || [],
-      variants: [], // You would ideally fetch variants here as well if needed in memory
+      variants: (dbProduct.product_variants || []).map((v: any) => ({
+        id: v.id,
+        sku: v.sku,
+        barcode: v.barcode,
+        attributes: v.attributes,
+        price: v.price,
+        compareAtPrice: v.compare_at_price,
+        costPrice: v.cost_price,
+        stockQuantity: v.stock,
+        weight: v.weight,
+        dimensions: v.dimensions,
+        images: v.images,
+        isDefault: v.is_default,
+        isActive: v.is_active,
+      })),
       hasVariants: dbProduct.has_variants || false,
       media: dbProduct.media || [],
       seo: dbProduct.seo || {},
@@ -249,7 +293,86 @@ export class ProductService {
       updatedAt: now,
       publishedAt: input.status === "active" ? now : undefined,
     };
-
+    
     return this.repo.save(product);
+  }
+
+  async getProduct(id: string): Promise<Product | null> {
+    return this.repo.findById(id);
+  }
+
+  async getProducts(merchantId?: string): Promise<Product[]> {
+    return this.repo.findAll(merchantId);
+  }
+
+  async updateProduct(id: string, input: Partial<CreateProductInput>): Promise<Product> {
+    const existing = await this.repo.findById(id);
+    if (!existing) throw new Error("Product not found");
+
+    if (input.sku && input.sku !== existing.sku) {
+      const existingSku = await this.repo.findBySku(existing.merchantId, input.sku);
+      if (existingSku) throw new DuplicateSkuError(input.sku);
+    }
+
+    let slug = existing.slug;
+    if (input.name && input.name !== existing.name) {
+      slug = slugify(input.name);
+      let attempt = 0;
+      while (true) {
+        const check = await this.repo.findBySlug(attempt === 0 ? slug : `${slug}-${attempt}`);
+        if (!check || check.id === id) break;
+        attempt += 1;
+        if (attempt > 20) throw new SlugCollisionError(slug);
+      }
+      if (attempt > 0) slug = `${slug}-${attempt}`;
+    }
+
+    const variants: ProductVariant[] = (input.variants ?? existing.variants).map((v) => ({
+      id: (v as any).id || randomUUID(),
+      sku: v.sku,
+      barcode: v.barcode,
+      attributes: v.attributes,
+      price: v.price,
+      compareAtPrice: v.compareAtPrice,
+      costPrice: v.costPrice,
+      stockQuantity: v.stockQuantity,
+      weight: v.weight,
+      dimensions: v.dimensions,
+      images: v.images,
+      isDefault: v.isDefault ?? false,
+      isActive: true,
+    }));
+
+    if (variants.length > 0 && !variants.some((v) => v.isDefault)) {
+      variants[0].isDefault = true;
+    }
+
+    const media: ProductMedia[] = (input.media ?? existing.media).map((m) => ({
+      id: (m as any).id || randomUUID(),
+      ...m,
+    }));
+    if (media.length > 0 && !media.some((m) => m.isPrimary)) {
+      media[0].isPrimary = true;
+    }
+
+    const updated: Product = {
+      ...existing,
+      ...input,
+      slug,
+      variants,
+      hasVariants: variants.length > 0,
+      media,
+      seo: {
+        ...existing.seo,
+        ...input.seo,
+      },
+      updatedAt: new Date(),
+    } as Product;
+
+    return this.repo.save(updated);
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    await this.repo.delete(id);
   }
 }

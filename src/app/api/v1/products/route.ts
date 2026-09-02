@@ -63,3 +63,22 @@ export async function POST(req: Request) {
     }, { status: 500 });
   }
 }
+
+export async function GET(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const merchantId = url.searchParams.get("merchantId");
+    
+    // Auth validation...
+    
+    const repo = new SupabaseProductRepository();
+    const service = new ProductService(repo);
+    
+    const products = await service.getProducts(merchantId || undefined);
+
+    return NextResponse.json({ success: true, data: products });
+  } catch (err) {
+    console.error("Error fetching products:", err);
+    return NextResponse.json({ success: false, error: "InternalServerError" }, { status: 500 });
+  }
+}
