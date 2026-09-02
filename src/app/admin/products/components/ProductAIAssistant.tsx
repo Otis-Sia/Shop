@@ -15,41 +15,9 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
   const [rawDetails, setRawDetails] = useState("");
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
 
-  const handleAIAnalyze = async () => {
-    setIsAnalyzing(true);
-    try {
-      const res = await fetch("/api/admin/products/ai-analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: currentData.name,
-          images: currentData.media?.map(m => m.url) || [],
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to analyze product");
-
-      onApply({
-        name: data.name || currentData.name,
-        shortDescription: data.shortDescription || currentData.shortDescription,
-        description: data.description || currentData.description,
-        categoryIds: data.category ? [...(currentData.categoryIds || []), data.category] : currentData.categoryIds,
-        brand: data.brand || currentData.brand,
-        tags: Array.isArray(data.tags) ? [...new Set([...(currentData.tags || []), ...data.tags])] : currentData.tags,
-      });
-      showToast("AI Analysis complete!", "success");
-    } catch (err: any) {
-      console.error(err);
-      showToast(err.message || "Failed to analyze product", "error");
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleAIAutoFill = async () => {
-    if (!rawDetails.trim()) {
-      showToast("Please enter some product details first.", "warning");
+const handleAIAutoFill = async () => {
+    if (!rawDetails.trim() && !(currentData.media && currentData.media.length > 0)) {
+      showToast("Please enter some product details or upload an image first.", "warning");
       return;
     }
     
@@ -58,13 +26,17 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
       const res = await fetch("/api/admin/products/ai-details", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: rawDetails }),
+        body: JSON.stringify({ 
+          rawDetails, 
+          images: currentData.media?.map(m => m.url) || [], 
+          currentName: currentData.name 
+        }),
       });
       
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to generate details");
       
-      const generated = json.data?.generated_json || json.data || {};
+      const generated = json.data?.generated_json || json.data || json;
       
       onApply({
         name: generated.name || currentData.name,
@@ -72,6 +44,8 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
         shortDescription: generated.shortDescription || currentData.shortDescription,
         brand: generated.brand || currentData.brand,
         tags: generated.tags || currentData.tags,
+        sku: generated.sku || currentData.sku,
+        categoryIds: generated.category ? [...(currentData.categoryIds || []), generated.category] : currentData.categoryIds,
         // Wrap raw pricing strings or numbers into the new pricing object
         pricing: generated.price ? {
           ...currentData.pricing,
@@ -88,7 +62,7 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
         }
       });
       
-      showToast("AI Auto-fill applied!", "success");
+      showToast("AI Magic Fill complete!", "success");
       setRawDetails("");
     } catch (err: any) {
       console.error(err);
@@ -98,98 +72,28 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
     }
   };
 
-  const generateSKU = () => {
-    const cleanTarget = (currentData.supplierName || "").toUpperCase().replace(/[^A-Z]/g, '');
-    let uniqueSupplierLetters = 'XXXX';
-    
-    if (cleanTarget) {
-      let base = cleanTarget;
-      const uniqueChars = Array.from(new Set(base.split('')));
-      let prefix = uniqueChars.join('');
-      if (prefix.length < 4) prefix = prefix.padEnd(4, 'X');
-      uniqueSupplierLetters = prefix.slice(0, 4);
-    } else {
-      const fallbackTarget = (currentData.brand || currentData.name || 'PRD').toUpperCase().replace(/[^A-Z0-9]/g, '');
-      const uniqueChars = Array.from(new Set(fallbackTarget.split('')));
-      let prefix = uniqueChars.join('');
-      if (prefix.length < 4) prefix = prefix.padEnd(4, 'X');
-      uniqueSupplierLetters = prefix.slice(0, 4);
-    }
-    
-    const productCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const newSku = `${uniqueSupplierLetters}-${productCode}`;
-    
-    onApply({ sku: newSku });
-    showToast(`Generated SKU: ${newSku}`, "success");
-  };
-
-  const generateSEO = () => {
-    if (!currentData.name || !currentData.description) {
-      showToast("Need a name and description to generate SEO", "warning");
-      return;
-    }
-    const generatedSeo: ProductSEO = {
-      ...currentData.seo,
-      metaTitle: `${currentData.name} - ${currentData.brand || 'Store'}`.substring(0, 70),
-      metaDescription: (currentData.shortDescription || currentData.description).substring(0, 160),
-      keywords: currentData.tags || [],
-    };
-    onApply({ seo: generatedSeo });
-    showToast("SEO generated from product data!", "success");
-  };
-
   return (
-    <div className="p-6 border border-outline/20 bg-surface-dim rounded-xl space-y-4">
-      <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">AI Assistants</h3>
+    <div className="p-6 border border-primary/40 bg-surface-dim rounded-xl space-y-4">
+      <h3 className="font-bold text-xl mb-4 border-b border-primary/20 pb-2 text-primary">✨ AI Magic Fill</h3>
       
-      {/* Auto SKU & SEO */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={generateSKU}
-          className="flex-1 px-4 py-2 bg-on-surface text-surface font-bold uppercase text-xs hover:bg-on-surface/90"
-        >
-          Auto SKU
-        </button>
-        <button
-          type="button"
-          onClick={generateSEO}
-          className="flex-1 px-4 py-2 border-2 border-on-surface font-bold uppercase text-xs hover:bg-surface"
-        >
-          Auto SEO
-        </button>
-      </div>
+      <p className="text-xs text-on-surface-variant leading-relaxed">
+        One button to rule them all! The AI will scan any uploaded <strong>images</strong> and read the <strong>notes</strong> below to automatically generate the product name, SKU, price, SEO, categories, tags, description, and specs.
+      </p>
 
-      <div className="border-t border-outline/10 pt-4 mt-4">
-        <p className="text-xs font-bold uppercase mb-2">Analyze Product Media</p>
-        <button
-          type="button"
-          onClick={handleAIAnalyze}
-          disabled={isAnalyzing || !(currentData.media && currentData.media.length > 0)}
-          className="w-full px-4 py-2 bg-primary text-on-primary font-bold uppercase text-xs hover:bg-primary/90 disabled:opacity-50"
-        >
-          {isAnalyzing ? "Analyzing..." : "AI Analyze Media"}
-        </button>
-        <p className="text-[10px] text-on-surface-variant mt-1 leading-tight">
-          Extracts categories, tags, and description directly from the uploaded product images.
-        </p>
-      </div>
-
-      <div className="border-t border-outline/10 pt-4 mt-4 space-y-2">
-        <p className="text-xs font-bold uppercase">AI Free-form Auto Fill</p>
+      <div className="space-y-2">
         <textarea
           value={rawDetails}
           onChange={(e) => setRawDetails(e.target.value)}
-          placeholder="Paste raw supplier info or type a messy description here..."
-          className="w-full p-2 border border-outline/30 bg-background rounded-lg text-sm h-24"
+          placeholder="Optional: Paste raw supplier info, dimensions, or a messy description here..."
+          className="w-full p-3 border border-outline/30 bg-background rounded-lg text-sm h-28 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
         />
         <button
           type="button"
           onClick={handleAIAutoFill}
-          disabled={isGeneratingDetails || !rawDetails.trim()}
-          className="w-full px-4 py-2 border border-primary rounded-lg text-primary font-bold uppercase text-xs hover:bg-primary/10 disabled:opacity-50"
+          disabled={isGeneratingDetails || (!rawDetails.trim() && !(currentData.media && currentData.media.length > 0))}
+          className="w-full px-4 py-3 bg-primary text-on-primary font-bold uppercase tracking-wider text-sm hover:bg-primary/90 disabled:opacity-50 rounded-lg shadow-sm transition-all"
         >
-          {isGeneratingDetails ? "Generating..." : "Generate & Fill Fields"}
+          {isGeneratingDetails ? "Generating Magic..." : "✨ Auto-Fill Everything"}
         </button>
       </div>
     </div>

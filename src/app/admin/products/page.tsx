@@ -144,8 +144,8 @@ export default function MerchantProducts() {
   };
 
   const handleAIFromDetails = async () => {
-    if (!editForm.rawDetails || !editForm.rawDetails.trim()) {
-      showToast('Please enter free‑form product details first.', 'warning');
+    if ((!editForm.rawDetails || !editForm.rawDetails.trim()) && (!editForm.imageUrls || editForm.imageUrls.length === 0)) {
+      showToast('Please enter free‑form product details or upload an image first.', 'warning');
       return;
     }
     setIsGeneratingFromDetails(true);
@@ -153,7 +153,11 @@ export default function MerchantProducts() {
       const res = await fetch('/api/admin/products/ai-details', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rawDetails: editForm.rawDetails }),
+        body: JSON.stringify({ 
+          rawDetails: editForm.rawDetails,
+          images: editForm.imageUrls || [],
+          currentName: editForm.name || ''
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'AI details parsing failed');
