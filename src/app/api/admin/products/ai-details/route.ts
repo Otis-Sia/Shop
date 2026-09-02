@@ -76,7 +76,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
         },
         body: JSON.stringify({
           model: 'qwen/qwen3.6-27b',
-          max_tokens: 8000,
+          max_tokens: 3000,
           messages: [{ role: 'user', content: prompt }]
         })
       });
@@ -129,7 +129,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
             },
             body: JSON.stringify({
               model: 'deepseek-chat',
-              max_tokens: 8000,
+              max_tokens: 3000,
               messages: [{ role: 'user', content: prompt }]
             })
           });
