@@ -91,6 +91,8 @@ CREATE TABLE IF NOT EXISTS products (
     colors TEXT[] DEFAULT '{}'::text[],
     sizes TEXT[] DEFAULT '{}'::text[],
     grades TEXT[] DEFAULT '{}'::text[],
+    capacity VARCHAR(100),
+    power VARCHAR(100),
     has_variants BOOLEAN DEFAULT FALSE,
     supplier_name VARCHAR(255),
     cost_price DECIMAL(10, 2),

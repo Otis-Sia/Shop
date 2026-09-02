@@ -50,6 +50,8 @@ Return a JSON object containing the following fields:
 - colors: array of distinct color names mentioned (e.g. ["Black", "White", "Navy Blue"]). If no colors are mentioned, return empty array [].
 - sizes: array of distinct sizes or dimensions mentioned (e.g. ["S", "M", "L", "XL"] or ["40", "41", "42"]). If no sizes are mentioned, return empty array [].
 - grades: array of distinct grades or qualities mentioned (e.g. ["Grade A", "Grade B", "Premium"]). If no grades are mentioned, return empty array [].
+- capacity: product capacity or volume if mentioned (e.g. "1.8ltr", "500ml", "2TB", or null if not found).
+- power: product power rating or wattage if mentioned (e.g. "350 Watts", "1000W", or null if not found).
 - variants: array of variant objects if specific variant combinations, SKUs, or color/size options with individual prices/stock are listed in the text: [{"color": "...", "size": "...", "price": 0, "stock": 0}]. Return empty array [] if none specifically listed.
 - groupCategory: top‑level category group (match existing if possible, or provide appropriate new name).
 - category: primary category under the group (match existing if possible, or create appropriate new name).

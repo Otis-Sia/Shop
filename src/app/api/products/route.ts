@@ -39,6 +39,8 @@ const mapDbProductToProduct = (p: any, variants: any[] = [], merchantProfile: an
     colors: p.colors || [],
     sizes: p.sizes || [],
     grades: p.grades || [],
+    capacity: p.capacity || '',
+    power: p.power || '',
     discount: p.discount ? Number(p.discount) : 0,
     brand: p.brand || '',
     countryOfOrigin: p.country_of_origin || '',
@@ -300,6 +302,8 @@ export async function POST(request: Request) {
       colors: body.colors || [],
       sizes: body.sizes || [],
       grades: body.grades || [],
+      capacity: body.capacity || '',
+      power: body.power || '',
       has_variants: body.hasVariants || (body.variants && body.variants.length > 0) || false,
       
       created_at: existingProd ? undefined : new Date().toISOString(),
