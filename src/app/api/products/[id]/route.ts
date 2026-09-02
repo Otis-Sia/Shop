@@ -46,6 +46,7 @@ export async function GET(
       subcategories: product.subcategories || [],
       stock: product.stock !== null && product.stock !== undefined ? Number(product.stock) : 0,
       tags: product.tags || [],
+      features: product.features || [],
       labels: product.labels || [],
       colors: product.colors || [],
       sizes: product.sizes || [],

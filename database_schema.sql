@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS products (
     has_variants BOOLEAN DEFAULT FALSE,
     supplier_name VARCHAR(255),
     cost_price DECIMAL(10, 2),
+    features TEXT[] DEFAULT '{}'::text[],
 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

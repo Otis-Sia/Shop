@@ -343,6 +343,16 @@ export default function ProductDetailPage() {
           {/* Description */}
           <div className="space-y-2">
             <h3 className="font-headline-md text-xs font-black uppercase tracking-widest text-on-surface">Product Specifications</h3>
+            {product.features && product.features.length > 0 && (
+              <ul className="list-inside space-y-1 mb-2 font-body-md text-xs font-semibold text-secondary">
+                {product.features.map((feature: string, idx: number) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="text-primary-container mt-0.5">❇️</span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <p className="font-body-md text-xs text-secondary leading-relaxed font-semibold">
               {product.description || 'Premium engineered sports apparel curated utilizing extreme-velocity structural textures, optimized for peak retail execution.'}
             </p>

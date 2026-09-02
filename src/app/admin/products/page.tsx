@@ -586,6 +586,7 @@ export default function MerchantProducts() {
       category: 'Apparel',
       subcategories: '',
       tags: '',
+      features: '',
       labels: '',
       colors: '',
       sizes: '',
@@ -642,6 +643,7 @@ export default function MerchantProducts() {
       groupCategory: product.groupCategory || '',
       imageUrls: product.imageUrls || [''],
       tags: product.tags?.join(', ') || '',
+      features: product.features?.join('\n') || '',
       labels: product.labels?.join(', ') || '',
       colors: product.colors?.join(', ') || '',
       sizes: product.sizes?.join(', ') || '',
@@ -698,6 +700,7 @@ export default function MerchantProducts() {
       groupCategory: product.groupCategory || '',
       imageUrls: product.imageUrls || [''],
       tags: product.tags?.join(', ') || '',
+      features: product.features?.join('\n') || '',
       labels: product.labels?.join(', ') || '',
       colors: product.colors?.join(', ') || '',
       sizes: product.sizes?.join(', ') || '',
@@ -1203,6 +1206,7 @@ export default function MerchantProducts() {
           category: editForm.category,
           subcategories: editForm.subcategories,
           tags: editForm.tags,
+          features: editForm.features,
           labels: editForm.labels,
           colors: editForm.colors,
           sizes: editForm.sizes,
@@ -1420,6 +1424,7 @@ export default function MerchantProducts() {
         category: editForm.category || '',
         subcategories: Array.isArray(editForm.subcategories) ? editForm.subcategories : (typeof editForm.subcategories === 'string' ? editForm.subcategories.split(',').map((t: string) => t.trim()).filter(Boolean) : []),
         tags: typeof editForm.tags === 'string' ? editForm.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.tags || []),
+        features: typeof editForm.features === 'string' ? editForm.features.split('\n').map((t: string) => t.trim()).filter(Boolean) : (editForm.features || []),
         labels: typeof editForm.labels === 'string' ? editForm.labels.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.labels || []),
         colors: typeof editForm.colors === 'string' ? editForm.colors.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.colors || []),
         sizes: typeof editForm.sizes === 'string' ? editForm.sizes.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.sizes || []),
@@ -2429,6 +2434,17 @@ export default function MerchantProducts() {
                           {editForm.category ? "No nested subcategories available for this category." : "Select a top level category first to see subcategories."}
                         </p>
                       )}
+                    </div>
+                    
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="font-bold text-sm uppercase">Key Features / Specifications (One per line)</label>
+                      <textarea 
+                        name="features" 
+                        value={editForm.features || ''} 
+                        onChange={handleChange} 
+                        className="w-full border-2 border-on-surface p-2 h-32 focus:ring-0 outline-none bg-surface" 
+                        placeholder="e.g. 1.8ltr Jug Capacity&#10;350 Watts&#10;White Available&#10;Model(TYB-202-A)" 
+                      />
                     </div>
                     
                     <div className="space-y-2">
