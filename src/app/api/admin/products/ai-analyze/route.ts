@@ -60,57 +60,57 @@ Do not include any markdown code block wrapping like \`\`\`json around the outpu
 
     let responseText = '';
     
-    // 1. Try Groq (Qwen)
+    // 1. Try gemini-3.6-flash first
     try {
-      if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY is not configured.');
-      
-      const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'qwen/qwen3.6-27b',
-          max_tokens: 3000,
-          messages: [{ role: 'user', content: prompt }]
-        })
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' }
       });
-      
-      if (!groqResponse.ok) {
-        const errText = await groqResponse.text();
-        throw new Error(`Groq API failed: ${groqResponse.status} ${errText}`);
-      }
-      
-      const groqData = await groqResponse.json();
-      responseText = groqData.choices?.[0]?.message?.content || '';
+      responseText = response.text || '';
       JSON.parse(responseText.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim());
-    } catch (groqError: any) {
-      console.warn('Groq failed, attempting Gemini 3.6 Flash:', groqError.message);
+    } catch (genAiError1: any) {
+      console.warn('Gemini 3.6 Flash failed, attempting Gemini 3.7 Flash:', genAiError1.message);
       
       try {
-        // 2. Fallback to gemini-3.6-flash
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
+        // 2. Fallback to gemini-3.7-flash
+        const response2 = await ai.models.generateContent({
+          model: 'gemini-3.7-flash',
           contents: prompt,
           config: { responseMimeType: 'application/json' }
         });
-        responseText = response.text || '';
-      JSON.parse(responseText.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim());
-      } catch (genAiError1: any) {
-        console.warn('Gemini 3.6 Flash failed, attempting Gemini 3.7 Flash:', genAiError1.message);
+        responseText = response2.text || '';
+        JSON.parse(responseText.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim());
+      } catch (genAiError2: any) {
+        console.warn('Gemini 3.7 Flash failed, attempting Groq fallback:', genAiError2.message);
         
         try {
-          // 3. Fallback to gemini-3.7-flash
-          const response2 = await ai.models.generateContent({
-            model: 'gemini-3.7-flash',
-            contents: prompt,
-            config: { responseMimeType: 'application/json' }
+          // 3. Fallback to Groq (Qwen)
+          if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY is not configured.');
+          
+          const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+              model: 'qwen/qwen3.6-27b',
+              max_tokens: 3000,
+              messages: [{ role: 'user', content: prompt }]
+            })
           });
-          responseText = response2.text || '';
-        JSON.parse(responseText.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim());
-        } catch (genAiError2: any) {
-          console.warn('Gemini 3.7 Flash failed, attempting DeepSeek fallback:', genAiError2.message);
+          
+          if (!groqResponse.ok) {
+            const errText = await groqResponse.text();
+            throw new Error(`Groq API failed: ${groqResponse.status} ${errText}`);
+          }
+          
+          const groqData = await groqResponse.json();
+          responseText = groqData.choices?.[0]?.message?.content || '';
+          JSON.parse(responseText.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim());
+        } catch (groqError: any) {
+          console.warn('Groq failed, attempting DeepSeek fallback:', groqError.message);
           
           // 4. Fallback to DeepSeek
           if (!process.env.DEEPSEEK_API_KEY) {
