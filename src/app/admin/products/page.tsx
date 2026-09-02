@@ -1689,6 +1689,7 @@ export default function MerchantProducts() {
         <ProductEditor 
           isAdding={isAdding}
           initialData={editingId ? editForm : {}}
+          existingSuppliers={Array.from(new Set(products.map(p => p.supplierName).filter(Boolean))) as string[]}
           onSave={async (data) => {
             try {
               const token = await auth.currentUser?.getIdToken();

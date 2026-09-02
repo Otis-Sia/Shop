@@ -17,9 +17,10 @@ interface ProductEditorProps {
   isAdding: boolean;
   onSave: (data: CreateProductInput) => Promise<void>;
   onCancel: () => void;
+  existingSuppliers?: string[];
 }
 
-export function ProductEditor({ initialData, isAdding, onSave, onCancel }: ProductEditorProps) {
+export function ProductEditor({ initialData, isAdding, onSave, onCancel, existingSuppliers = [] }: ProductEditorProps) {
   const [formData, setFormData] = useState<Partial<CreateProductInput>>({
     productType: "physical",
     status: "draft",
@@ -93,7 +94,7 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel }: Produ
       {/* 
         This is where we will map the new modular components.
         For example:
-        <ProductDetailsForm data={formData} onChange={handleUpdate} />
+        <ProductDetailsForm data={formData} onChange={handleUpdate} existingSuppliers={existingSuppliers} />
         <ProductPricingForm pricing={formData.pricing} onChange={(val) => handleUpdate('pricing', val)} />
         <ProductInventoryForm inventory={formData.inventory} onChange={(val) => handleUpdate('inventory', val)} />
         <ProductVariantManager variants={formData.variants} attributes={formData.attributes} onChange={...} />
@@ -103,7 +104,7 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel }: Produ
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 order-2 lg:order-1 space-y-6">
-          <ProductDetailsForm data={formData} onChange={handleUpdate} />
+          <ProductDetailsForm data={formData} onChange={handleUpdate} existingSuppliers={existingSuppliers} />
           <ProductPricingForm pricing={formData.pricing} onChange={(val) => handleUpdate('pricing', val)} />
           <ProductInventoryForm stockQuantity={formData.stockQuantity} inventory={formData.inventory} onChangeInventory={(val) => handleUpdate('inventory', val)} onChangeStock={(val) => handleUpdate('stockQuantity', val)} />
           <ProductVariantManager variants={formData.variants} attributes={formData.attributes} onChangeVariants={(val) => handleUpdate('variants', val)} onChangeAttributes={(val) => handleUpdate('attributes', val)} />

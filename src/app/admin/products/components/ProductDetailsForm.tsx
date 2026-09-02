@@ -6,9 +6,10 @@ import { CreateProductInput } from "@/lib/products/types";
 interface ProductDetailsFormProps {
   data: Partial<CreateProductInput>;
   onChange: (field: keyof CreateProductInput, value: any) => void;
+  existingSuppliers?: string[];
 }
 
-export function ProductDetailsForm({ data, onChange }: ProductDetailsFormProps) {
+export function ProductDetailsForm({ data, onChange, existingSuppliers = [] }: ProductDetailsFormProps) {
   return (
     <div className="p-6 border border-outline/20 bg-surface rounded-xl space-y-4">
       <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">Basic Details</h3>
@@ -68,11 +69,17 @@ export function ProductDetailsForm({ data, onChange }: ProductDetailsFormProps) 
           <label className="block font-bold uppercase text-sm mb-1">Supplier</label>
           <input
             type="text"
+            list="suppliers-list"
             value={data.supplierName || ""}
             onChange={(e) => onChange("supplierName", e.target.value)}
             className="w-full p-2 border border-outline/30 bg-background rounded-lg"
             placeholder="e.g. Cedar Supply"
           />
+          <datalist id="suppliers-list">
+            {existingSuppliers.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
         </div>
       </div>
       
