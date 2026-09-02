@@ -1,5 +1,6 @@
 "use client";
 import { useToast } from '@/components/providers/ToastProvider';
+import { useSearchParams } from "next/navigation";
 
 import React, { useEffect, useState, useMemo } from "react";
 import { auth } from "@/lib/firebase";
@@ -9,6 +10,7 @@ import { useCategories } from '@/hooks/useCategories';
 import Icon from '@/components/Icon';
 import { CURRENCY_CONFIG } from '@/lib/utils/currency';
 import SendToWhatsAppModal from '@/components/admin/SendToWhatsAppModal';
+import { ProductEditor } from "./components/ProductEditor";
 
 export default function MerchantProducts() {
   const { showToast } = useToast();
@@ -38,7 +40,16 @@ export default function MerchantProducts() {
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
-  const [selectedSupplierFilter, setSelectedSupplierFilter] = useState("");
+  const searchParams = useSearchParams();
+  const [selectedSupplierFilter, setSelectedSupplierFilter] = useState(searchParams?.get("supplier") || "");
+
+  useEffect(() => {
+    const supplierParam = searchParams?.get("supplier");
+    if (supplierParam !== null && supplierParam !== undefined) {
+      setSelectedSupplierFilter(supplierParam);
+    }
+  }, [searchParams]);
+
   const [selectedStockFilter, setSelectedStockFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
@@ -133,8 +144,8 @@ export default function MerchantProducts() {
   };
 
   const handleAIFromDetails = async () => {
-    if (!editForm.rawDetails || !editForm.rawDetails.trim()) {
-      showToast('Please enter free‑form product details first.', 'warning');
+    if ((!editForm.rawDetails || !editForm.rawDetails.trim()) && (!editForm.imageUrls || editForm.imageUrls.length === 0)) {
+      showToast('Please enter free‑form product details or upload an image first.', 'warning');
       return;
     }
     setIsGeneratingFromDetails(true);
@@ -142,7 +153,11 @@ export default function MerchantProducts() {
       const res = await fetch('/api/admin/products/ai-details', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rawDetails: editForm.rawDetails }),
+        body: JSON.stringify({ 
+          rawDetails: editForm.rawDetails,
+          images: editForm.imageUrls || [],
+          currentName: editForm.name || ''
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'AI details parsing failed');
@@ -167,6 +182,8 @@ export default function MerchantProducts() {
           countryOfOrigin: data.countryOfOrigin || prev.countryOfOrigin,
           supplierName: data.supplierName || prev.supplierName,
           sku: data.sku || prev.sku,
+          capacity: data.capacity || prev.capacity,
+          power: data.power || prev.power,
           price: data.price !== null && data.price !== undefined ? data.price : prev.price,
           salePrice: data.salePrice !== null && data.salePrice !== undefined ? data.salePrice : prev.salePrice,
           costPrice: data.costPrice !== null && data.costPrice !== undefined ? data.costPrice : prev.costPrice,
@@ -576,6 +593,7 @@ export default function MerchantProducts() {
       category: 'Apparel',
       subcategories: '',
       tags: '',
+      features: '',
       labels: '',
       colors: '',
       sizes: '',
@@ -632,6 +650,7 @@ export default function MerchantProducts() {
       groupCategory: product.groupCategory || '',
       imageUrls: product.imageUrls || [''],
       tags: product.tags?.join(', ') || '',
+      features: product.features?.join('\n') || '',
       labels: product.labels?.join(', ') || '',
       colors: product.colors?.join(', ') || '',
       sizes: product.sizes?.join(', ') || '',
@@ -688,6 +707,7 @@ export default function MerchantProducts() {
       groupCategory: product.groupCategory || '',
       imageUrls: product.imageUrls || [''],
       tags: product.tags?.join(', ') || '',
+      features: product.features?.join('\n') || '',
       labels: product.labels?.join(', ') || '',
       colors: product.colors?.join(', ') || '',
       sizes: product.sizes?.join(', ') || '',
@@ -1193,6 +1213,7 @@ export default function MerchantProducts() {
           category: editForm.category,
           subcategories: editForm.subcategories,
           tags: editForm.tags,
+          features: editForm.features,
           labels: editForm.labels,
           colors: editForm.colors,
           sizes: editForm.sizes,
@@ -1401,6 +1422,8 @@ export default function MerchantProducts() {
         shortDescription: editForm.shortDescription || '',
         description: editForm.description || editForm.shortDescription || editForm.name || '',
         sku: editForm.sku || '',
+        capacity: editForm.capacity || '',
+        power: editForm.power || '',
         supplierName: editForm.supplierName || '',
         costPrice: editForm.costPrice !== undefined && editForm.costPrice !== null && editForm.costPrice !== '' ? Number(editForm.costPrice) : null,
         brand: editForm.brand || '',
@@ -1410,6 +1433,7 @@ export default function MerchantProducts() {
         category: editForm.category || '',
         subcategories: Array.isArray(editForm.subcategories) ? editForm.subcategories : (typeof editForm.subcategories === 'string' ? editForm.subcategories.split(',').map((t: string) => t.trim()).filter(Boolean) : []),
         tags: typeof editForm.tags === 'string' ? editForm.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.tags || []),
+        features: typeof editForm.features === 'string' ? editForm.features.split('\n').map((t: string) => t.trim()).filter(Boolean) : (editForm.features || []),
         labels: typeof editForm.labels === 'string' ? editForm.labels.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.labels || []),
         colors: typeof editForm.colors === 'string' ? editForm.colors.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.colors || []),
         sizes: typeof editForm.sizes === 'string' ? editForm.sizes.split(',').map((t: string) => t.trim()).filter(Boolean) : (editForm.sizes || []),
@@ -1545,7 +1569,7 @@ export default function MerchantProducts() {
     }
 
     if (selectedSupplierFilter) {
-      result = result.filter(p => p.supplierName === selectedSupplierFilter);
+      result = result.filter(p => p.supplierName?.toLowerCase().trim() === selectedSupplierFilter.toLowerCase().trim());
     }
 
     if (selectedStockFilter === 'in_stock') {
@@ -1666,1327 +1690,43 @@ export default function MerchantProducts() {
       </div>
 
       {(isAdding || editingId !== null) ? (
-        <form onSubmit={handleSave} className="bg-surface border-4 border-on-surface p-8 mb-8 space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b-2 border-on-surface pb-4">
-            <div>
-              <h2 className="font-bold text-2xl uppercase">
-                {isAdding ? 'Add New' : 'Edit'} {'Product'} 
-                {isQuickAdd && ' (Quick Add)'}
-              </h2>
-            </div>
-            {/* Template Selection */}
-            {isAdding && templates.length > 0 && (
-              <div className="flex items-center gap-2 p-2 border-2 border-dashed border-on-surface bg-surface-dim">
-                <span className="text-xs font-black uppercase">Start from template:</span>
-                <select 
-                  id="template-selector"
-                  onChange={(e) => {
-                    const tId = e.target.value;
-                    if (!tId) return;
-                    const selectedT = templates.find(t => t.id === tId);
-                    if (selectedT) {
-                      setEditForm((prev: any) => ({
-                        ...prev,
-                        ...selectedT.data,
-                        name: prev.name || '',
-                        description: prev.description || '',
-                        imageUrls: prev.imageUrls || ['']
-                      }));
-                      showToast(`Loaded template "${selectedT.name}"`, "success");
-                    }
-                  }}
-                  className="border-2 border-on-surface p-1 text-xs outline-none font-bold uppercase bg-surface"
-                >
-                  <option value="">-- Choose Template --</option>
-                  {templates.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-                <button 
-                  type="button"
-                  onClick={async () => {
-                    const selectEl = document.getElementById("template-selector") as HTMLSelectElement;
-                    const selectedId = selectEl?.value;
-                    if (!selectedId) {
-                      showToast("Please select a template to delete first", "warning");
-                      return;
-                    }
-                    const selectedT = templates.find(t => t.id === selectedId);
-                    if (selectedT && confirm(`Delete template "${selectedT.name}"?`)) {
-                      try {
-                        const user = auth.currentUser;
-                        const token = user ? await user.getIdToken() : '';
-                        const delRes = await fetch(`/api/templates?id=${encodeURIComponent(selectedId)}`, {
-                          method: 'DELETE',
-                          headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (!delRes.ok) throw new Error('Failed to delete template');
-                        setTemplates(prev => prev.filter(t => t.id !== selectedId));
-                        showToast(`Template "${selectedT.name}" deleted`, "success");
-                        if (selectEl) selectEl.value = "";
-                      } catch (err) {
-                        console.error("Error deleting template:", err);
-                        showToast("Failed to delete template", "error");
-                      }
-                    }
-                  }}
-                  className="text-[10px] font-black uppercase text-error hover:underline ml-2"
-                >
-                  Delete Selected
-                </button>
-              </div>
-            )}
-          </div>
-
-          {isQuickAdd ? (
-            /* QUICK ADD FORM MODE */
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-              <div className="space-y-2 md:col-span-2">
-                <label className="font-bold text-sm uppercase flex items-center justify-between w-full">
-                  <span className="flex items-center gap-1">Product Name <span className="text-error font-black">*</span></span>
-                  <button type="button" onClick={handleAIAnalyze} disabled={isAnalyzing} className="text-[10px] bg-primary-container text-on-surface px-2 py-1 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
-                    <Icon name="auto_awesome" className="text-xs" /> {isAnalyzing ? 'Analyzing...' : 'Auto-fill with AI'}
-                  </button>
-                </label>
-                <input 
-                  required 
-                  name="name" 
-                  value={editForm.name || ''} 
-                  onChange={handleChange} 
-                  placeholder="e.g. Vintage Denim Jacket"
-                  className={`w-full border-2 p-2 focus:ring-0 outline-none ${formErrors.name ? 'border-error bg-error/5' : 'border-on-surface'}`} 
-                />
-                {formErrors.name && <p className="text-xs text-error font-bold">{formErrors.name}</p>}
-              </div>
-
-              {/* Supplier Identification */}
-              <div className="space-y-2">
-                <label className="font-bold text-sm uppercase flex items-center justify-between">
-                  <span>Supplier Name</span>
-                  <span className="text-[10px] text-secondary font-semibold uppercase">Dropship Supplier</span>
-                </label>
-                <div className="relative flex items-center">
-                  <input 
-                    type="text"
-                    name="supplierName"
-                    value={editForm.supplierName || ''}
-                    onChange={handleChange}
-                    placeholder="e.g. Shenzhen Tech, CJ Dropship..."
-                    className="w-full border-2 border-on-surface p-2 pr-8 focus:ring-0 outline-none bg-surface"
-                  />
-                  <select 
-                    className="absolute right-0 top-0 h-full w-8 opacity-0 cursor-pointer"
-                    onChange={(e) => handleChange({ target: { name: 'supplierName', value: e.target.value } } as any)}
-                    title="Select an existing supplier"
-                  >
-                    <option value="">Select...</option>
-                    {uniqueSuppliers.map(sup => (
-                      <option key={sup} value={sup}>{sup}</option>
-                    ))}
-                  </select>
-                  <Icon name="expand_more" className="absolute right-2 pointer-events-none text-secondary" />
-                </div>
-                {formErrors.supplierName && <p className="text-xs text-error font-bold">{formErrors.supplierName}</p>}
-              </div>
-
-              {/* Auto-Generated / Custom SKU */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-sm uppercase">SKU (Product Code)</label>
-                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 border ${isSkuManuallyEdited ? 'border-secondary text-secondary bg-surface-dim' : 'border-primary-container text-on-surface bg-primary-container'}`}>
-                    {isSkuManuallyEdited ? 'Custom SKU' : 'Auto from Supplier'}
-                  </span>
-                </div>
-                <input 
-                  name="sku" 
-                  value={editForm.sku || ''} 
-                  onChange={handleChange} 
-                  placeholder="Auto-generated from Supplier + Name..."
-                  className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none font-mono text-sm" 
-                />
-                {isSkuManuallyEdited && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSkuManuallyEdited(false);
-                      const autoSku = generateSku(editForm.supplierName, editForm.name);
-                      setEditForm((prev: any) => ({ ...prev, sku: autoSku }));
-                      showToast("Reset SKU to auto-generated format", "info");
-                    }}
-                    className="text-[10px] font-bold text-primary-container hover:underline uppercase block"
-                  >
-                    ↺ Revert to Auto-Generated SKU
-                  </button>
-                )}
-              </div>
-              {/* Free‑form details for AI */}
-              <div className="space-y-2 md:col-span-2 p-3 bg-surface-container border-2 border-on-surface">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <label className="font-bold text-sm uppercase flex items-center gap-1.5 text-on-surface">
-                    <Icon name="auto_awesome" className="text-primary-container text-base" />
-                    <span>Arbitrary Product Details (AI Auto-Fill)</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleLoadPreviousAIFill}
-                      className="text-xs bg-surface text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase hover:bg-surface-container-highest transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                    >
-                      Load Previous
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleAIFromDetails}
-                      disabled={isGeneratingFromDetails}
-                      className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                    >
-                      <Icon name="auto_awesome" className="text-sm" />
-                      {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  name="rawDetails"
-                  value={editForm.rawDetails || ''}
-                  onChange={handleChange}
-                  className="w-full border-2 border-on-surface p-2 h-24 focus:ring-0 outline-none font-mono text-xs bg-surface"
-                  placeholder="Paste any unformatted supplier notes, specs, product description, or details here, then click Generate..."
-                />
-              </div>
-
-              {/* Selling Price */}
-              <div className="space-y-2">
-                <label className="font-bold text-sm uppercase flex items-center gap-1">
-                  Price ({CURRENCY_CONFIG.symbol}) <span className="text-error font-black">*</span>
-                </label>
-                <input 
-                  required 
-                  type="number" 
-                  min="0" 
-                  step="0.01" 
-                  name="price" 
-                  value={editForm.price === 0 && !editForm.price.toString().match(/^0$/) ? '' : (editForm.price ?? '')} 
-                  onChange={handleChange} 
-                  className={`w-full border-2 p-2 focus:ring-0 outline-none ${formErrors.price ? 'border-error bg-error/5' : 'border-on-surface'}`} 
-                />
-                {formErrors.price && <p className="text-xs text-error font-bold">{formErrors.price}</p>}
-              </div>
-
-              {/* Sale Price */}
-              <div className="space-y-2">
-                <label className="font-bold text-sm uppercase flex items-center justify-between">
-                  <span>Sale Price ({CURRENCY_CONFIG.symbol})</span>
-                  <span className="text-[10px] text-secondary font-semibold uppercase">Optional</span>
-                </label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  step="0.01" 
-                  name="salePrice" 
-                  value={editForm.salePrice === 0 && !editForm.salePrice.toString().match(/^0$/) ? '' : (editForm.salePrice ?? '')} 
-                  onChange={handleChange} 
-                  placeholder="e.g. 19.99"
-                  className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" 
-                />
-              </div>
-
-              {/* Cost Price */}
-              <div className="space-y-2 md:col-span-2">
-                <label className="font-bold text-sm uppercase flex items-center gap-1">
-                  Cost Price ({CURRENCY_CONFIG.symbol}) <span className="text-error font-black">*</span>
-                </label>
-                <input 
-                  required
-                  type="number" 
-                  min="0" 
-                  step="0.01" 
-                  name="costPrice" 
-                  value={editForm.costPrice === 0 && !editForm.costPrice.toString().match(/^0$/) ? '' : (editForm.costPrice ?? '')} 
-                  onChange={handleChange} 
-                  placeholder="e.g. 15.00"
-                  className={`w-full border-2 p-2 focus:ring-0 outline-none ${formErrors.costPrice ? 'border-error bg-error/5' : 'border-on-surface'}`} 
-                />
-                {formErrors.costPrice && <p className="text-xs text-error font-bold">{formErrors.costPrice}</p>}
-                {(Number(editForm.price) > 0 || Number(editForm.salePrice) > 0) && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
-                  <div className="text-[11px] font-bold p-1 bg-surface-dim border border-on-surface/30 flex justify-between">
-                    {(() => {
-                      const activePrice = Number(editForm.salePrice) > 0 ? Number(editForm.salePrice) : Number(editForm.price);
-                      const cost = Number(editForm.costPrice);
-                      const profit = activePrice - cost;
-                      const margin = activePrice > 0 ? (profit / activePrice) * 100 : 0;
-                      return (
-                        <>
-                          <span>Est. Profit (using {Number(editForm.salePrice) > 0 ? 'Sale Price' : 'Regular Price'}): <strong className={profit >= 0 ? 'text-green-700' : 'text-error'}>{CURRENCY_CONFIG.symbol} {profit.toFixed(2)}</strong></span>
-                          <span className="text-secondary">({margin.toFixed(1)}% margin)</span>
-                        </>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <label className="font-bold text-sm uppercase flex items-center gap-1">
-                  Category <span className="text-error font-black">*</span>
-                </label>
-                <select 
-                  required
-                  name="category"
-                  value={editForm.category || ''}
-                  onChange={(e) => {
-                    const selectedValue = e.target.value;
-                    let resolvedGroup = '';
-                    let resolvedCat = '';
-                    let resolvedSubs: string[] = [];
-
-                    for (const group of categories) {
-                      if (group.name === selectedValue) {
-                        resolvedGroup = group.name;
-                        break;
-                      }
-                      for (const cat of group.categories) {
-                        if (cat.name === selectedValue) {
-                          resolvedGroup = group.name;
-                          resolvedCat = cat.name;
-                          break;
-                        }
-                        if (cat.subcategories?.includes(selectedValue)) {
-                          resolvedGroup = group.name;
-                          resolvedCat = cat.name;
-                          resolvedSubs = [selectedValue];
-                          break;
-                        }
-                      }
-                    }
-
-                    if (formErrors.category) {
-                      setFormErrors(prev => {
-                        const next = { ...prev };
-                        delete next.category;
-                        return next;
-                      });
-                    }
-
-                    setEditForm((prev: any) => ({
-                      ...prev,
-                      groupCategory: resolvedGroup,
-                      category: resolvedCat || selectedValue,
-                      subcategories: resolvedSubs
-                    }));
-                  }}
-                  className={`w-full border-2 p-2.5 focus:ring-0 outline-none bg-surface font-bold text-sm ${formErrors.category ? 'border-error bg-error/5' : 'border-on-surface'}`}
-                >
-                  <option value="">-- Select Category --</option>
-                  {allSystemCategories.map(name => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
-                {formErrors.category && <p className="text-xs text-error font-bold">{formErrors.category}</p>}
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <label className="font-bold text-sm uppercase">Short Description</label>
-                <textarea name="shortDescription" value={editForm.shortDescription || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-16 focus:ring-0 outline-none" placeholder="Optional brief summary..."></textarea>
-              </div>
-              
-              {/* Main Image & Quick Dropzone */}
-              <div className="space-y-2 md:col-span-2">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-sm uppercase flex items-center gap-1">
-                    Product Image(s) <span className="text-error font-black">*</span>
-                  </label>
-                  <span className="text-[10px] text-secondary font-semibold uppercase">
-                    Drag & Drop or Click to Upload
-                  </span>
-                </div>
-
-                {/* Dropzone / Image Previews */}
-                {(editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '').length > 0 ? (
-                  <div className="space-y-3 p-4 border-2 border-on-surface bg-surface">
-                    <div className="flex flex-wrap gap-3 items-center">
-                      {(editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '').map((url: string, idx: number) => (
-                        <div 
-                          key={idx} 
-                          className={`relative aspect-square w-20 sm:w-24 border-2 ${idx === 0 ? 'border-primary-container ring-2 ring-primary-container/50' : 'border-on-surface'} bg-surface-dim overflow-hidden group`}
-                        >
-                          <img src={url} alt={`Product thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
-                          {idx === 0 && (
-                            <span className="absolute top-1 left-1 bg-primary-container text-on-surface text-[9px] font-black uppercase px-1 border border-on-surface">
-                              Main
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(idx)}
-                            className="absolute top-1 right-1 bg-error text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-on-surface opacity-90 hover:opacity-100 hover:scale-110"
-                            title="Remove image"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-
-                      {/* Drop More Images Zone */}
-                      <label 
-                        className={`aspect-square w-20 sm:w-24 border-2 border-dashed flex flex-col items-center justify-center text-center cursor-pointer transition-colors p-1 ${
-                          isDraggingQuick ? 'border-primary-container bg-primary-container/20 scale-105' : 'border-on-surface/40 hover:border-on-surface hover:bg-surface-dim'
-                        }`}
-                        onDragOver={(e) => { e.preventDefault(); setIsDraggingQuick(true); }}
-                        onDragLeave={(e) => { e.preventDefault(); setIsDraggingQuick(false); }}
-                        onDrop={async (e) => {
-                          e.preventDefault();
-                          setIsDraggingQuick(false);
-                          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                            await handleMultipleFilesUpload(e.dataTransfer.files);
-                          }
-                        }}
-                      >
-                        <Icon name="add_photo_alternate" className="text-xl text-secondary" />
-                        <span className="text-[9px] font-bold uppercase mt-1 text-secondary">+ Add More</span>
-                        <input 
-                          type="file" 
-                          className="hidden" 
-                          accept="image/*" 
-                          multiple 
-                          onChange={(e) => handleFileUpload(e)}
-                          disabled={isUploading}
-                        />
-                      </label>
-                    </div>
-
-                    {isUploading && (
-                      <p className="text-xs font-bold animate-pulse text-primary-container">Uploading image(s)...</p>
-                    )}
-                  </div>
-                ) : (
-                  <div
-                    className={`p-6 border-4 border-dashed transition-all flex flex-col items-center justify-center text-center cursor-pointer ${
-                      isDraggingQuick 
-                        ? 'border-primary-container bg-primary-container/20 scale-[1.01]' 
-                        : (formErrors.imageUrls ? 'border-error bg-error/5' : 'border-on-surface/40 bg-surface hover:bg-surface-container-low')
-                    }`}
-                    onDragOver={(e) => { e.preventDefault(); setIsDraggingQuick(true); }}
-                    onDragLeave={(e) => { e.preventDefault(); setIsDraggingQuick(false); }}
-                    onDrop={async (e) => {
-                      e.preventDefault();
-                      setIsDraggingQuick(false);
-                      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                        await handleMultipleFilesUpload(e.dataTransfer.files);
-                      }
-                    }}
-                    onClick={() => document.getElementById('quick-add-file-upload')?.click()}
-                  >
-                    <Icon name="cloud_upload" className="text-3xl mb-1 text-secondary" />
-                    <p className="text-sm font-bold uppercase mb-0.5">Drag & Drop product images here</p>
-                    <p className="text-xs text-secondary uppercase tracking-wider mb-2">or click to browse from device</p>
-                    <input 
-                      id="quick-add-file-upload"
-                      type="file" 
-                      accept="image/*" 
-                      multiple 
-                      onChange={(e) => handleFileUpload(e)} 
-                      disabled={isUploading}
-                      className="hidden"
-                    />
-                    {isUploading && <p className="text-xs font-bold mt-1 animate-pulse text-primary-container">Uploading image(s)...</p>}
-                  </div>
-                )}
-                {formErrors.imageUrls && <p className="text-xs text-error font-bold">{formErrors.imageUrls}</p>}
-
-                {/* Optional URL input fallback */}
-                <div className="pt-1">
-                  {!showUrlInput ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowUrlInput(true)}
-                      className="text-[11px] font-bold text-secondary hover:text-on-surface underline uppercase"
-                    >
-                      + Or add image via URL link
-                    </button>
-                  ) : (
-                    <div className="flex gap-2 items-center mt-1">
-                      <input
-                        type="url"
-                        value={newImageUrlInput}
-                        onChange={(e) => setNewImageUrlInput(e.target.value)}
-                        placeholder="Paste image URL (https://...)"
-                        className="flex-1 border-2 border-on-surface p-1.5 text-xs outline-none bg-surface"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddCustomImageUrl}
-                        className="bg-on-surface text-surface px-3 py-1.5 text-xs font-bold uppercase border-2 border-on-surface hover:bg-surface hover:text-on-surface transition-colors"
-                      >
-                        Add URL
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setShowUrlInput(false); setNewImageUrlInput(''); }}
-                        className="text-xs font-bold text-secondary hover:text-error uppercase px-1"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Stock Input */}
-              <div className="space-y-4 p-4 border-2 border-on-surface bg-surface md:col-span-2">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" name="trackInventory" checked={editForm.trackInventory ?? true} onChange={handleChange} className="w-5 h-5 accent-primary-container" />
-                  <span className="font-bold text-sm uppercase">Track Inventory</span>
-                </label>
-                {(editForm.trackInventory ?? true) && (
-                  <div className="space-y-1">
-                    <label className="font-bold text-xs uppercase text-secondary flex items-center gap-1">
-                      Quantity in Stock <span className="text-error font-black">*</span>
-                    </label>
-                    <input 
-                      required 
-                      type="number" 
-                      min="0" 
-                      name="stock" 
-                      value={editForm.stock === 0 && !editForm.stock.toString().match(/^0$/) ? '' : (editForm.stock ?? '')} 
-                      onChange={handleChange} 
-                      className={`w-32 border-2 p-2 focus:ring-0 outline-none ${formErrors.stock ? 'border-error bg-error/5' : 'border-on-surface'}`} 
-                    />
-                    {formErrors.stock && <p className="text-xs text-error font-bold">{formErrors.stock}</p>}
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            /* COLLAPSED ACCORDION FULL FORM MODE */
-            <div className="space-y-4">
-              
-              {/* Accordion 1: Core Info */}
-              <div className={`border-4 ${formErrors.name ? 'border-error' : 'border-on-surface'}`}>
-                <button 
-                  type="button" 
-                  onClick={() => setOpenSections(prev => ({ ...prev, core: !prev.core }))}
-                  className={`w-full ${formErrors.name ? 'bg-error text-white' : 'bg-on-surface text-surface'} uppercase font-black px-6 py-3 flex justify-between items-center text-left`}
-                >
-                  <span className="flex items-center gap-2">
-                    1. Core Information
-                    {formErrors.name && <span className="text-xs bg-white text-error font-black px-2 py-0.5 uppercase">Needs Attention</span>}
-                  </span>
-                  <span className="text-xl">{openSections.core ? "−" : "+"}</span>
-                </button>
-                {openSections.core && (
-                  <div className="p-6 bg-surface grid grid-cols-1 md:grid-cols-2 gap-6 border-t-4 border-on-surface animate-in fade-in duration-200">
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="font-bold text-sm uppercase flex items-center justify-between w-full">
-                        <span className="flex items-center gap-1">{'Product Name'} <span className="text-error font-black">*</span></span>
-                        <button type="button" onClick={handleAIAnalyze} disabled={isAnalyzing} className="text-[10px] bg-primary-container text-on-surface px-2 py-1 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
-                          <Icon name="auto_awesome" className="text-xs" /> {isAnalyzing ? 'Analyzing...' : 'Auto-fill with AI'}
-                        </button>
-                      </label>
-                      <input 
-                        required 
-                        name="name" 
-                        value={editForm.name || ''} 
-                        onChange={handleChange} 
-                        placeholder="e.g. Wireless Noise-Cancelling Headphones"
-                        className={`w-full border-2 p-2 focus:ring-0 outline-none ${formErrors.name ? 'border-error bg-error/5' : 'border-on-surface'}`} 
-                      />
-                      {formErrors.name && <p className="text-xs text-error font-bold">{formErrors.name}</p>}
-                    </div>
-
-                    {/* Supplier Name in Core Info */}
-                    <div className="space-y-2">
-                      <label className="font-bold text-sm uppercase flex items-center justify-between">
-                        <span>Supplier / Merchant Name</span>
-                        <span className="text-[10px] text-secondary font-semibold uppercase">Dropship Source</span>
-                      </label>
-                      <div className="relative flex items-center">
-                        <input 
-                          type="text"
-                          name="supplierName"
-                          value={editForm.supplierName || ''}
-                          onChange={handleChange}
-                          placeholder="e.g. Shenzhen Tech, CJ Dropship..."
-                          className="w-full border-2 border-on-surface p-2 pr-8 focus:ring-0 outline-none bg-surface"
-                        />
-                        <select 
-                          className="absolute right-0 top-0 h-full w-8 opacity-0 cursor-pointer"
-                          onChange={(e) => handleChange({ target: { name: 'supplierName', value: e.target.value } } as any)}
-                          title="Select an existing supplier"
-                        >
-                          <option value="">Select...</option>
-                          {uniqueSuppliers.map(sup => (
-                            <option key={sup} value={sup}>{sup}</option>
-                          ))}
-                        </select>
-                        <Icon name="expand_more" className="absolute right-2 pointer-events-none text-secondary" />
-                      </div>
-                    </div>
-
-                    {/* SKU in Core Info */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="font-bold text-sm uppercase">SKU (Product Code)</label>
-                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 border ${isSkuManuallyEdited ? 'border-secondary text-secondary bg-surface-dim' : 'border-primary-container text-on-surface bg-primary-container'}`}>
-                          {isSkuManuallyEdited ? 'Custom SKU' : 'Auto from Supplier'}
-                        </span>
-                      </div>
-                      <input 
-                        name="sku" 
-                        value={editForm.sku || ''} 
-                        onChange={handleChange} 
-                        placeholder="Auto-generated from Supplier + Name..."
-                        className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none font-mono text-sm" 
-                      />
-                      {isSkuManuallyEdited && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsSkuManuallyEdited(false);
-                            const autoSku = generateSku(editForm.supplierName, editForm.name);
-                            setEditForm((prev: any) => ({ ...prev, sku: autoSku }));
-                            showToast("Reset SKU to auto-generated format", "info");
-                          }}
-                          className="text-[10px] font-bold text-primary-container hover:underline uppercase block"
-                        >
-                          ↺ Revert to Auto-Generated SKU
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="font-bold text-sm uppercase">Short Description</label>
-                      <textarea name="shortDescription" value={editForm.shortDescription || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-16 focus:ring-0 outline-none" placeholder="A brief summary for previews..."></textarea>
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="font-bold text-sm uppercase">Full Description</label>
-                      <textarea name="description" value={editForm.description || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 h-32 focus:ring-0 outline-none" placeholder="Detailed product description..."></textarea>
-                    </div>
-                    <div className="space-y-2 md:col-span-2 p-3 bg-surface-container border-2 border-on-surface">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <label className="font-bold text-sm uppercase flex items-center gap-1.5 text-on-surface">
-                          <Icon name="auto_awesome" className="text-primary-container text-base" />
-                          <span>Arbitrary Product Details (AI Auto-Fill)</span>
-                        </label>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={handleLoadPreviousAIFill}
-                            className="text-xs bg-surface text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase hover:bg-surface-container-highest transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                          >
-                            Load Previous
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleAIFromDetails}
-                            disabled={isGeneratingFromDetails}
-                            className="text-xs bg-primary-container text-on-surface px-3 py-1.5 font-black border-2 border-on-surface uppercase flex items-center gap-1 hover:bg-surface-container-highest disabled:opacity-50 transition-colors cursor-pointer shadow-[2px_2px_0px_0px_var(--color-on-surface)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                          >
-                            <Icon name="auto_awesome" className="text-sm" />
-                            {isGeneratingFromDetails ? 'Generating fields...' : '✨ Generate fields with AI'}
-                          </button>
-                        </div>
-                      </div>
-                      <textarea
-                        name="rawDetails"
-                        value={editForm.rawDetails || ''}
-                        onChange={handleChange}
-                        className="w-full border-2 border-on-surface p-2 h-24 focus:ring-0 outline-none font-mono text-xs bg-surface"
-                        placeholder="Paste any unformatted supplier notes, specs, product description, or details here, then click Generate..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="font-bold text-sm uppercase">Brand / Manufacturer</label>
-                      <input name="brand" value={editForm.brand || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="font-bold text-sm uppercase">Country of Origin</label>
-                      <input name="countryOfOrigin" value={editForm.countryOfOrigin || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Accordion 2: Categories */}
-              <div className={`border-4 ${(formErrors.category || formErrors.groupCategory) ? 'border-error' : 'border-on-surface'}`}>
-                <button 
-                  type="button"
-                  onClick={() => setOpenSections(prev => ({ ...prev, categories: !prev.categories }))}
-                  className={`w-full ${(formErrors.category || formErrors.groupCategory) ? 'bg-error text-white' : 'bg-on-surface text-surface'} uppercase font-black px-6 py-3 flex justify-between items-center text-left`}
-                >
-                  <span className="flex items-center gap-2">
-                    2. Categories & Organization
-                    {(formErrors.category || formErrors.groupCategory) && <span className="text-xs bg-white text-error font-black px-2 py-0.5 uppercase">Needs Attention</span>}
-                  </span>
-                  <span className="text-xl">{openSections.categories ? "−" : "+"}</span>
-                </button>
-                {openSections.categories && (
-                  <div className="p-6 bg-surface grid grid-cols-1 md:grid-cols-2 gap-6 border-t-4 border-on-surface animate-in fade-in duration-200">
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="font-bold text-sm uppercase flex items-center gap-1">
-                        Group Category <span className="text-error font-black">*</span>
-                      </label>
-                      <input 
-                        required
-                        type="text"
-                        list="product-group-categories"
-                        name="groupCategory"
-                        value={editForm.groupCategory || (editForm.category ? selectedGroupNode?.name || '' : '')}
-                        onChange={(e) => {
-                          handleChange(e);
-                          setEditForm((prev: any) => ({ ...prev, category: '', subcategories: [] }));
-                        }}
-                        placeholder="Select or type a group category..."
-                        className={`w-full border-2 p-2 focus:ring-0 outline-none bg-surface ${formErrors.groupCategory ? 'border-error bg-error/5' : 'border-on-surface'}`}
-                      />
-                      <datalist id="product-group-categories">
-                        {availableGroups.map(name => (
-                          <option key={name} value={name}>{name}</option>
-                        ))}
-                      </datalist>
-                      {formErrors.groupCategory && <p className="text-xs text-error font-bold">{formErrors.groupCategory}</p>}
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="font-bold text-sm uppercase flex items-center gap-1">
-                        Top Level Category <span className="text-error font-black">*</span>
-                      </label>
-                      <input 
-                        required
-                        type="text"
-                        list="product-main-categories"
-                        name="category"
-                        value={editForm.category || ''}
-                        onChange={(e) => {
-                          handleChange(e);
-                          setEditForm((prev: any) => ({ ...prev, subcategories: [] }));
-                        }}
-                        disabled={!editForm.groupCategory}
-                        placeholder={editForm.groupCategory ? "Select or type a top level category..." : "Select a group category first"}
-                        className={`w-full border-2 p-2 focus:ring-0 outline-none bg-surface ${formErrors.category ? 'border-error bg-error/5' : 'border-on-surface'} ${!editForm.groupCategory ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      />
-                      <datalist id="product-main-categories">
-                        {availableTopLevelCategories.map(cat => (
-                          <option key={cat.name} value={cat.name}>{cat.name}</option>
-                        ))}
-                      </datalist>
-                      {formErrors.category && <p className="text-xs text-error font-bold">{formErrors.category}</p>}
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-2 mb-2">
-                        <label className="font-bold text-sm uppercase">Nested Subcategories</label>
-                        {!editForm.groupCategory && (
-                          <div className="relative w-full md:max-w-xs">
-                            <input 
-                              type="text"
-                              list="all-subcategories"
-                              placeholder="Search any subcategory to auto-fill..."
-                              onChange={handleQuickSubcategoryChange}
-                              className="w-full border-2 border-primary-container p-1 text-xs focus:ring-0 outline-none bg-surface"
-                            />
-                            <datalist id="all-subcategories">
-                              {Array.from(allSubcategoriesMap.keys()).map(sub => (
-                                <option key={sub} value={sub}>{sub}</option>
-                              ))}
-                            </datalist>
-                          </div>
-                        )}
-                      </div>
-                      {availableSubcategories.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                          {availableSubcategories.map(sub => {
-                            const currentSubs = Array.isArray(editForm.subcategories) 
-                              ? editForm.subcategories 
-                              : typeof editForm.subcategories === 'string' 
-                                ? editForm.subcategories.split(',').map((s: string) => s.trim()).filter(Boolean) 
-                                : [];
-                            const isChecked = currentSubs.includes(sub);
-                            return (
-                              <label key={sub} className="flex items-center gap-2 cursor-pointer border-2 border-on-surface/20 p-2 hover:bg-surface-dim transition-colors">
-                                <input 
-                                  type="checkbox" 
-                                  checked={isChecked}
-                                  onChange={(e) => handleSubcategoryChange(sub, e.target.checked)}
-                                  className="accent-primary-container w-4 h-4"
-                                />
-                                <span className="text-sm font-bold">{sub}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-secondary italic border-2 border-on-surface/20 p-3 bg-surface-dim">
-                          {editForm.category ? "No nested subcategories available for this category." : "Select a top level category first to see subcategories."}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="font-bold text-sm uppercase">Tags (comma separated)</label>
-                      <input name="tags" value={editForm.tags || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" placeholder="e.g. vintage, sale" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="font-bold text-sm uppercase">Labels (comma separated)</label>
-                      <input name="labels" value={editForm.labels || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" placeholder="e.g. New Arrival, Bestseller" />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="font-bold text-sm uppercase">Available Colors (comma separated)</label>
-                      <input name="colors" value={editForm.colors || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" placeholder="e.g. Red, Blue, #FFFFFF" />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="font-bold text-sm uppercase">Available Sizes (comma separated)</label>
-                      <input name="sizes" value={editForm.sizes || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" placeholder="e.g. S, M, L, XL, 10, 11" />
-                    </div>
-                  </div>
-                )}
-              </div>              {/* Accordion 3: Media */}
-              <div className={`border-4 ${formErrors.imageUrls ? 'border-error' : 'border-on-surface'}`}>
-                <button 
-                  type="button" 
-                  onClick={() => setOpenSections(prev => ({ ...prev, media: !prev.media }))}
-                  className={`w-full ${formErrors.imageUrls ? 'bg-error text-white' : 'bg-on-surface text-surface'} uppercase font-black px-6 py-3 flex justify-between items-center text-left`}
-                >
-                  <span className="flex items-center gap-2">
-                    3. Media & Product Images
-                    {formErrors.imageUrls && <span className="text-xs bg-white text-error font-black px-2 py-0.5 uppercase">Needs Attention</span>}
-                  </span>
-                  <span className="text-xl">{openSections.media ? "−" : "+"}</span>
-                </button>
-                {openSections.media && (
-                  <div className="p-6 bg-surface space-y-6 border-t-4 border-on-surface animate-in fade-in duration-200">
-                    {/* Error Banner */}
-                    {formErrors.imageUrls && (
-                      <div className="p-3 bg-error/10 border-2 border-error text-error text-xs font-bold uppercase flex items-center gap-2">
-                        <Icon name="error" className="text-base" />
-                        {formErrors.imageUrls}
-                      </div>
-                    )}
-
-                    {/* DRAG & DROP UPLOAD ZONE */}
-                    <div 
-                      className={`p-8 border-4 border-dashed transition-all flex flex-col items-center justify-center text-center cursor-pointer select-none ${
-                        isDragging 
-                          ? 'border-primary-container bg-primary-container/20 ring-4 ring-primary-container/40 scale-[1.01]' 
-                          : 'border-on-surface/40 bg-surface-container-lowest hover:bg-surface-container-low hover:border-on-surface'
-                      }`}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                      onClick={() => document.getElementById('media-full-file-upload')?.click()}
-                    >
-                      <Icon name="cloud_upload" className="text-5xl mb-2 text-secondary" />
-                      <p className="text-base font-black uppercase mb-1">Drag & Drop Product Images Here</p>
-                      <p className="text-xs text-secondary font-bold uppercase tracking-wider mb-2">
-                        Supports multiple files (PNG, JPG, WEBP, AVIF) or click to browse
-                      </p>
-                      <input 
-                        id="media-full-file-upload"
-                        type="file" 
-                        accept="image/*" 
-                        multiple 
-                        onChange={(e) => handleFileUpload(e)} 
-                        disabled={isUploading}
-                        className="hidden"
-                      />
-                      {isUploading ? (
-                        <div className="mt-3 flex items-center gap-2 text-sm font-black uppercase text-primary-container bg-surface p-2 border-2 border-on-surface animate-pulse">
-                          <Icon name="sync" className="animate-spin text-base" />
-                          Uploading images to cloud storage...
-                        </div>
-                      ) : (
-                        <span className="mt-2 text-xs font-bold uppercase bg-on-surface text-surface px-4 py-1.5 border-2 border-on-surface shadow-[2px_2px_0px_0px_var(--color-primary-container)]">
-                          Browse Files
-                        </span>
-                      )}
-                    </div>
-
-                    {/* DRAGGABLE GALLERY GRID */}
-                    {((editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '')).length > 0 && (
-                      <div className="space-y-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-on-surface/20 pb-2">
-                          <div>
-                            <h4 className="font-black text-sm uppercase flex items-center gap-2">
-                              <Icon name="collections" className="text-base text-primary-container" />
-                              Product Image Gallery ({(editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '').length})
-                            </h4>
-                            <p className="text-[11px] text-secondary font-semibold uppercase">
-                              Drag and drop cards to reorder. First card is the Main cover image.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                          {(editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '').map((url: string, index: number) => {
-                            const isMain = index === 0;
-                            const isDragged = draggedImageIndex === index;
-                            const isDropTarget = dragOverImageIndex === index;
-
-                            return (
-                              <div
-                                key={`${url}-${index}`}
-                                draggable={true}
-                                onDragStart={() => handleDragStartImage(index)}
-                                onDragOver={(e) => handleDragOverImage(e, index)}
-                                onDragLeave={handleDragLeaveImage}
-                                onDrop={(e) => handleDropImageReorder(e, index)}
-                                onDragEnd={handleDragEndImage}
-                                className={`group relative border-4 p-2.5 bg-surface flex flex-col justify-between transition-all duration-150 select-none ${
-                                  isDragged ? 'opacity-30 scale-95 border-dashed border-secondary' : ''
-                                } ${
-                                  isDropTarget 
-                                    ? 'border-primary-container ring-4 ring-primary-container/40 scale-105 shadow-lg' 
-                                    : (isMain ? 'border-primary-container shadow-[3px_3px_0px_0px_var(--color-on-surface)]' : 'border-on-surface hover:shadow-[3px_3px_0px_0px_var(--color-on-surface)]')
-                                }`}
-                              >
-                                {/* Card Header / Badges / Drag Handle */}
-                                <div className="flex items-center justify-between mb-1.5">
-                                  {isMain ? (
-                                    <span className="bg-primary-container text-on-surface font-black px-1.5 py-0.5 text-[10px] uppercase border border-on-surface flex items-center gap-1">
-                                      ★ Main Image
-                                    </span>
-                                  ) : (
-                                    <span className="bg-surface-dim text-secondary font-bold px-1.5 py-0.5 text-[10px] uppercase border border-on-surface/30">
-                                      #{index + 1}
-                                    </span>
-                                  )}
-                                  <div 
-                                    className="cursor-grab active:cursor-grabbing text-secondary hover:text-on-surface p-0.5" 
-                                    title="Click and drag to reorder"
-                                  >
-                                    <Icon name="drag_indicator" className="text-base" />
-                                  </div>
-                                </div>
-
-                                {/* Thumbnail Image */}
-                                <div className="relative aspect-square w-full bg-surface-dim border-2 border-on-surface overflow-hidden mb-2">
-                                  <img 
-                                    src={url} 
-                                    alt={(editForm.imageAltTexts && editForm.imageAltTexts[url]) || `Product image ${index + 1}`} 
-                                    className="w-full h-full object-cover pointer-events-none" 
-                                  />
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-on-surface/20">
-                                  {!isMain ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleSetMainImage(index)}
-                                      className="text-[10px] font-black uppercase text-primary-container hover:underline"
-                                      title="Set this as the main product image"
-                                    >
-                                      ★ Set Main
-                                    </button>
-                                  ) : (
-                                    <span className="text-[10px] font-bold text-secondary uppercase">Cover</span>
-                                  )}
-
-                                  <div className="flex items-center gap-1">
-                                    {index > 0 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleMoveImage(index, 'left')}
-                                        className="text-[10px] px-1 py-0.5 text-secondary hover:text-on-surface border border-on-surface/30 hover:border-on-surface font-bold"
-                                        title="Move left"
-                                      >
-                                        ◀
-                                      </button>
-                                    )}
-                                    {index < (editForm.imageUrls || []).filter((u: string) => typeof u === 'string' && u.trim() !== '').length - 1 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleMoveImage(index, 'right')}
-                                        className="text-[10px] px-1 py-0.5 text-secondary hover:text-on-surface border border-on-surface/30 hover:border-on-surface font-bold"
-                                        title="Move right"
-                                      >
-                                        ▶
-                                      </button>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveImage(index)}
-                                      className="bg-error text-white text-xs w-5 h-5 flex items-center justify-center font-black border border-on-surface hover:scale-110 ml-0.5"
-                                      title="Delete image"
-                                    >
-                                      ×
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Alt Text Input */}
-                                <div className="mt-2">
-                                  <input
-                                    value={(editForm.imageAltTexts && editForm.imageAltTexts[url]) || ''}
-                                    onChange={(e) => handleImageAltChange(url, e.target.value)}
-                                    placeholder={isMain ? "Alt text (Main SEO)" : "Alt text (optional)"}
-                                    className="w-full text-[10px] p-1 border border-on-surface/30 focus:border-on-surface outline-none bg-surface"
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ADD BY URL OPTION */}
-                    <div className="p-4 border-2 border-on-surface bg-surface-dim space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-black uppercase flex items-center gap-1.5">
-                          <Icon name="link" className="text-base" />
-                          Add Image via Direct URL
-                        </label>
-                        <span className="text-[10px] text-secondary font-semibold uppercase">External Link</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="url"
-                          value={newImageUrlInput}
-                          onChange={(e) => setNewImageUrlInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddCustomImageUrl();
-                            }
-                          }}
-                          placeholder="Paste image link: https://example.com/image.jpg..."
-                          className="flex-1 border-2 border-on-surface p-2 text-xs outline-none bg-surface"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAddCustomImageUrl}
-                          className="bg-primary-container text-on-surface px-4 py-2 text-xs font-black uppercase border-2 border-on-surface hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                        >
-                          Add to Gallery
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Video URL */}
-                    <div className="space-y-2 pt-2 border-t-2 border-on-surface/20">
-                      <label className="font-bold text-sm uppercase flex items-center gap-1.5">
-                        <Icon name="videocam" className="text-base" />
-                        Video URL (Optional)
-                      </label>
-                      <input 
-                        type="url" 
-                        name="videoUrl" 
-                        value={editForm.videoUrl || ''} 
-                        onChange={handleChange} 
-                        className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface text-sm" 
-                        placeholder="YouTube or Vimeo link..." 
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Accordion 4: Pricing */}
-              <div className={`border-4 ${(formErrors.price || formErrors.stock || formErrors.variants) ? 'border-error' : 'border-on-surface'}`}>
-                <button 
-                  type="button" 
-                  onClick={() => setOpenSections(prev => ({ ...prev, pricing: !prev.pricing }))}
-                  className={`w-full ${(formErrors.price || formErrors.stock || formErrors.variants) ? 'bg-error text-white' : 'bg-on-surface text-surface'} uppercase font-black px-6 py-3 flex justify-between items-center text-left`}
-                >
-                  <span className="flex items-center gap-2">
-                    4. Pricing & Inventory
-                    {(formErrors.price || formErrors.stock || formErrors.variants) && <span className="text-xs bg-white text-error font-black px-2 py-0.5 uppercase">Needs Attention</span>}
-                  </span>
-                  <span className="text-xl">{openSections.pricing ? "−" : "+"}</span>
-                </button>
-                {openSections.pricing && (
-                  <div className="p-6 bg-surface grid grid-cols-1 md:grid-cols-2 gap-6 border-t-4 border-on-surface animate-in fade-in duration-200">
-                    
-                    {/* VARIANTS */}
-                    <div className={`space-y-4 md:col-span-2 mb-2 p-4 border-2 ${formErrors.variants ? 'border-error bg-error/5' : 'border-on-surface bg-surface-container-low'}`}>
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" name="hasVariants" checked={editForm.hasVariants || false} onChange={handleChange} className="w-5 h-5 accent-primary-container" />
-                        <span className="font-bold text-sm uppercase">Enable Product Variants (Different prices/stock by Size/Color)</span>
-                      </label>
-                      {formErrors.variants && <p className="text-xs text-error font-bold">{formErrors.variants}</p>}
-                      {(editForm.hasVariants) && (
-                        <div className="mt-4 space-y-4 border-t-2 border-on-surface/20 pt-4">
-                          {/* Bulk Variant Generator */}
-                          <div className="p-4 border-2 border-primary-container bg-surface space-y-3">
-                            <h4 className="font-black text-xs uppercase tracking-widest flex items-center gap-2">
-                              <Icon name="auto_awesome" className="text-primary-container text-base" />
-                              Quick Generate Variants
-                            </h4>
-                            <p className="text-[10px] text-secondary font-semibold uppercase">
-                              Enter comma-separated values to auto-generate all combinations. Duplicates are skipped.
-                            </p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-secondary">Sizes (comma separated)</label>
-                                <input
-                                  type="text"
-                                  value={bulkSizes}
-                                  onChange={(e) => setBulkSizes(e.target.value)}
-                                  placeholder="e.g. S, M, L, XL, XXL"
-                                  className="w-full border-2 border-on-surface p-2 text-sm outline-none focus:border-primary-container transition-colors"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-secondary">Colors (comma separated)</label>
-                                <input
-                                  type="text"
-                                  value={bulkColors}
-                                  onChange={(e) => setBulkColors(e.target.value)}
-                                  placeholder="e.g. Red, Blue, Black, White"
-                                  className="w-full border-2 border-on-surface p-2 text-sm outline-none focus:border-primary-container transition-colors"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-secondary">Default Price ({CURRENCY_CONFIG.symbol})</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  value={bulkPrice || ''}
-                                  onChange={(e) => setBulkPrice(Number(e.target.value))}
-                                  placeholder="Falls back to Regular Price"
-                                  className="w-full border-2 border-on-surface p-2 text-sm outline-none focus:border-primary-container transition-colors"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-secondary">Default Stock per variant</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={bulkStock || ''}
-                                  onChange={(e) => setBulkStock(Number(e.target.value))}
-                                  placeholder="e.g. 10"
-                                  className="w-full border-2 border-on-surface p-2 text-sm outline-none focus:border-primary-container transition-colors"
-                                />
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3 pt-1">
-                              <button
-                                type="button"
-                                onClick={handleGenerateVariants}
-                                className="bg-primary-container text-on-primary-container border-2 border-on-surface px-5 py-2 text-xs font-black uppercase tracking-wider shadow-[3px_3px_0px_0px_var(--color-on-surface)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-[1px_1px_0px_0px_var(--color-on-surface)] transition-all inline-flex items-center gap-2"
-                              >
-                                <Icon name="auto_awesome" className="text-sm" />
-                                Generate Variants
-                              </button>
-                              {bulkSizes && bulkColors && (
-                                <span className="text-[10px] text-secondary font-bold uppercase">
-                                  {bulkSizes.split(',').filter(s => s.trim()).length * bulkColors.split(',').filter(c => c.trim()).length} combinations
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Existing Variants List */}
-                          <p className="text-xs text-secondary font-semibold uppercase">
-                            {(editForm.variants || []).length > 0 
-                              ? `${(editForm.variants || []).length} variant(s) configured. Edit individual prices, stock and images below.`
-                              : 'No variants yet. Use the generator above or add manually.'}
-                          </p>
-                          {(editForm.variants || []).map((v: any, index: number) => (
-                            <div key={v.id || index} className="flex flex-wrap items-center gap-2 border-2 border-on-surface p-3 bg-surface">
-                              <div className="flex flex-col gap-1">
-                                <label className="text-[10px] font-bold uppercase text-secondary">Style/Name</label>
-                                <input type="text" placeholder="e.g. Artwork A" value={v.name || ''} onChange={(e) => handleVariantChange(index, 'name', e.target.value)} className="w-24 border-2 border-on-surface p-1.5 text-sm outline-none" />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-[10px] font-bold uppercase text-secondary">Size</label>
-                                <input type="text" placeholder="e.g. M" value={v.size || ''} onChange={(e) => handleVariantChange(index, 'size', e.target.value)} className="w-16 border-2 border-on-surface p-1.5 text-sm outline-none" />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-[10px] font-bold uppercase text-secondary">Color</label>
-                                <input type="text" placeholder="e.g. Red" value={v.color || ''} onChange={(e) => handleVariantChange(index, 'color', e.target.value)} className="w-24 border-2 border-on-surface p-1.5 text-sm outline-none" />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-[10px] font-bold uppercase text-secondary">Price ({CURRENCY_CONFIG.symbol})</label>
-                                <input type="number" min="0" step="0.01" placeholder="Price" value={v.price === 0 && !v.price.toString().match(/^0$/) ? '' : (v.price ?? '')} onChange={(e) => handleVariantChange(index, 'price', Number(e.target.value))} className="w-24 border-2 border-on-surface p-1.5 text-sm outline-none" />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-[10px] font-bold uppercase text-secondary">Stock</label>
-                                <input type="number" min="0" placeholder="Stock" value={v.stock === 0 && !v.stock.toString().match(/^0$/) ? '' : (v.stock ?? '')} onChange={(e) => handleVariantChange(index, 'stock', Number(e.target.value))} className="w-20 border-2 border-on-surface p-1.5 text-sm outline-none" />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-[10px] font-bold uppercase text-secondary">Image</label>
-                                <div className="flex gap-2 items-center">
-                                  {v.imageUrl && <img src={v.imageUrl} className="w-8 h-8 object-cover border border-on-surface" alt="Variant" />}
-                                  <select 
-                                    value={v.imageUrl || ''} 
-                                    onChange={(e) => handleVariantChange(index, 'imageUrl', e.target.value)}
-                                    className="w-24 border-2 border-on-surface p-1.5 text-[10px] outline-none"
-                                  >
-                                    <option value="">No Image</option>
-                                    {(editForm.imageUrls || []).filter(Boolean).map((url: string, i: number) => (
-                                      <option key={i} value={url}>Gallery {i + 1}</option>
-                                    ))}
-                                  </select>
-                                  <label className="cursor-pointer text-[10px] font-bold uppercase bg-primary-container text-on-surface border-2 border-on-surface px-2 py-1 shadow-[2px_2px_0px_0px_var(--color-on-surface)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-[1px_1px_0px_0px_var(--color-on-surface)] transition-all">
-                                    Upload
-                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleVariantImageUpload(e, index)} disabled={isUploading} />
-                                  </label>
-                                </div>
-                              </div>
-                              <button type="button" onClick={() => handleRemoveVariant(index)} className="text-error font-bold uppercase text-xs hover:underline ml-auto mt-4 p-1">Remove</button>
-                            </div>
-                          ))}
-                          <button type="button" onClick={handleAddVariant} className="text-sm font-bold border-2 border-on-surface px-4 py-2 hover:bg-surface-container uppercase inline-flex items-center gap-1"><span className="text-lg">+</span> Add Single Variant</button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* PRICING & COST */}
-                    <div className="space-y-2">
-                      <label className="font-bold text-sm uppercase flex items-center gap-1">
-                        Regular Price ({CURRENCY_CONFIG.symbol}) <span className="text-error font-black">*</span>
-                      </label>
-                      <input 
-                        required 
-                        type="number" 
-                        min="0" 
-                        step="0.01" 
-                        name="price" 
-                        value={editForm.price === 0 && !editForm.price.toString().match(/^0$/) ? '' : (editForm.price ?? '')} 
-                        onChange={handleChange} 
-                        className={`w-full border-2 p-2 focus:ring-0 outline-none ${formErrors.price ? 'border-error bg-error/5' : 'border-on-surface'}`} 
-                      />
-                      {formErrors.price && <p className="text-xs text-error font-bold">{formErrors.price}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="font-bold text-sm uppercase">Sale Price ({CURRENCY_CONFIG.symbol})</label>
-                      <input type="number" min="0" step="0.01" name="salePrice" value={editForm.salePrice || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none" placeholder="Optional" />
-                    </div>
-
-                    {/* Cost Price (Supplier Cost) */}
-                    <div className="space-y-2 md:col-span-2 p-4 border-2 border-on-surface/20 bg-surface-dim">
-                      <label className="font-bold text-sm uppercase flex items-center gap-1">
-                        Supplier Cost Price ({CURRENCY_CONFIG.symbol}) <span className="text-error font-black">*</span>
-                      </label>
-                      <input 
-                        required
-                        type="number" 
-                        min="0" 
-                        step="0.01" 
-                        name="costPrice" 
-                        value={editForm.costPrice === 0 && !editForm.costPrice.toString().match(/^0$/) ? '' : (editForm.costPrice ?? '')} 
-                        onChange={handleChange} 
-                        placeholder="e.g. 15.00" 
-                        className={`w-full max-w-sm border-2 p-2 focus:ring-0 outline-none ${formErrors.costPrice ? 'border-error bg-error/5' : 'border-on-surface bg-surface'}`} 
-                      />
-                      {formErrors.costPrice && <p className="text-xs text-error font-bold">{formErrors.costPrice}</p>}
-                      {(Number(editForm.price) > 0 || Number(editForm.salePrice) > 0) && editForm.costPrice !== undefined && editForm.costPrice !== '' && Number(editForm.costPrice) >= 0 && (
-                        <div className="mt-2 text-xs font-bold p-2 bg-surface border border-on-surface flex items-center justify-between max-w-sm">
-                          {(() => {
-                            const activePrice = Number(editForm.salePrice) > 0 ? Number(editForm.salePrice) : Number(editForm.price);
-                            const cost = Number(editForm.costPrice);
-                            const profit = activePrice - cost;
-                            const margin = activePrice > 0 ? (profit / activePrice) * 100 : 0;
-                            return (
-                              <>
-                                <span>Estimated Profit (using {Number(editForm.salePrice) > 0 ? 'Sale Price' : 'Regular Price'}): <strong className={profit >= 0 ? 'text-green-700' : 'text-error'}>{CURRENCY_CONFIG.symbol} {profit.toFixed(2)}</strong></span>
-                                <span className="text-secondary font-semibold">({margin.toFixed(1)}% margin)</span>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="font-bold text-sm uppercase">Sale Start Date</label>
-                      <input type="date" name="saleStartDate" value={editForm.saleStartDate || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="font-bold text-sm uppercase">Sale End Date</label>
-                      <input type="date" name="saleEndDate" value={editForm.saleEndDate || ''} onChange={handleChange} className="w-full border-2 border-on-surface p-2 focus:ring-0 outline-none bg-surface" />
-                    </div>
-
-                    {/* INVENTORY (Goods Only) */}
-
-                      <>
-                        <div className="space-y-4 md:col-span-2 mt-6 p-6 border-2 border-on-surface bg-surface">
-                          <h4 className="font-bold text-lg uppercase mb-2">Inventory & Purchasing</h4>
-                          
-                          <label className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" name="allowMultiplePurchases" checked={editForm.allowMultiplePurchases !== false} onChange={handleChange} className="w-5 h-5 accent-primary-container" />
-                            <span className="font-bold text-sm uppercase">Allow Multiple Purchases Per Order</span>
-                          </label>
-                          <label className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" name="trackInventory" checked={editForm.trackInventory ?? true} onChange={handleChange} className="w-5 h-5 accent-primary-container" />
-                            <span className="font-bold text-sm uppercase">Track Inventory</span>
-                          </label>
-
-                          {(editForm.trackInventory ?? true) && (
-                            <div className="space-y-2 pl-8 border-l-2 border-on-surface/20 ml-2">
-                              <label className="font-bold text-sm uppercase flex items-center gap-1">
-                                Quantity in Stock <span className="text-error font-black">*</span>
-                              </label>
-                              <input 
-                                required 
-                                type="number" 
-                                min="0" 
-                                name="stock" 
-                                value={editForm.stock === 0 && !editForm.stock.toString().match(/^0$/) ? '' : (editForm.stock ?? '')} 
-                                onChange={handleChange} 
-                                className={`w-full max-w-[200px] border-2 p-2 focus:ring-0 outline-none ${formErrors.stock ? 'border-error bg-error/5' : 'border-on-surface'}`} 
-                              />
-                              {formErrors.stock && <p className="text-xs text-error font-bold">{formErrors.stock}</p>}
-                            </div>
-                          )}
-
-                          <label className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" name="lowStockAlert" checked={editForm.lowStockAlert ?? false} onChange={handleChange} className="w-5 h-5 accent-primary-container" />
-                            <span className="font-bold text-sm uppercase">Enable Low Stock Alert</span>
-                          </label>
-                          
-                          <label className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" name="allowBackorders" checked={editForm.allowBackorders ?? false} onChange={handleChange} className="w-5 h-5 accent-primary-container" />
-                            <span className="font-bold text-sm uppercase">Allow Backorders</span>
-                          </label>
-                        </div>
-                      </>
-
-
-
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Form Actions */}
-          <div className="flex flex-col-reverse md:flex-row md:justify-between gap-4 pt-8 mt-8 border-t-2 border-on-surface/20">
-            <button 
-              type="button" 
-              onClick={() => {
-                if (confirm("Are you sure you want to cancel? Any unsaved changes will be lost.")) {
-                  setIsAdding(false); 
-                  setEditingId(null);
-                  setImagesToDelete([]);
-                  clearDraft();
+        <ProductEditor 
+          isAdding={isAdding}
+          initialData={editingId ? editForm : {}}
+          existingSuppliers={Array.from(new Set(products.map(p => p.supplierName).filter(Boolean))) as string[]}
+          onSave={async (data) => {
+            try {
+              const token = await auth.currentUser?.getIdToken();
+              const res = await fetch(editingId ? `/api/v1/products/${editingId}` : '/api/v1/products', {
+                method: editingId ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(data)
+              });
+              const result = await res.json();
+              if (res.ok) {
+                showToast(`Product successfully ${isAdding ? 'created' : 'updated'}`, 'success');
+                setIsAdding(false);
+                setEditingId(null);
+                // Optimistically update the list
+                if (isAdding) {
+                  setProducts([result.data, ...products]);
+                } else {
+                  setProducts(products.map(p => String(p.id) === String(editingId) ? result.data : p));
                 }
-              }}
-              className="w-full md:w-auto bg-surface text-on-surface border-4 border-on-surface px-6 py-2 font-bold uppercase hover:bg-surface-dim transition-colors"
-            >
-              Cancel
-            </button>
-            
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              <button 
-                type="button" 
-                onClick={handleSaveAsTemplate}
-                className="w-full sm:w-auto bg-surface text-on-surface border-2 border-on-surface px-4 py-2 font-bold uppercase hover:bg-surface-dim transition-all"
-              >
-                Save as Template
-              </button>
-              <button 
-                type="submit" 
-                disabled={isSaving || isUploading}
-                className="w-full sm:w-auto bg-primary-container text-on-surface border-4 border-on-surface px-8 py-2 font-bold uppercase shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_var(--color-on-surface)] transition-all disabled:opacity-50"
-              >
-                {isSaving ? 'Saving...' : 'Save Product'}
-              </button>
-            </div>
-          </div>
-        </form>
+              } else {
+                showToast(result.message || 'Error saving product', 'error');
+                throw new Error(result.message || 'Error saving product');
+              }
+            } catch (err: any) {
+              console.error(err);
+              throw err;
+            }
+          }}
+          onCancel={() => {
+            setIsAdding(false);
+            setEditingId(null);
+          }}
+        />
       ) : (
         viewTab === 'catalog' ? (
           <div className="space-y-6">

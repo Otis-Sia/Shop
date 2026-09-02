@@ -6,7 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getUserProfile } from "@/lib/api/auth";
 import Link from "next/link";
-import { Package, ShoppingCart, LayoutDashboard, Settings } from "lucide-react";
+import { Package, ShoppingCart, LayoutDashboard, Settings, Users } from "lucide-react";
 
 export default function MerchantLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -60,26 +60,30 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-surface">
       {/* Sidebar Navigation for Merchant */}
-      <aside className="w-full md:w-64 bg-on-surface text-surface dark:bg-surface-container-low dark:text-on-surface flex flex-col border-b-4 md:border-b-0 md:border-r-4 border-on-surface shrink-0 transition-colors">
-        <div className="p-4 md:p-6 border-b-4 border-on-surface border-dashed transition-colors">
+      <aside className="w-full md:w-64 bg-on-surface text-surface dark:bg-surface-container-low dark:text-on-surface flex flex-col border-b md:border-b-0 md:border-r border-outline/20 shrink-0 transition-colors">
+        <div className="p-4 md:p-6 mb-2 transition-colors">
           <h2 className="font-headline-md font-black text-xl md:text-2xl tracking-tight text-primary-container">
             MERCHANT HUB
           </h2>
         </div>
         <nav className="p-2 md:p-4 flex flex-row md:flex-col overflow-x-auto md:space-y-4 font-body-lg font-bold hide-scrollbar">
-          <Link href="/admin" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container border-2 border-transparent hover:border-on-surface transition-colors rounded-none shrink-0">
+          <Link href="/admin" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container rounded-lg transition-colors rounded-none shrink-0">
             <LayoutDashboard size={20} className="md:w-6 md:h-6" />
             <span className="text-sm md:text-base">Dashboard</span>
           </Link>
-          <Link href="/admin/products" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container border-2 border-transparent hover:border-on-surface transition-colors rounded-none shrink-0">
+          <Link href="/admin/products" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container rounded-lg transition-colors rounded-none shrink-0">
             <Package size={20} className="md:w-6 md:h-6" />
             <span className="text-sm md:text-base">My Products</span>
           </Link>
-          <Link href="/admin/orders" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container border-2 border-transparent hover:border-on-surface transition-colors rounded-none shrink-0">
+          <Link href="/admin/orders" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container rounded-lg transition-colors rounded-none shrink-0">
             <ShoppingCart size={20} className="md:w-6 md:h-6" />
             <span className="text-sm md:text-base">My Orders</span>
           </Link>
-          <Link href="/admin/settings" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container border-2 border-transparent hover:border-on-surface transition-colors rounded-none shrink-0">
+          <Link href="/admin/suppliers" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container rounded-lg transition-colors rounded-none shrink-0">
+            <Users size={20} className="md:w-6 md:h-6" />
+            <span className="text-sm md:text-base">Suppliers</span>
+          </Link>
+          <Link href="/admin/settings" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container rounded-lg transition-colors rounded-none shrink-0">
             <Settings size={20} className="md:w-6 md:h-6" />
             <span className="text-sm md:text-base">Settings</span>
           </Link>
