@@ -102,7 +102,7 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel }: Produ
       */}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 order-2 lg:order-1 space-y-6">
           <ProductDetailsForm data={formData} onChange={handleUpdate} />
           <ProductPricingForm pricing={formData.pricing} onChange={(val) => handleUpdate('pricing', val)} />
           <ProductInventoryForm stockQuantity={formData.stockQuantity} inventory={formData.inventory} onChangeInventory={(val) => handleUpdate('inventory', val)} onChangeStock={(val) => handleUpdate('stockQuantity', val)} />
@@ -111,7 +111,7 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel }: Produ
           <ProductSEOForm seo={formData.seo} onChange={(val) => handleUpdate('seo', val)} />
         </div>
         
-        <div className="space-y-6">
+        <div className="order-1 lg:order-2 space-y-6">
           <div className="p-6 border border-outline/20 bg-surface rounded-xl">
             <h3 className="font-bold text-xl mb-4 border-b border-outline/10 pb-2">Organization</h3>
             <div className="space-y-4">
