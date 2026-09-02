@@ -15,6 +15,9 @@ export default function robots(): MetadataRoute.Robots {
         '/wishlist/'
       ],
     },
-    sitemap: 'https://juj4.com/sitemap.xml',
+    sitemap: [
+      'https://juj4.com/sitemap.xml',
+      'https://shop.seresponse.org/sitemap.xml',
+    ],
   };
 }
