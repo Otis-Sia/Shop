@@ -85,6 +85,7 @@ export interface Product {
   allowMultiplePurchases?: boolean;
   videoUrl?: string;
   tags?: string[];
+  features?: string[];
   labels?: string[];
   colors?: string[];
   sizes?: string[];

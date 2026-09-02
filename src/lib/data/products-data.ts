@@ -15,6 +15,7 @@ export interface Product {
   subcategories?: string[];
   stock: number | null;
   tags: string[];
+  features?: string[];
   labels?: string[];
   colors: string[];
   sizes: string[];
