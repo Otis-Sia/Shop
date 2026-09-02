@@ -76,8 +76,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
         },
         body: JSON.stringify({
           model: 'qwen/qwen3.6-27b',
-          messages: [{ role: 'user', content: prompt }],
-          response_format: { type: 'json_object' }
+          messages: [{ role: 'user', content: prompt }]
         })
       });
       
@@ -126,8 +125,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
             },
             body: JSON.stringify({
               model: 'deepseek-chat',
-              messages: [{ role: 'user', content: prompt }],
-              response_format: { type: 'json_object' }
+              messages: [{ role: 'user', content: prompt }]
             })
           });
           
@@ -143,7 +141,11 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
     }
 
     if (responseText) {
-      const cleanJson = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const cleanJson = responseText
+        .replace(/<think>[\s\S]*?<\/think>/gi, '')
+        .replace(/```json\n?/gi, '')
+        .replace(/```\n?/gi, '')
+        .trim();
       const parsed = JSON.parse(cleanJson);
 
       // Insert or update categories if needed

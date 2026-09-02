@@ -72,8 +72,7 @@ Do not include any markdown code block wrapping like \`\`\`json around the outpu
         },
         body: JSON.stringify({
           model: 'qwen/qwen3.6-27b',
-          messages: [{ role: 'user', content: prompt }],
-          response_format: { type: 'json_object' }
+          messages: [{ role: 'user', content: prompt }]
         })
       });
       
@@ -122,8 +121,7 @@ Do not include any markdown code block wrapping like \`\`\`json around the outpu
             },
             body: JSON.stringify({
               model: 'deepseek-chat',
-              messages: [{ role: 'user', content: prompt }],
-              response_format: { type: 'json_object' }
+              messages: [{ role: 'user', content: prompt }]
             })
           });
           
@@ -139,7 +137,12 @@ Do not include any markdown code block wrapping like \`\`\`json around the outpu
     }
 
     if (responseText) {
-        const parsed = JSON.parse(responseText);
+        const cleanJson = responseText
+          .replace(/<think>[\s\S]*?<\/think>/gi, '')
+          .replace(/```json\n?/gi, '')
+          .replace(/```\n?/gi, '')
+          .trim();
+        const parsed = JSON.parse(cleanJson);
         
         // 2. Check if we need to create/update categories in the DB
         if (parsed.groupCategory && parsed.category) {
