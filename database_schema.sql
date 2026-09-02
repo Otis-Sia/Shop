@@ -480,3 +480,36 @@ GRANT EXECUTE ON FUNCTION track_product_event(VARCHAR, VARCHAR, INTEGER) TO anon
 -- are executed server-side via Next.js Route Handlers using the Supabase Service Role Key after verifying the
 -- client's Firebase ID token. Service Role calls bypass RLS automatically.
 
+
+-- ============================================================================
+-- ADDITIONS FOR NEW PRODUCT SERVICE INTEGRATION (v2)
+-- ============================================================================
+
+-- Alter existing products table
+ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type VARCHAR(50) DEFAULT 'physical';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS slug VARCHAR(255) UNIQUE;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'draft';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS category_ids UUID[] DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS pricing JSONB; 
+ALTER TABLE products ADD COLUMN IF NOT EXISTS inventory JSONB;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER DEFAULT 0;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS attributes JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS has_variants BOOLEAN DEFAULT false;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS media JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS seo JSONB;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS shipping JSONB;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS service JSONB;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS download_url TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS published_at TIMESTAMP WITH TIME ZONE;
+
+-- Alter existing product_variants table
+ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS sku VARCHAR(100);
+ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS barcode VARCHAR(100);
+ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS attributes JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS compare_at_price DECIMAL(10,2);
+ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS cost_price DECIMAL(10,2);
+ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS weight JSONB;
+ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS dimensions JSONB;
+ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT false;
+ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
