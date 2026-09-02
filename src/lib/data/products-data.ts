@@ -18,6 +18,9 @@ export interface Product {
   labels?: string[];
   colors: string[];
   sizes: string[];
+  grades?: string[];
+  capacity?: string;
+  power?: string;
   discount?: number;
   additional_images?: string[];
   imageUrls?: string[];

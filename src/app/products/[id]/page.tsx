@@ -331,9 +331,9 @@ export default function ProductDetailPage() {
               {hasDiscount && (
                 <span className="text-secondary line-through font-bold text-sm">Ksh {basePrice.toFixed(2)}</span>
               )}
-              {currentStock > 0 && currentStock !== 99999 && (
-                <span className="bg-surface-container text-on-surface border border-on-surface text-[10px] font-black uppercase px-2 py-0.5 tracking-wider ml-auto">
-                  {currentStock} in stock
+              {currentStock > 0 && currentStock !== 99999 && (product.lowStockAlert || currentStock <= 5) && (
+                <span className="bg-primary-container text-on-primary-container border border-on-surface text-[10px] font-black uppercase px-2 py-0.5 tracking-wider ml-auto">
+                  Low Stock
                 </span>
               )}
               <ProductRatingBadge productId={product.id} />
@@ -342,7 +342,7 @@ export default function ProductDetailPage() {
 
           {/* Description */}
           <div className="space-y-2">
-            <h3 className="font-headline-md text-xs font-black uppercase tracking-widest text-on-surface">Product Specifications</h3>
+            <h3 className="font-headline-md text-xs font-black uppercase tracking-widest text-on-surface">Product Overview</h3>
             {product.features && product.features.length > 0 && (
               <ul className="list-inside space-y-1 mb-2 font-body-md text-xs font-semibold text-secondary">
                 {product.features.map((feature: string, idx: number) => (
@@ -357,6 +357,25 @@ export default function ProductDetailPage() {
               {product.description || 'Premium engineered sports apparel curated utilizing extreme-velocity structural textures, optimized for peak retail execution.'}
             </p>
           </div>
+
+          {/* Product Specifications Accordion */}
+          <details className="group border-t-2 border-surface-container py-4">
+            <summary className="flex justify-between items-center cursor-pointer font-headline-md text-xs font-black uppercase tracking-widest text-on-surface list-none [&::-webkit-details-marker]:hidden">
+              <span>Technical Specifications</span>
+              <span className="transition group-open:rotate-180 text-secondary group-hover:text-on-surface">▼</span>
+            </summary>
+            <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold text-secondary">
+              {product.sku && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">SKU</span> {product.sku}</div>}
+              {product.groupCategory && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Group</span> {product.groupCategory}</div>}
+              {product.subcategories && product.subcategories.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Subcategories</span> {product.subcategories.join(', ')}</div>}
+              {product.capacity && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Capacity</span> {product.capacity}</div>}
+              {product.power && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Power</span> {product.power}</div>}
+              {product.grades && product.grades.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Grades</span> {product.grades.join(', ')}</div>}
+              {product.labels && product.labels.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Labels</span> {product.labels.join(', ')}</div>}
+              {product.colors && product.colors.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Colors</span> {product.colors.join(', ')}</div>}
+              {product.sizes && product.sizes.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Sizes</span> {product.sizes.join(', ')}</div>}
+            </div>
+          </details>
 
 
           {/* Option Settings */}
