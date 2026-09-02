@@ -54,7 +54,7 @@ export async function GET(
       brand: product.brand || '',
       supplierName: product.supplier_name || '',
       costPrice: product.cost_price !== null && product.cost_price !== undefined ? Number(product.cost_price) : undefined,
-      currency: product.currency || 'XAF',
+      currency: product.currency || 'KES',
 
       image_url: imageUrls.length > 0 ? imageUrls[0] : (product.image_url || ''),
       imageUrls: imageUrls,

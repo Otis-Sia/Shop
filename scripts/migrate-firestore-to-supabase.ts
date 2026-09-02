@@ -287,7 +287,7 @@ async function runMigration() {
       sale_end_date: p.saleEndDate || null,
       discount: p.discount ? Number(p.discount) : null,
       brand: p.brand || null,
-      currency: p.currency || 'XAF',
+      currency: p.currency || 'KES',
       track_inventory: p.trackInventory !== false,
       stock: p.stock !== undefined && p.stock !== null ? Number(p.stock) : 0,
       low_stock_alert: p.lowStockAlert || false,

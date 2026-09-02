@@ -49,7 +49,7 @@ export async function GET(req: Request) {
         // Calculate price and sale price
         const price = Number(product.price || 0).toFixed(2);
         const salePrice = product.sale_price ? Number(product.sale_price).toFixed(2) : null;
-        const currency = product.currency || 'KES'; 
+        const currency = 'KES'; // Force KES for all products 
 
         const link = `${baseUrl}/products/${product.id}`;
         const imageUrls = product.image_urls || [];

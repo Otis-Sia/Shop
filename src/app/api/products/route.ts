@@ -46,7 +46,7 @@ const mapDbProductToProduct = (p: any, variants: any[] = [], merchantProfile: an
     countryOfOrigin: p.country_of_origin || '',
     supplierName: p.supplier_name || '',
     costPrice: p.cost_price !== null && p.cost_price !== undefined ? Number(p.cost_price) : undefined,
-    currency: p.currency || 'XAF',
+    currency: p.currency || 'KES',
 
     image_url: primaryImage,
     imageUrls: imageUrls,
@@ -284,7 +284,7 @@ export async function POST(request: Request) {
       discount: body.discount ? Number(body.discount) : null,
       brand: body.brand || '',
       country_of_origin: body.countryOfOrigin || '',
-      currency: body.currency || 'XAF',
+      currency: body.currency || 'KES',
       track_inventory: body.trackInventory !== false,
       stock: body.stock !== undefined && body.stock !== null && body.stock !== '' ? Number(body.stock) : 0,
       low_stock_alert: body.lowStockAlert || false,

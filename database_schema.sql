@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS products (
     discount DECIMAL(10, 2),
     brand VARCHAR(100),
     country_of_origin VARCHAR(100),
-    currency VARCHAR(10) NOT NULL DEFAULT 'XAF',
+    currency VARCHAR(10) NOT NULL DEFAULT 'KES',
     track_inventory BOOLEAN DEFAULT FALSE,
     stock INTEGER DEFAULT 0,
     low_stock_alert BOOLEAN DEFAULT FALSE,
