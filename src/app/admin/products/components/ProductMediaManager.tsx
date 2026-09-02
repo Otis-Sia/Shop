@@ -62,7 +62,7 @@ export function ProductMediaManager({ media = [], onChange }: ProductMediaManage
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Authorization': \`Bearer \${token}\`
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({ fileName: file.name, fileType: file.type }),
         });
@@ -125,7 +125,7 @@ export function ProductMediaManager({ media = [], onChange }: ProductMediaManage
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={\`w-full p-8 border-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors \${isDragging ? 'border-primary bg-primary/10' : 'border-on-surface/30 hover:border-on-surface/50'}\`}
+        className={`w-full p-8 border-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-primary bg-primary/10' : 'border-on-surface/30 hover:border-on-surface/50'}`}
       >
         <span className="font-bold uppercase text-on-surface-variant mb-2">
           {isUploading ? "Uploading..." : "Drag & Drop Images Here"}
@@ -161,7 +161,7 @@ export function ProductMediaManager({ media = [], onChange }: ProductMediaManage
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
         {media.map((m, idx) => (
-          <div key={idx} className={\`relative border-2 p-1 \${m.isPrimary ? 'border-primary' : 'border-on-surface'}\`}>
+          <div key={idx} className={`relative border-2 p-1 ${m.isPrimary ? 'border-primary' : 'border-on-surface'}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={m.url} alt="Product media" className="w-full h-32 object-cover bg-background" />
             

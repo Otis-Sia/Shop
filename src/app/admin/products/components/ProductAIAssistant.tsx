@@ -81,7 +81,7 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
         // Basic SEO injection
         seo: {
           ...currentData.seo,
-          metaTitle: generated.name ? \`\${generated.name} | \${generated.brand || 'Store'}\` : currentData.seo?.metaTitle,
+          metaTitle: generated.name ? `${generated.name} | ${generated.brand || 'Store'}` : currentData.seo?.metaTitle,
           metaDescription: generated.shortDescription || currentData.seo?.metaDescription,
           keywords: generated.tags || currentData.seo?.keywords,
         }
@@ -100,9 +100,9 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
   const generateSKU = () => {
     const cleanTarget = (currentData.brand || currentData.name || 'PRD').toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
     const uniqueHash = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const newSku = \`\${cleanTarget || 'SKU'}-\${uniqueHash}\`;
+    const newSku = `${cleanTarget || 'SKU'}-${uniqueHash}`;
     onApply({ sku: newSku });
-    showToast(\`Generated SKU: \${newSku}\`, "success");
+    showToast(`Generated SKU: ${newSku}`, "success");
   };
 
   const generateSEO = () => {
@@ -112,7 +112,7 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
     }
     const generatedSeo: ProductSEO = {
       ...currentData.seo,
-      metaTitle: \`\${currentData.name} - \${currentData.brand || 'Store'}\`.substring(0, 70),
+      metaTitle: `${currentData.name} - ${currentData.brand || 'Store'}`.substring(0, 70),
       metaDescription: (currentData.shortDescription || currentData.description).substring(0, 160),
       keywords: currentData.tags || [],
     };
