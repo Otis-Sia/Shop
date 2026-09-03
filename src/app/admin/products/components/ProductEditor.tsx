@@ -34,9 +34,79 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel, existin
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSkuManuallyEdited, setIsSkuManuallyEdited] = useState(false);
+
+  function generateSku(supplierName: string = '', productName: string = '') {
+    const cleanTarget = (supplierName || '').replace(/[^a-zA-Z]/g, '');
+    let uniqueSupplierLetters = 'XXXX';
+    
+    if (cleanTarget) {
+      const list = [...new Set(existingSuppliers || [])].map(s => s.replace(/[^a-zA-Z]/g, '')).filter(Boolean);
+      if (!list.includes(cleanTarget)) list.push(cleanTarget);
+
+      const assignedPrefixes = new Map<string, string>();
+      const usedPrefixesLower = new Set<string>();
+
+      for (const sup of list) {
+        if (assignedPrefixes.has(sup)) continue;
+        let base = sup;
+        if (base.length < 4) base = base.padEnd(4, 'x');
+        let prefix = base.slice(0, 4);
+        
+        if (!usedPrefixesLower.has(prefix.toLowerCase())) {
+          assignedPrefixes.set(sup, prefix);
+          usedPrefixesLower.add(prefix.toLowerCase());
+        } else {
+          let found = false;
+          for (let i = 4; i < base.length; i++) {
+            let candidate = base.slice(0, 3) + base[i];
+            if (!usedPrefixesLower.has(candidate.toLowerCase())) {
+               prefix = candidate;
+               found = true;
+               break;
+            }
+          }
+          if (!found) {
+             let counter = 1;
+             while (true) {
+                let candidate = (base.slice(0, 3) + counter.toString()).slice(0, 4);
+                if (!usedPrefixesLower.has(candidate.toLowerCase())) {
+                   prefix = candidate;
+                   break;
+                }
+                counter++;
+             }
+          }
+          assignedPrefixes.set(sup, prefix);
+          usedPrefixesLower.add(prefix.toLowerCase());
+        }
+      }
+      uniqueSupplierLetters = assignedPrefixes.get(cleanTarget) || 'XXXX';
+    }
+
+    let hash = 0;
+    const nameToHash = productName || 'DEFAULT';
+    for (let i = 0; i < nameToHash.length; i++) {
+      hash = (hash << 5) - hash + nameToHash.charCodeAt(i);
+      hash |= 0;
+    }
+    const productCode = Math.abs(hash).toString(36).toUpperCase().padStart(4, '0').slice(0, 4);
+
+    if (uniqueSupplierLetters === 'XXXX' && !productName) return '';
+    return `${uniqueSupplierLetters}-${productCode}`;
+  }
 
   const handleUpdate = (field: keyof CreateProductInput, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === 'sku') {
+      setIsSkuManuallyEdited(true);
+    }
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (!isSkuManuallyEdited && (field === 'name' || field === 'supplierName')) {
+         next.sku = generateSku(next.supplierName, next.name);
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,7 +213,16 @@ export function ProductEditor({ initialData, isAdding, onSave, onCancel, existin
             </div>
           </div>
           
-          <ProductAIAssistant currentData={formData} onApply={(updates) => setFormData(prev => ({ ...prev, ...updates }))} />
+          <ProductAIAssistant 
+            currentData={formData} 
+            onApply={(updates) => setFormData(prev => {
+              const next = { ...prev, ...updates };
+              if (!isSkuManuallyEdited && (next.name || next.supplierName)) {
+                next.sku = generateSku(next.supplierName, next.name);
+              }
+              return next;
+            })} 
+          />
           <ProductMediaManager media={formData.media} onChange={(val) => handleUpdate('media', val)} />
         </div>
       </div>
