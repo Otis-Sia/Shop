@@ -359,23 +359,25 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Product Specifications Accordion */}
-          <details className="group border-t-2 border-surface-container py-4" open>
-            <summary className="flex justify-between items-center cursor-pointer font-headline-md text-xs font-black uppercase tracking-widest text-on-surface list-none [&::-webkit-details-marker]:hidden">
-              <span>Technical Specifications</span>
-              <span className="transition group-open:rotate-180 text-secondary group-hover:text-on-surface">▼</span>
-            </summary>
-            <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold text-secondary">
-              {product.sku && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">SKU</span> {product.sku}</div>}
-              {product.groupCategory && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Group</span> {product.groupCategory}</div>}
-              {product.subcategories && product.subcategories.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Subcategories</span> {product.subcategories.join(', ')}</div>}
-              {product.capacity && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Capacity</span> {product.capacity}</div>}
-              {product.power && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Power</span> {product.power}</div>}
-              {product.grades && product.grades.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Grades</span> {product.grades.join(', ')}</div>}
-              {product.labels && product.labels.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Labels</span> {product.labels.join(', ')}</div>}
-              {product.colors && product.colors.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Colors</span> {product.colors.join(', ')}</div>}
-              {product.sizes && product.sizes.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Sizes</span> {product.sizes.join(', ')}</div>}
-            </div>
-          </details>
+          {(product.sku || product.groupCategory || (product.subcategories && product.subcategories.length > 0) || product.capacity || product.power || (product.grades && product.grades.length > 0) || (product.labels && product.labels.length > 0) || (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)) && (
+            <details className="group border-t-2 border-surface-container py-4" open>
+              <summary className="flex justify-between items-center cursor-pointer font-headline-md text-xs font-black uppercase tracking-widest text-on-surface list-none [&::-webkit-details-marker]:hidden">
+                <span>Technical Specifications</span>
+                <span className="transition group-open:rotate-180 text-secondary group-hover:text-on-surface">▼</span>
+              </summary>
+              <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold text-secondary">
+                {product.sku && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">SKU</span> {product.sku}</div>}
+                {product.groupCategory && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Group</span> {product.groupCategory}</div>}
+                {product.subcategories && product.subcategories.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Subcategories</span> {product.subcategories.join(', ')}</div>}
+                {product.capacity && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Capacity</span> {product.capacity}</div>}
+                {product.power && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Power</span> {product.power}</div>}
+                {product.grades && product.grades.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Grades</span> {product.grades.join(', ')}</div>}
+                {product.labels && product.labels.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Labels</span> {product.labels.join(', ')}</div>}
+                {product.colors && product.colors.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Colors</span> {product.colors.join(', ')}</div>}
+                {product.sizes && product.sizes.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Sizes</span> {product.sizes.join(', ')}</div>}
+              </div>
+            </details>
+          )}
 
 
           {/* Option Settings */}
