@@ -171,9 +171,15 @@ export default function MerchantProducts() {
             }
           });
         }
+        const finalName = data.name || prev.name;
+        const finalSupplier = data.supplierName || prev.supplierName;
+        const finalSku = (!isSkuManuallyEdited && (data.name || data.supplierName)) 
+          ? generateSku(finalSupplier, finalName) 
+          : (data.sku || prev.sku);
+
         return {
           ...prev,
-          name: data.name || prev.name,
+          name: finalName,
           shortDescription: data.shortDescription || prev.shortDescription,
           description: data.description || prev.description,
           groupCategory: data.groupCategory || prev.groupCategory,
@@ -181,8 +187,8 @@ export default function MerchantProducts() {
           brand: data.brand || prev.brand,
           countryOfOrigin: data.countryOfOrigin || prev.countryOfOrigin || 'Kenya',
           currency: data.currency || prev.currency || 'KES',
-          supplierName: data.supplierName || prev.supplierName,
-          sku: data.sku || prev.sku,
+          supplierName: finalSupplier,
+          sku: finalSku,
           capacity: data.capacity || prev.capacity,
           power: data.power || prev.power,
           weight: data.weight !== undefined && data.weight !== null ? data.weight : (data.estimatedWeight !== undefined && data.estimatedWeight !== null ? data.estimatedWeight : prev.weight),
@@ -252,7 +258,7 @@ export default function MerchantProducts() {
 
 
   // Auto SKU Generation Helper
-  const generateSku = (supplierName: string = '', productName: string = '') => {
+  function generateSku(supplierName: string = '', productName: string = '') {
     // Preserve original casing instead of forcing toUpperCase()
     const cleanTarget = (supplierName || '').replace(/[^a-zA-Z]/g, '');
     let uniqueSupplierLetters = 'XXXX';
