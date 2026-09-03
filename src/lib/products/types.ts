@@ -216,7 +216,7 @@ export interface CreateProductInput {
   name: string;
   description: string;
   shortDescription?: string;
-  sku: string;
+  sku?: string;
   status?: ProductStatus;
 
   categoryIds: string[];

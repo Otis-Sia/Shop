@@ -231,8 +231,11 @@ export class ProductService {
 
   async createProduct(input: CreateProductInput): Promise<Product> {
     // 1. Uniqueness checks
-    const existingSku = await this.repo.findBySku(input.merchantId, input.sku);
-    if (existingSku) throw new DuplicateSkuError(input.sku);
+    const finalSku = input.sku?.trim() || `SKU-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    if (input.sku?.trim()) {
+      const existingSku = await this.repo.findBySku(input.merchantId, input.sku.trim());
+      if (existingSku) throw new DuplicateSkuError(input.sku);
+    }
 
     let slug = slugify(input.name);
     let attempt = 0;
@@ -283,7 +286,7 @@ export class ProductService {
       slug,
       description: input.description,
       shortDescription: input.shortDescription,
-      sku: input.sku,
+      sku: finalSku,
       status: input.status ?? "draft",
 
       categoryIds: input.categoryIds,
