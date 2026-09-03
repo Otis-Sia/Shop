@@ -1600,9 +1600,9 @@ export default function MerchantProducts() {
     if (sortBy === 'newest') {
       result.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     } else if (sortBy === 'price_asc') {
-      result.sort((a, b) => a.price - b.price);
+      result.sort((a, b) => Number(a.price ?? (a as any).pricing?.price ?? 0) - Number(b.price ?? (b as any).pricing?.price ?? 0));
     } else if (sortBy === 'price_desc') {
-      result.sort((a, b) => b.price - a.price);
+      result.sort((a, b) => Number(b.price ?? (b as any).pricing?.price ?? 0) - Number(a.price ?? (a as any).pricing?.price ?? 0));
     } else if (sortBy === 'name_asc') {
       result.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortBy === 'stock_asc') {
@@ -1728,11 +1728,26 @@ export default function MerchantProducts() {
                 showToast(`Product successfully ${isAdding ? 'created' : 'updated'}`, 'success');
                 setIsAdding(false);
                 setEditingId(null);
+                const savedItem = result.data;
+                const normalizedProduct: Product = {
+                  ...savedItem,
+                  id: isNaN(Number(savedItem.id)) ? savedItem.id : Number(savedItem.id),
+                  price: Number(savedItem.pricing?.price ?? savedItem.price ?? 0),
+                  salePrice: savedItem.pricing?.salePrice ? Number(savedItem.pricing.salePrice) : (savedItem.salePrice ? Number(savedItem.salePrice) : undefined),
+                  costPrice: savedItem.pricing?.costPrice !== undefined && savedItem.pricing?.costPrice !== null ? Number(savedItem.pricing.costPrice) : (savedItem.costPrice !== undefined && savedItem.costPrice !== null ? Number(savedItem.costPrice) : undefined),
+                  stock: savedItem.stockQuantity !== undefined && savedItem.stockQuantity !== null ? Number(savedItem.stockQuantity) : (savedItem.stock !== undefined && savedItem.stock !== null ? Number(savedItem.stock) : 0),
+                  category: savedItem.categoryIds?.[0] || savedItem.category || 'General',
+                  imageUrls: savedItem.media && Array.isArray(savedItem.media) && savedItem.media.length > 0 
+                    ? savedItem.media.map((m: any) => m.url) 
+                    : (savedItem.imageUrls || []),
+                  image_url: savedItem.media?.[0]?.url || savedItem.imageUrls?.[0] || savedItem.image_url || '',
+                };
+
                 // Optimistically update the list
                 if (isAdding) {
-                  setProducts([result.data, ...products]);
+                  setProducts([normalizedProduct, ...products]);
                 } else {
-                  setProducts(products.map(p => String(p.id) === String(editingId) ? result.data : p));
+                  setProducts(products.map(p => String(p.id) === String(editingId) ? normalizedProduct : p));
                 }
               } else {
                 const errMsg = result.issues && Array.isArray(result.issues)
@@ -1966,14 +1981,14 @@ export default function MerchantProducts() {
                         <td className="p-4">
                           <div className="text-xs space-y-0.5">
                             <p className="font-bold text-sm">
-                              {CURRENCY_CONFIG.symbol} {product.price.toFixed(2)}
+                              {CURRENCY_CONFIG.symbol} {Number(product.price ?? (product as any).pricing?.price ?? 0).toFixed(2)}
                             </p>
-                            {product.salePrice && product.salePrice > 0 ? (
+                            {product.salePrice && Number(product.salePrice) > 0 ? (
                               <p className="text-[10px] font-bold text-green-700">
-                                Sale: {CURRENCY_CONFIG.symbol} {product.salePrice.toFixed(2)}
+                                Sale: {CURRENCY_CONFIG.symbol} {Number(product.salePrice).toFixed(2)}
                               </p>
                             ) : null}
-                            {product.costPrice !== undefined && product.costPrice !== null && (
+                            {product.costPrice !== undefined && product.costPrice !== null && !isNaN(Number(product.costPrice)) && (
                               <p className="text-[10px] text-secondary font-semibold">
                                 Cost: {CURRENCY_CONFIG.symbol} {Number(product.costPrice).toFixed(2)}
                               </p>
@@ -2090,7 +2105,7 @@ export default function MerchantProducts() {
                           </span>
                         )}
                         <p className="text-xs font-semibold mt-1 text-primary-container">
-                          {CURRENCY_CONFIG.symbol} {product.price.toFixed(2)}
+                          {CURRENCY_CONFIG.symbol} {Number(product.price ?? (product as any).pricing?.price ?? 0).toFixed(2)}
                         </p>
                         <div className="mt-1">
                           {product.stock === null ? (
