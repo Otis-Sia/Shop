@@ -359,7 +359,7 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Product Specifications Accordion */}
-          <details className="group border-t-2 border-surface-container py-4">
+          <details className="group border-t-2 border-surface-container py-4" open>
             <summary className="flex justify-between items-center cursor-pointer font-headline-md text-xs font-black uppercase tracking-widest text-on-surface list-none [&::-webkit-details-marker]:hidden">
               <span>Technical Specifications</span>
               <span className="transition group-open:rotate-180 text-secondary group-hover:text-on-surface">▼</span>
