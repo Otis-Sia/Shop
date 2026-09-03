@@ -247,34 +247,35 @@ export default function MerchantProducts() {
 
   // Auto SKU Generation Helper
   const generateSku = (supplierName: string = '', productName: string = '') => {
-    const cleanTarget = (supplierName || '').toUpperCase().replace(/[^A-Z]/g, '');
+    // Preserve original casing instead of forcing toUpperCase()
+    const cleanTarget = (supplierName || '').replace(/[^a-zA-Z]/g, '');
     let uniqueSupplierLetters = 'XXXX';
     
     if (cleanTarget) {
       // Build an ordered list of all existing suppliers to ensure stable deterministic prefixes
       const allSuppliers = Array.from(new Set(products.map(p => p.supplierName).filter((s): s is string => Boolean(s))));
-      const list = [...new Set(allSuppliers)].map(s => s.toUpperCase().replace(/[^A-Z]/g, '')).filter(Boolean);
+      const list = [...new Set(allSuppliers)].map(s => s.replace(/[^a-zA-Z]/g, '')).filter(Boolean);
       if (!list.includes(cleanTarget)) list.push(cleanTarget);
 
       const assignedPrefixes = new Map<string, string>();
-      const usedPrefixes = new Set<string>();
+      const usedPrefixesLower = new Set<string>();
 
       for (const sup of list) {
         if (assignedPrefixes.has(sup)) continue;
         
         let base = sup;
-        if (base.length < 4) base = base.padEnd(4, 'X');
+        if (base.length < 4) base = base.padEnd(4, 'x'); // using lowercase x for padding just in case
         let prefix = base.slice(0, 4);
         
-        if (!usedPrefixes.has(prefix)) {
+        if (!usedPrefixesLower.has(prefix.toLowerCase())) {
           assignedPrefixes.set(sup, prefix);
-          usedPrefixes.add(prefix);
+          usedPrefixesLower.add(prefix.toLowerCase());
         } else {
           // Collision: try replacing 4th letter
           let found = false;
           for (let i = 4; i < base.length; i++) {
             let candidate = base.slice(0, 3) + base[i];
-            if (!usedPrefixes.has(candidate)) {
+            if (!usedPrefixesLower.has(candidate.toLowerCase())) {
                prefix = candidate;
                found = true;
                break;
@@ -285,7 +286,7 @@ export default function MerchantProducts() {
              let counter = 1;
              while (true) {
                 let candidate = (base.slice(0, 3) + counter.toString()).slice(0, 4);
-                if (!usedPrefixes.has(candidate)) {
+                if (!usedPrefixesLower.has(candidate.toLowerCase())) {
                    prefix = candidate;
                    break;
                 }
@@ -293,7 +294,7 @@ export default function MerchantProducts() {
              }
           }
           assignedPrefixes.set(sup, prefix);
-          usedPrefixes.add(prefix);
+          usedPrefixesLower.add(prefix.toLowerCase());
         }
       }
       uniqueSupplierLetters = assignedPrefixes.get(cleanTarget) || 'XXXX';
