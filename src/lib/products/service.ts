@@ -69,6 +69,9 @@ export class SupabaseProductRepository implements ProductRepository {
     return this.mapToDomain(data);
   }
 
+  async save(product: Product): Promise<Product> {
+    const supabase = getServiceSupabase();
+
     // Ensure merchant_id is valid in users table
     let merchantIdToUse = product.merchantId || "admin";
     const { data: userRow } = await supabase.from('users').select('uid').eq('uid', merchantIdToUse).maybeSingle();
