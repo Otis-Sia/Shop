@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS products (
     allow_backorders BOOLEAN DEFAULT FALSE,
     group_category VARCHAR(100),
     category VARCHAR(100) NOT NULL DEFAULT 'General',
+    category_ids TEXT[] DEFAULT '{}'::text[],
     subcategories TEXT[] DEFAULT '{}'::text[],
     image_urls TEXT[] DEFAULT '{}'::text[],
     image_alt_texts JSONB DEFAULT '{}'::jsonb,
@@ -492,7 +493,9 @@ GRANT EXECUTE ON FUNCTION track_product_event(VARCHAR, VARCHAR, INTEGER) TO anon
 ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type VARCHAR(50) DEFAULT 'physical';
 ALTER TABLE products ADD COLUMN IF NOT EXISTS slug VARCHAR(255) UNIQUE;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'draft';
-ALTER TABLE products ADD COLUMN IF NOT EXISTS category_ids UUID[] DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS category_ids TEXT[] DEFAULT '{}'::text[];
+ALTER TABLE products ALTER COLUMN category_ids TYPE TEXT[] USING category_ids::text[];
+ALTER TABLE products ALTER COLUMN category_ids SET DEFAULT '{}'::text[];
 ALTER TABLE products ADD COLUMN IF NOT EXISTS pricing JSONB; 
 ALTER TABLE products ADD COLUMN IF NOT EXISTS inventory JSONB;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER DEFAULT 0;
