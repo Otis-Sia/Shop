@@ -47,14 +47,18 @@ Return your response strictly as a JSON object with the following fields:
 - name: A concise, high-converting product title/name. (Required if not provided, otherwise output the optimized version).
 - shortDescription: A punchy 1-2 sentence description.
 - description: A detailed, engaging long-form description (2-3 paragraphs).
-- groupCategory: A broad, top-level product grouping (e.g., "Apparel").
-- category: A single, primary high-level category string (e.g., "Menswear").
-- subcategories: An array of strings representing more specific subcategories.
+- groupCategory: A broad, top-level product grouping (e.g., "Home & Kitchen", "Electronics", "Apparel").
+- category: A single, primary high-level category string (e.g., "Kitchen Appliances", "Menswear").
+- subcategories: An array of 1-4 strings representing more specific subcategories.
 - tags: An array of 5-8 relevant search tags.
 - labels: An array of 1-3 promotional or descriptive labels.
 - imageAltTexts: An array of 2-3 generic but highly relevant alt text strings.
 - brand: The brand name of the product. Extract this from the product name/images if present, otherwise suggest a fitting generic brand or leave it blank.
-- countryOfOrigin: The country where this product is likely from. IMPORTANT RULE: If the brand is generic (not a well-known international brand), make the countryOfOrigin "Kenya".
+- countryOfOrigin: Country of origin (e.g., "Kenya", "China", "Germany", etc.). Default to "Kenya" if generic or unknown.
+- currency: "KES" (Kenyan Shilling).
+- weight: Estimated product weight in kilograms as a number (e.g., 1.5 for 1.5kg).
+- weightUnit: "kg".
+- attributes: Key-value object of extracted specifications (e.g., {"Material": "Cotton", "Color": "Blue"}).
 
 Do not include any markdown code block wrapping like \`\`\`json around the output. Output raw JSON only.
 `;

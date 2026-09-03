@@ -47,12 +47,30 @@ const handleAIAutoFill = async () => {
         sku: generated.sku || currentData.sku,
         categoryIds: generated.category ? [...(currentData.categoryIds || []), generated.category] : currentData.categoryIds,
         // Wrap raw pricing strings or numbers into the new pricing object
-        pricing: generated.price ? {
+        pricing: generated.price !== undefined && generated.price !== null ? {
           ...currentData.pricing,
           price: parseFloat(generated.price) || currentData.pricing?.price || 0,
-          currency: currentData.pricing?.currency || "USD",
+          costPrice: generated.costPrice ? parseFloat(generated.costPrice) : currentData.pricing?.costPrice,
+          currency: generated.currency || currentData.pricing?.currency || "KES",
           taxable: currentData.pricing?.taxable ?? true
-        } : currentData.pricing,
+        } : (currentData.pricing ? { ...currentData.pricing, currency: currentData.pricing.currency || "KES" } : { price: 0, currency: "KES", taxable: true }),
+        // Shipping & Weight
+        shipping: {
+          ...currentData.shipping,
+          requiresShipping: currentData.shipping?.requiresShipping ?? true,
+          countryOfOrigin: generated.countryOfOrigin || currentData.shipping?.countryOfOrigin || "Kenya",
+          weight: generated.weight !== undefined && generated.weight !== null ? {
+            value: parseFloat(generated.weight) || 0,
+            unit: (generated.weightUnit as any) || "kg"
+          } : currentData.shipping?.weight,
+        },
+        // Attributes
+        attributes: generated.attributes ? (
+          Array.isArray(generated.attributes)
+            ? generated.attributes
+            : Object.entries(generated.attributes).map(([name, value]) => ({ name, value: String(value) }))
+        ) : currentData.attributes,
+        features: Array.isArray(generated.features) ? generated.features : currentData.features,
         // Basic SEO injection
         seo: {
           ...currentData.seo,

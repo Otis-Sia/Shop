@@ -37,27 +37,32 @@ ${currentName ? `Current Product Name: ${currentName}
 Existing categories (for reference):
 ${JSON.stringify(categoriesContext)}
 
-Return a JSON object containing the following fields based on the provided text and/or images. If a field cannot be determined, guess a reasonable default or return null.
+Return a JSON object containing the following fields based on the provided text and/or images. If a field cannot be determined, make an intelligent estimate or return null.
 - name: concise, high-converting product title/name.
 - shortDescription: 1‑2 sentence punchy summary.
 - description: comprehensive, well-structured product description.
 - brand: brand name if identifiable, otherwise "Generic".
-- countryOfOrigin: country of origin. (Rule: if brand is generic or unknown, default to "Kenya").
+- countryOfOrigin: country of origin (e.g. "Kenya", "China", "Germany", "USA", "Japan", etc.). Default to "Kenya" if local/generic or unknown.
+- currency: "KES" (Kenyan Shilling - default currency for all products).
+- weight: realistic estimated product weight in kilograms as a clean number (e.g. 1.8 for 1.8kg, 0.35 for 350g, 5.0 for 5kg) estimated from product category, materials, dimensions, and image.
+- weightUnit: "kg".
+- attributes: detailed key-value object containing all product specifications and attributes extracted from text and image (e.g., {"Material": "Stainless Steel", "Capacity": "1.8L", "Power": "350W", "Voltage": "220-240V", "Color": "White", "Model": "TYB-202-A", "Warranty": "1 Year"}).
 - supplierName: supplier, vendor, dropshipper, or manufacturer name if mentioned (otherwise null).
 - sku: product SKU, model number, or generate a professional 6-8 character SKU if none exists.
-- costPrice: supplier cost / cost price / wholesale price / buy price as a clean number (e.g. 150.00 or null if not found).
-- price: selling price / retail price / MSRP as a clean number (e.g. 299.00 or null if not found).
-- salePrice: discounted / promotional / sale price as a clean number (or null if not found).
+- costPrice: supplier cost / cost price / wholesale price / buy price in KES as a clean number (e.g. 1200.00 or null if not found).
+- price: selling price / retail price in KES as a clean number (e.g. 1600.00 or null if not found).
+- salePrice: discounted / promotional / sale price in KES as a clean number (or null if not found).
 - stock: inventory quantity / units available as an integer (e.g. 50 or null if not found).
 - colors: array of distinct color names mentioned or visible in the image (e.g. ["Black", "White"]).
 - sizes: array of distinct sizes or dimensions mentioned (e.g. ["S", "M", "L", "XL"]).
 - grades: array of distinct grades or qualities mentioned (e.g. ["Grade A", "Premium"]).
 - capacity: product capacity or volume if mentioned (e.g. "1.8ltr").
 - power: product power rating or wattage if mentioned (e.g. "350 Watts").
+- features: array of 3-6 bullet-point feature highlights.
 - variants: array of variant objects if specific variant combinations are listed.
-- groupCategory: top‑level category group.
-- category: primary category under the group.
-- subcategories: array of 1-4 relevant subcategory names.
+- groupCategory: broad top‑level category group (e.g. "Home & Kitchen", "Electronics", "Fashion", "Beauty & Personal Care", "Appliances"). Match existing database group if applicable, or create an appropriate new group.
+- category: primary category under the group (e.g. "Kitchen Appliances", "Smartphones", "Men's Clothing"). Match existing category if applicable, or create an appropriate new category.
+- subcategories: array of 1-4 specific subcategory names (e.g. ["Blenders & Mixers", "Food Processors"]). Match existing subcategories if applicable, or create fitting new subcategories.
 - tags: array of 5‑8 relevant search tags.
 - labels: array of 1‑3 promotional labels (e.g. "Featured", "New Arrival").
 - imageAltTexts: array of 2‑3 descriptive image alt text strings based on the product.

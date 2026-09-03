@@ -93,6 +93,9 @@ CREATE TABLE IF NOT EXISTS products (
     grades TEXT[] DEFAULT '{}'::text[],
     capacity VARCHAR(100),
     power VARCHAR(100),
+    weight DECIMAL(10, 2),
+    weight_unit VARCHAR(10) DEFAULT 'kg',
+    attributes JSONB DEFAULT '{}'::jsonb,
     has_variants BOOLEAN DEFAULT FALSE,
     supplier_name VARCHAR(255),
     cost_price DECIMAL(10, 2),
@@ -496,11 +499,10 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER DEFAULT 0;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS attributes JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS has_variants BOOLEAN DEFAULT false;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS media JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS seo JSONB;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS shipping JSONB;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS service JSONB;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS download_url TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS weight DECIMAL(10, 2);
+ALTER TABLE products ADD COLUMN IF NOT EXISTS weight_unit VARCHAR(10) DEFAULT 'kg';
 ALTER TABLE products ADD COLUMN IF NOT EXISTS published_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE products ALTER COLUMN currency SET DEFAULT 'KES';
 
 -- Alter existing product_variants table
 ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS sku VARCHAR(100);
