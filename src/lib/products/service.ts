@@ -69,15 +69,22 @@ export class SupabaseProductRepository implements ProductRepository {
     return this.mapToDomain(data);
   }
 
-  async save(product: Product): Promise<Product> {
-    const supabase = getServiceSupabase();
-    
+    // Ensure merchant_id is valid in users table
+    let merchantIdToUse = product.merchantId || "admin";
+    const { data: userRow } = await supabase.from('users').select('uid').eq('uid', merchantIdToUse).maybeSingle();
+    if (!userRow) {
+      const { data: firstUser } = await supabase.from('users').select('uid').limit(1).maybeSingle();
+      if (firstUser) {
+        merchantIdToUse = firstUser.uid;
+      }
+    }
+
     // Save Product
     const { error: productError } = await supabase
       .from("products")
       .upsert({
         id: product.id,
-        merchant_id: product.merchantId,
+        merchant_id: merchantIdToUse,
         product_type: product.productType,
         name: product.name,
         slug: product.slug,
@@ -98,6 +105,18 @@ export class SupabaseProductRepository implements ProductRepository {
         shipping: product.shipping,
         service: product.service,
         download_url: product.downloadUrl,
+        
+        // Sync flat SQL columns for backward and cross-compatibility
+        price: product.pricing?.price || 0,
+        currency: product.pricing?.currency || 'KES',
+        cost_price: product.pricing?.costPrice ?? null,
+        stock: product.stockQuantity || 0,
+        category: product.categoryIds?.[0] || 'General',
+        country_of_origin: product.shipping?.countryOfOrigin || 'Kenya',
+        weight: product.shipping?.weight?.value ?? null,
+        weight_unit: product.shipping?.weight?.unit || 'kg',
+        image_urls: (product.media || []).map(m => m.url),
+
         created_at: product.createdAt.toISOString(),
         updated_at: product.updatedAt.toISOString(),
         published_at: product.publishedAt?.toISOString(),

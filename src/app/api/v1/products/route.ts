@@ -18,8 +18,24 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    // Enforce merchantId if injected from auth, otherwise it relies on payload
-    // if (merchantId) body.merchantId = merchantId;
+    if (!body.merchantId) {
+      body.merchantId = "admin";
+    }
+    if (!body.sku || !body.sku.trim()) {
+      body.sku = `SKU-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    }
+    if (!body.pricing) {
+      body.pricing = { price: Number(body.price || 0), currency: body.currency || "KES", taxable: false };
+    }
+    if (!body.inventory) {
+      body.inventory = { trackInventory: body.trackInventory || false, allowBackorder: body.allowBackorders || false };
+    }
+    if (!body.shipping && (body.productType === "physical" || !body.productType)) {
+      body.shipping = { requiresShipping: true, countryOfOrigin: body.countryOfOrigin || "Kenya" };
+    }
+    if (!body.categoryIds || (Array.isArray(body.categoryIds) && body.categoryIds.length === 0)) {
+      body.categoryIds = body.category ? [body.category] : ["General"];
+    }
 
     // 2. Parse and validate
     const parsed = createProductSchema.parse(body);

@@ -1708,10 +1708,14 @@ export default function MerchantProducts() {
           onSave={async (data) => {
             try {
               const token = await auth.currentUser?.getIdToken();
+              const payload = {
+                ...data,
+                merchantId: auth.currentUser?.uid || "admin",
+              };
               const res = await fetch(editingId ? `/api/v1/products/${editingId}` : '/api/v1/products', {
                 method: editingId ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
               });
               const result = await res.json();
               if (res.ok) {
@@ -1725,8 +1729,11 @@ export default function MerchantProducts() {
                   setProducts(products.map(p => String(p.id) === String(editingId) ? result.data : p));
                 }
               } else {
-                showToast(result.message || 'Error saving product', 'error');
-                throw new Error(result.message || 'Error saving product');
+                const errMsg = result.issues && Array.isArray(result.issues)
+                  ? result.issues.map((i: any) => `${i.path}: ${i.message}`).join(', ')
+                  : (result.message || result.error || 'Error saving product');
+                showToast(errMsg, 'error');
+                throw new Error(errMsg);
               }
             } catch (err: any) {
               console.error(err);
