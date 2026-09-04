@@ -15,9 +15,6 @@ export default function robots(): MetadataRoute.Robots {
         '/wishlist/'
       ],
     },
-    sitemap: [
-      'https://juj4.cepine.com/sitemap.xml',
-      'https://juj4.com/sitemap.xml',
-    ],
+    sitemap: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://juj4.cepine.com'}/sitemap.xml`,
   };
 }
