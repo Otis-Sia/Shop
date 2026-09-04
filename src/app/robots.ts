@@ -16,8 +16,8 @@ export default function robots(): MetadataRoute.Robots {
       ],
     },
     sitemap: [
+      'https://juj4.cepine.com/sitemap.xml',
       'https://juj4.com/sitemap.xml',
-      'https://shop.seresponse.org/sitemap.xml',
     ],
   };
 }

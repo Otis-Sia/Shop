@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { getProducts } from '@/lib/api/products';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrls = ['https://juj4.com', 'https://shop.seresponse.org'];
+  const baseUrls = ['https://juj4.cepine.com', 'https://juj4.com'];
   
   const staticPathList = [
     '',

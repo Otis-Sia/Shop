@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `All Products | ${STORE_CONFIG.name}`,
     description: `Browse the full catalog of premium products at ${STORE_CONFIG.name}. Find the best deals on electronics, fashion, and more.`,
-    url: 'https://juj4.com/products',
+    url: 'https://juj4.cepine.com/products',
     siteName: STORE_CONFIG.name,
     images: [
       {

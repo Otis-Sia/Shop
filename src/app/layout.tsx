@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://juj4.com'),
+  metadataBase: new URL('https://juj4.cepine.com'),
   title: 'JUJ4 - Your Premium Shopping Destination',
   description: 'Discover amazing products at unbeatable prices. Your premium shopping experience starts here.',
   icons: {
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'JUJ4 - Your Premium Shopping Destination',
     description: 'Discover amazing products at unbeatable prices. Your premium shopping experience starts here.',
-    url: 'https://juj4.com',
+    url: 'https://juj4.cepine.com',
     siteName: 'JUJ4',
     images: [
       {
