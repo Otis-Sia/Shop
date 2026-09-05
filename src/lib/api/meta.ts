@@ -119,7 +119,7 @@ export async function syncProducts(products: any[]) {
         visibility: "published",
       };
 
-      if (salePriceVal) {
+      if (salePriceVal && Number(salePriceVal) < Number(priceVal)) {
         itemData.sale_price = `${salePriceVal} ${currencyVal}`;
       }
 
@@ -163,7 +163,7 @@ export async function syncProductSets(categories: string[]) {
   }
 
   // Fetch existing product sets
-  let existingSets: { id: string; name: string }[] = [];
+  let existingSets: { id: string; name: string; filter?: any }[] = [];
   try {
     const existingRes = await graph.get(`/${CATALOG_ID}/product_sets`, {
       params: { fields: "id,name,filter", limit: 100 },
@@ -173,37 +173,42 @@ export async function syncProductSets(categories: string[]) {
     console.warn("Could not fetch existing Meta product sets:", err.response?.data || err.message);
   }
 
-  const existingSetNames = new Set(existingSets.map((s) => s.name?.trim().toLowerCase()));
+  const existingSetsByName = new Map(existingSets.map((s) => [s.name?.trim().toLowerCase(), s]));
   const createdSets: any[] = [];
+  const updatedSets: any[] = [];
   const errors: any[] = [];
 
   for (const category of uniqueCategories) {
-    if (existingSetNames.has(category.trim().toLowerCase())) {
+    const key = category.trim().toLowerCase();
+    const existing = existingSetsByName.get(key);
+
+    const filterObj = {
+      custom_label_0: { eq: category },
+    };
+
+    if (existing) {
+      // Check if filter needs repair
+      const filterStr = typeof existing.filter === "string" ? existing.filter : JSON.stringify(existing.filter || "");
+      if (!filterStr.includes("custom_label_0")) {
+        try {
+          await graph.post(`/${existing.id}`, { filter: filterObj });
+          updatedSets.push({ category, id: existing.id });
+        } catch (updateErr: any) {
+          console.warn(`Could not update filter for set "${category}":`, updateErr.response?.data || updateErr.message);
+        }
+      }
       continue;
     }
 
     try {
       const response = await graph.post(`/${CATALOG_ID}/product_sets`, {
         name: category,
-        filter: {
-          retailer_category: { eq: category },
-        },
+        filter: filterObj,
       });
       createdSets.push({ category, id: response.data?.id });
     } catch (createErr: any) {
-      // Fallback filter using product_type if retailer_category fails
-      try {
-        const fallbackRes = await graph.post(`/${CATALOG_ID}/product_sets`, {
-          name: category,
-          filter: {
-            product_type: { eq: category },
-          },
-        });
-        createdSets.push({ category, id: fallbackRes.data?.id });
-      } catch (fallbackErr: any) {
-        console.error(`Failed to create Meta Product Set for "${category}":`, fallbackErr.response?.data || fallbackErr.message);
-        errors.push({ category, error: fallbackErr.response?.data || fallbackErr.message });
-      }
+      console.error(`Failed to create Meta Product Set for "${category}":`, createErr.response?.data || createErr.message);
+      errors.push({ category, error: createErr.response?.data || createErr.message });
     }
   }
 
@@ -211,7 +216,9 @@ export async function syncProductSets(categories: string[]) {
     totalCategories: uniqueCategories.length,
     existingSetsCount: existingSets.length,
     createdSetsCount: createdSets.length,
+    updatedSetsCount: updatedSets.length,
     createdSets,
+    updatedSets,
     errors,
   };
 }

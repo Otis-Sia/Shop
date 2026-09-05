@@ -70,7 +70,7 @@ export async function GET(req: Request) {
       <g:price>${price} ${currency}</g:price>
 `;
 
-        if (salePrice) {
+        if (salePrice && Number(salePrice) < Number(price)) {
           xml += `      <g:sale_price>${salePrice} ${currency}</g:sale_price>\n`;
         }
         
@@ -104,9 +104,11 @@ export async function GET(req: Request) {
         // Categories & Sets for Google Product Groups
         const category = product.category || 'General';
         const groupCategory = product.group_category || '';
-        const fullProductType = groupCategory ? `${groupCategory} > ${category}` : category;
+        const fullProductType = groupCategory
+          ? `${escapeXml(groupCategory)} > ${escapeXml(category)}`
+          : escapeXml(category);
 
-        xml += `      <g:product_type>${escapeXml(fullProductType)}</g:product_type>\n`;
+        xml += `      <g:product_type>${fullProductType}</g:product_type>\n`;
         xml += `      <g:custom_label_0>${escapeXml(category)}</g:custom_label_0>\n`;
         if (groupCategory) {
           xml += `      <g:custom_label_1>${escapeXml(groupCategory)}</g:custom_label_1>\n`;
