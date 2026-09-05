@@ -107,10 +107,18 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error("Meta Sync Error:", error.response?.data || error.message);
+    const errorMessage =
+      error.response?.data?.error?.message ||
+      error.response?.data?.message ||
+      (typeof error.response?.data === "string" ? error.response.data : null) ||
+      error.message ||
+      "Failed to sync with Meta Catalog";
+
     return NextResponse.json(
       {
         success: false,
-        error: error.response?.data || error.message,
+        error: errorMessage,
+        rawError: error.response?.data,
       },
       { status: 500 }
     );

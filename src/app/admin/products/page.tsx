@@ -343,7 +343,10 @@ export default function MerchantProducts() {
 
       const data = await res.json();
       if (!res.ok || data.success === false) {
-        throw new Error(data.error?.message || data.error || "Failed to sync catalog to WhatsApp");
+        const msg = typeof data.error === "string"
+          ? data.error
+          : data.error?.message || data.error?.error?.message || "Failed to sync catalog to WhatsApp";
+        throw new Error(msg);
       }
 
       showToast(`Successfully synced ${data.synced || products.length} products to WhatsApp Catalog!`, "success");
@@ -374,7 +377,10 @@ export default function MerchantProducts() {
 
       const data = await res.json();
       if (!res.ok || data.success === false) {
-        throw new Error(data.error?.message || data.error || "Failed to sync product to WhatsApp");
+        const msg = typeof data.error === "string"
+          ? data.error
+          : data.error?.message || data.error?.error?.message || "Failed to sync product to WhatsApp";
+        throw new Error(msg);
       }
 
       showToast(`"${product.name}" synced to WhatsApp Catalog!`, "success");
