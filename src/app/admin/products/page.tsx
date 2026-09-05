@@ -1844,13 +1844,8 @@ export default function MerchantProducts() {
     registeredSuppliers.forEach(s => {
       if (s.name && s.name.trim()) set.add(s.name.trim());
     });
-    products.forEach(p => {
-      if (p.supplierName && p.supplierName.trim()) {
-        set.add(p.supplierName.trim());
-      }
-    });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [registeredSuppliers, products]);
+  }, [registeredSuppliers]);
 
   const uniqueSuppliers = allSupplierNames;
 
@@ -2304,17 +2299,7 @@ export default function MerchantProducts() {
                           <div className="relative inline-block max-w-[170px]">
                             <select
                               value={product.supplierName || ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === "__ADD_NEW__") {
-                                  const custom = prompt("Enter new supplier name:");
-                                  if (custom && custom.trim()) {
-                                    handleInlineSupplierChange(product.id, custom.trim());
-                                  }
-                                } else {
-                                  handleInlineSupplierChange(product.id, val);
-                                }
-                              }}
+                              onChange={(e) => handleInlineSupplierChange(product.id, e.target.value)}
                               disabled={updatingSupplierId === product.id}
                               className={`text-xs font-bold px-2 py-1 border-2 border-on-surface cursor-pointer focus:outline-none transition-colors max-w-full truncate ${
                                 product.supplierName 
@@ -2328,7 +2313,6 @@ export default function MerchantProducts() {
                                   {s}
                                 </option>
                               ))}
-                              <option value="__ADD_NEW__">+ Add New Supplier...</option>
                             </select>
                           </div>
                         </td>
@@ -2471,17 +2455,7 @@ export default function MerchantProducts() {
                         <div className="mt-1">
                           <select
                             value={product.supplierName || ""}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === "__ADD_NEW__") {
-                                const custom = prompt("Enter new supplier name:");
-                                if (custom && custom.trim()) {
-                                  handleInlineSupplierChange(product.id, custom.trim());
-                                }
-                              } else {
-                                handleInlineSupplierChange(product.id, val);
-                              }
-                            }}
+                            onChange={(e) => handleInlineSupplierChange(product.id, e.target.value)}
                             disabled={updatingSupplierId === product.id}
                             className={`text-[11px] font-bold px-1.5 py-0.5 border-2 border-on-surface cursor-pointer focus:outline-none max-w-full ${
                               product.supplierName 
@@ -2495,7 +2469,6 @@ export default function MerchantProducts() {
                                 {s}
                               </option>
                             ))}
-                            <option value="__ADD_NEW__">+ Add New Supplier...</option>
                           </select>
                         </div>
                         <p className="text-xs font-semibold mt-1 text-primary-container">

@@ -33,7 +33,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Get all suppliers
+    // Get all registered suppliers from the suppliers table
     const { data: suppliers, error } = await supabase
       .from('suppliers')
       .select('*')
@@ -43,48 +43,7 @@ export async function GET(request: Request) {
       throw error;
     }
 
-    // Get all distinct supplier names from products for people who haven't been added to the suppliers table yet
-    const { data: productsData } = await supabase
-        .from('products')
-        .select('supplier_name');
-
-    const existingNames = new Set((suppliers || []).map(s => s.name.toUpperCase()));
-    
-    // Extract unique supplier names from products that aren't in the suppliers table yet
-    const newSupplierNames = new Set<string>();
-    if (productsData) {
-        productsData.forEach(p => {
-            if (p.supplier_name && p.supplier_name.trim() !== '') {
-                if (!existingNames.has(p.supplier_name.toUpperCase())) {
-                    newSupplierNames.add(p.supplier_name.trim());
-                }
-            }
-        });
-    }
-
-    // Auto-create these suppliers
-    const insertedSuppliers = [];
-    if (newSupplierNames.size > 0) {
-        const toInsert = Array.from(newSupplierNames).map(name => ({
-            id: uuidv4(),
-            name: name,
-            whatsapp_number: '',
-            location: '',
-        }));
-
-        const { data: inserted, error: insertError } = await supabase
-            .from('suppliers')
-            .insert(toInsert)
-            .select('*');
-            
-        if (!insertError && inserted) {
-            insertedSuppliers.push(...inserted);
-        }
-    }
-
-    const allSuppliers = [...(suppliers || []), ...insertedSuppliers].sort((a, b) => a.name.localeCompare(b.name));
-
-    return NextResponse.json({ suppliers: allSuppliers });
+    return NextResponse.json({ suppliers: suppliers || [] });
   } catch (error: any) {
     console.error('Error fetching suppliers:', error);
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
