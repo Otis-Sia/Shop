@@ -65,12 +65,36 @@ const handleAIAutoFill = async () => {
           } : currentData.shipping?.weight,
         },
         // Attributes
-        attributes: generated.attributes ? (
-          Array.isArray(generated.attributes)
-            ? generated.attributes
-            : Object.entries(generated.attributes).map(([name, value]) => ({ name, value: String(value) }))
-        ) : currentData.attributes,
+        attributes: (() => {
+          const baseAttrs = generated.attributes ? (
+            Array.isArray(generated.attributes)
+              ? generated.attributes
+              : Object.entries(generated.attributes).map(([name, value]) => ({ name, value: String(value) }))
+          ) : (currentData.attributes || []);
+          
+          if (Array.isArray(generated.variants) && generated.variants.length > 0) {
+            generated.variants.forEach((v: any) => {
+              if (Array.isArray(v.attributes)) {
+                v.attributes.forEach((va: any) => {
+                  if (va.name && va.value && !baseAttrs.some((ba: any) => ba.name === va.name && ba.value === va.value)) {
+                    baseAttrs.push({ name: va.name, value: va.value, isVariantAxis: true });
+                  }
+                });
+              }
+            });
+          }
+          return baseAttrs.length > 0 ? baseAttrs : currentData.attributes;
+        })(),
         features: Array.isArray(generated.features) ? generated.features : currentData.features,
+        variants: Array.isArray(generated.variants) && generated.variants.length > 0 ? generated.variants.map((v: any) => ({
+          id: `var-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          sku: v.sku || '',
+          attributes: Array.isArray(v.attributes) ? v.attributes : [],
+          price: v.price ? Number(v.price) : undefined,
+          stockQuantity: v.stockQuantity || 0,
+          isActive: true
+        })) : currentData.variants,
+        hasVariants: Array.isArray(generated.variants) && generated.variants.length > 0 ? true : currentData.hasVariants,
         // Basic SEO injection
         seo: {
           ...currentData.seo,

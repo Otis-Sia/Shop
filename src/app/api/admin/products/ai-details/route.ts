@@ -59,7 +59,7 @@ Return a JSON object containing the following fields based on the provided text 
 - capacity: product capacity or volume if mentioned (e.g. "1.8ltr").
 - power: product power rating or wattage if mentioned (e.g. "350 Watts").
 - features: array of 3-6 bullet-point feature highlights.
-- variants: array of variant objects if specific variant combinations are listed.
+- variants: array of variant objects if specific variant combinations are listed. Each object must have an "attributes" array (e.g. [{"name": "Color", "value": "Red"}, {"name": "Size", "value": "L"}]), and an optional "price" (number).
 - groupCategory: broad top‑level category group (e.g. "Home & Kitchen", "Electronics", "Fashion", "Beauty & Personal Care", "Appliances"). Match existing database group if applicable, or create an appropriate new group.
 - category: primary category under the group (e.g. "Kitchen Appliances", "Smartphones", "Men's Clothing"). Match existing category if applicable, or create an appropriate new category.
 - subcategories: array of 1-4 specific subcategory names (e.g. ["Blenders & Mixers", "Food Processors"]). Match existing subcategories if applicable, or create fitting new subcategories.
