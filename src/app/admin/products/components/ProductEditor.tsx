@@ -18,6 +18,7 @@ interface ProductEditorProps {
   onSave: (data: CreateProductInput) => Promise<void>;
   onCancel: () => void;
   existingSuppliers?: string[];
+  existingProducts?: { id: string | number; name: string; thumbnail?: string }[];
   onChange?: (data: Partial<CreateProductInput>) => void;
   draftSaveStatus?: "idle" | "saving" | "saved" | "error";
 }
@@ -112,6 +113,7 @@ export function ProductEditor({
   onSave, 
   onCancel, 
   existingSuppliers = [],
+  existingProducts = [],
   onChange,
   draftSaveStatus = "idle"
 }: ProductEditorProps) {
@@ -344,6 +346,18 @@ export function ProductEditor({
       {errors.submit && (
         <div className="p-4 bg-red-100 text-red-800 border-2 border-red-600 font-bold mb-6">
           {errors.submit}
+        </div>
+      )}
+
+      {similarProduct && (
+        <div className="p-4 bg-yellow-100 text-yellow-900 border-2 border-yellow-600 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center shadow-[4px_4px_0px_0px_#ca8a04]">
+          <div>
+            <span className="block text-sm font-black uppercase tracking-wider text-yellow-800 mb-1">WARNING: Possible Duplicate Detected</span>
+            <span className="font-semibold text-sm">The product name looks {(similarProduct.similarity * 100).toFixed(0)}% similar to an existing product: <strong>{similarProduct.name}</strong>.</span>
+          </div>
+          <button type="button" onClick={() => window.open(`/admin/products`, '_blank')} className="px-4 py-2 bg-yellow-600 text-white font-bold uppercase text-xs border-2 border-yellow-800 shadow-[2px_2px_0px_0px_#854d0e] hover:translate-y-[1px] hover:translate-x-[1px] transition-all shrink-0">
+            Check Catalog
+          </button>
         </div>
       )}
 

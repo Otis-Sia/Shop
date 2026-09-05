@@ -65,8 +65,11 @@ const mapDbProductToProduct = (p: any, variants: any[] = [], merchantProfile: an
     variants: variants.map((v: any) => ({
       id: v.id,
       productId: v.product_id,
+      name: v.name || '',
+      sku: v.sku || '',
       size: v.size || '',
       color: v.color || '',
+      attributes: v.attributes || [],
       price: Number(v.price || 0),
       stock: v.stock !== null && v.stock !== undefined ? Number(v.stock) : 0,
       imageUrl: v.image_url || ''
@@ -349,8 +352,11 @@ export async function POST(request: Request) {
       const variantRows = body.variants.map((v: any, index: number) => ({
         id: v.id || `${productId}_v${index}_${Date.now()}`,
         product_id: productId,
+        name: v.name || v.color || v.size || '',
+        sku: v.sku || `${productPayload.sku || 'SKU'}-${index + 1}`,
         size: v.size || '',
         color: v.color || '',
+        attributes: v.attributes || [],
         price: Number(v.price || productPayload.price),
         stock: v.stock !== undefined && v.stock !== null && v.stock !== '' ? Number(v.stock) : productPayload.stock,
         image_url: v.imageUrl || v.image_url || '',

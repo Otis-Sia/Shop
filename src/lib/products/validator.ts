@@ -27,8 +27,9 @@ export const variantSchema = z.object({
   sku: z.string().min(1).max(64),
   barcode: z.string().max(64).optional(),
   attributes: z.array(attributeSchema).min(1, "Variant needs at least one attribute"),
-  price: z.number().positive().optional(),
-  compareAtPrice: z.number().positive().optional(),
+  price: z.number().nonnegative().optional(),
+  salePrice: z.number().nonnegative().optional(),
+  compareAtPrice: z.number().nonnegative().optional(),
   costPrice: z.number().nonnegative().optional(),
   stockQuantity: z.number().int().nonnegative(),
   weight: weightSchema.optional(),
@@ -45,19 +46,15 @@ export const mediaSchema = z.object({
   isPrimary: z.boolean().optional(),
 });
 
-export const pricingSchema = z
-  .object({
-    price: z.number().nonnegative("Price must be 0 or greater").default(0),
-    compareAtPrice: z.number().nonnegative().optional(),
-    costPrice: z.number().nonnegative().optional(),
-    currency: z.string().min(1).max(10).optional().default("KES"),
-    taxable: z.boolean().optional().default(false),
-    taxClass: z.string().max(50).optional(),
-  })
-  .refine((p) => !p.compareAtPrice || p.compareAtPrice >= p.price, {
-    message: "compareAtPrice must be greater than or equal to price",
-    path: ["compareAtPrice"],
-  });
+export const pricingSchema = z.object({
+  price: z.number().nonnegative("Price must be 0 or greater").default(0),
+  salePrice: z.number().nonnegative("Sale price must be 0 or greater").optional(),
+  compareAtPrice: z.number().nonnegative().optional(),
+  costPrice: z.number().nonnegative("Cost price must be 0 or greater").optional(),
+  currency: z.string().min(1).max(10).optional().default("KES"),
+  taxable: z.boolean().optional().default(false),
+  taxClass: z.string().max(50).optional(),
+});
 
 export const inventoryPolicySchema = z.object({
   trackInventory: z.boolean().optional().default(false),

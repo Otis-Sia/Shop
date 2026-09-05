@@ -59,6 +59,7 @@ Return your response strictly as a JSON object with the following fields:
 - weight: Estimated product weight in kilograms as a number (e.g., 1.5 for 1.5kg).
 - weightUnit: "kg".
 - attributes: Key-value object of extracted specifications (e.g., {"Material": "Cotton", "Color": "Blue"}).
+- variants: Array of variant objects whenever multiple colors, sizes, or options exist (each with "name", "color", "size", "sku", "price", "stock", "attributes"). Never use generic "Option 1".
 
 Do not include any markdown code block wrapping like \`\`\`json around the output. Output raw JSON only.
 `;

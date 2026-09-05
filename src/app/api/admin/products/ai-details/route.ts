@@ -58,9 +58,16 @@ Return a JSON object containing the following fields based on the provided text 
 - grades: array of distinct grades or qualities mentioned (e.g. ["Grade A", "Premium"]).
 - capacity: product capacity or volume if mentioned (e.g. "1.8ltr").
 - power: product power rating or wattage if mentioned (e.g. "350 Watts").
-- features: array of 3-6 bullet-point feature highlights.
-- variants: array of variant objects if specific variant combinations are listed. Each object must have an "attributes" array (e.g. [{"name": "Color", "value": "Red"}, {"name": "Size", "value": "L"}]), and an optional "price" (number).
-- groupCategory: broad top‑level category group (e.g. "Home & Kitchen", "Electronics", "Fashion", "Beauty & Personal Care", "Appliances"). Match existing database group if applicable, or create an appropriate new group.
+- variants: array of variant objects whenever multiple colors, sizes, capacities, materials, or options are mentioned or detected.
+  CRITICAL RULES FOR EVERY VARIANT OBJECT:
+  * "name": A descriptive title for the variant (e.g. "Green", "Blue", "500ml Set", "Pink / 1040ml"). NEVER output generic placeholders like "Option 1" or "Variant 1".
+  * "color": Distinct color name if applicable (e.g. "Green", "Blue", "Clear", "Pink") or null.
+  * "size": Distinct size/capacity/dimensions if applicable (e.g. "500ml", "1040ml", "Set of 3") or null.
+  * "sku": Unique variant SKU (e.g. "Dyta-MCE6-GRN", "Dyta-MCE6-BLU").
+  * "price": Variant price in KES as a number (default to base price if not different).
+  * "stock": Estimated stock quantity (e.g. 15).
+  * "attributes": Array of key-value attributes (e.g. [{"name": "Color", "value": "Green"}]).
+  If multiple colors or sizes are listed in the description (e.g. Green, Blue, Clear, Pink), ALWAYS generate a corresponding variant object for each choice!
 - category: primary category under the group (e.g. "Kitchen Appliances", "Smartphones", "Men's Clothing"). Match existing category if applicable, or create an appropriate new category.
 - subcategories: array of 1-4 specific subcategory names (e.g. ["Blenders & Mixers", "Food Processors"]). Match existing subcategories if applicable, or create fitting new subcategories.
 - tags: array of 5‑8 relevant search tags.

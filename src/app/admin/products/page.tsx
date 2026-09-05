@@ -213,8 +213,38 @@ export default function MerchantProducts() {
             ? data.sizes.join(', ') : (typeof data.sizes === 'string' ? data.sizes : prev.sizes),
           grades: Array.isArray(data.grades) && data.grades.length > 0 
             ? data.grades.join(', ') : (typeof data.grades === 'string' ? data.grades : prev.grades),
-          hasVariants: Array.isArray(data.variants) && data.variants.length > 0 ? true : prev.hasVariants,
-          variants: Array.isArray(data.variants) && data.variants.length > 0 ? data.variants : prev.variants,
+          hasVariants: Array.isArray(data.variants) && data.variants.length > 0 
+            ? true 
+            : (Array.isArray(data.colors) && data.colors.length > 1 ? true : prev.hasVariants),
+          variants: (Array.isArray(data.variants) && data.variants.length > 0)
+            ? data.variants.map((v: any, vIdx: number) => {
+                const vColor = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '') || '';
+                const vSize = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => ['size', 'capacity', 'dimension'].includes(a.name?.toLowerCase()))?.value : '') || '';
+                const vName = v.name && !v.name.toLowerCase().startsWith('option ') && !v.name.toLowerCase().startsWith('variant ')
+                  ? v.name 
+                  : ([vColor, vSize].filter(Boolean).join(' - ') || `Variant ${vIdx + 1}`);
+                return {
+                  ...v,
+                  id: v.id || `v_${Date.now()}_${vIdx}`,
+                  name: vName,
+                  color: vColor,
+                  size: vSize,
+                  price: v.price !== null && v.price !== undefined ? Number(v.price) : (data.price || prev.price || 0),
+                  stock: v.stock !== null && v.stock !== undefined ? Number(v.stock) : (data.stock || prev.stock || 0),
+                  sku: v.sku || `${finalSku || 'SKU'}-${vColor ? vColor.substring(0, 3).toUpperCase() : vIdx + 1}`
+                };
+              })
+            : ((Array.isArray(data.colors) && data.colors.length > 1)
+                ? data.colors.map((c: string, cIdx: number) => ({
+                    id: `v_${Date.now()}_${cIdx}`,
+                    name: c,
+                    color: c,
+                    size: Array.isArray(data.sizes) && data.sizes.length === 1 ? data.sizes[0] : '',
+                    price: data.price || prev.price || 0,
+                    stock: data.stock || prev.stock || 0,
+                    sku: `${finalSku || 'SKU'}-${c.substring(0, 3).toUpperCase()}`
+                  }))
+                : prev.variants),
           imageAltTexts: Object.keys(altTextsObj).length > 0 ? altTextsObj : prev.imageAltTexts,
         };
       });
@@ -1723,6 +1753,12 @@ export default function MerchantProducts() {
         </div>
         {(!isAdding && editingId === null) && (
           <div className="flex flex-wrap gap-2 sm:gap-4 mt-2 sm:mt-0">
+            <Link 
+              href="/admin/products/duplicates"
+              className="bg-yellow-400 text-yellow-900 border-4 border-yellow-600 px-4 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-base font-bold uppercase shadow-[4px_4px_0px_0px_#ca8a04] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_#ca8a04] transition-all inline-flex items-center gap-1.5"
+            >
+              Scan Duplicates
+            </Link>
             <button 
               onClick={handleFullSync}
               disabled={isSyncingCatalog}
@@ -1759,6 +1795,7 @@ export default function MerchantProducts() {
           onChange={(updated) => setEditForm(updated)}
           draftSaveStatus={draftSaveStatus}
           existingSuppliers={Array.from(new Set(products.map(p => p.supplierName).filter(Boolean))) as string[]}
+          existingProducts={products.map(p => ({ id: p.id, name: p.name, thumbnail: p.image_url || (p.image_urls && p.image_urls[0]) }))}
           onSave={async (data) => {
             try {
               const token = await auth.currentUser?.getIdToken();

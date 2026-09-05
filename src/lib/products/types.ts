@@ -46,6 +46,7 @@ export interface ProductVariant {
   barcode?: string;
   attributes: ProductAttribute[]; // subset that define this specific variant
   price?: number; // overrides base price if set
+  salePrice?: number;
   compareAtPrice?: number;
   costPrice?: number;
   stockQuantity: number;
@@ -98,6 +99,7 @@ export interface InventoryPolicy {
 
 export interface ProductPricing {
   price: number;
+  salePrice?: number; // Discounted sale price
   compareAtPrice?: number; // "was" price for showing discounts
   costPrice?: number; // internal cost, not shown to buyers
   currency: string; // ISO 4217, e.g. "USD", "KES"

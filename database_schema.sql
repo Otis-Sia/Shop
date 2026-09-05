@@ -112,11 +112,14 @@ ALTER TABLE products ADD CONSTRAINT unique_sku UNIQUE (sku);
 CREATE TABLE IF NOT EXISTS product_variants (
     id VARCHAR(255) PRIMARY KEY,
     product_id VARCHAR(255) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    name VARCHAR(255),
+    sku VARCHAR(100),
     size VARCHAR(100),
     color VARCHAR(100),
     price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     stock INTEGER DEFAULT 0,
     image_url VARCHAR(255),
+    attributes JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -508,6 +511,7 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS published_at TIMESTAMP WITH TIME Z
 ALTER TABLE products ALTER COLUMN currency SET DEFAULT 'KES';
 
 -- Alter existing product_variants table
+ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS name VARCHAR(255);
 ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS sku VARCHAR(100);
 ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS barcode VARCHAR(100);
 ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS attributes JSONB DEFAULT '[]'::jsonb;

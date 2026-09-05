@@ -113,8 +113,9 @@ export class SupabaseProductRepository implements ProductRepository {
         
         // Sync flat SQL columns for backward and cross-compatibility
         price: product.pricing?.price || 0,
-        currency: product.pricing?.currency || 'KES',
+        sale_price: product.pricing?.salePrice ?? product.pricing?.compareAtPrice ?? null,
         cost_price: product.pricing?.costPrice ?? null,
+        currency: product.pricing?.currency || 'KES',
         stock: product.stockQuantity || 0,
         category: product.categoryIds?.[0] || 'General',
         country_of_origin: product.shipping?.countryOfOrigin || 'Kenya',
@@ -174,7 +175,14 @@ export class SupabaseProductRepository implements ProductRepository {
       features: dbProduct.features || [],
       brand: dbProduct.brand,
       supplierName: dbProduct.supplier_name,
-      pricing: dbProduct.pricing || { price: dbProduct.price, currency: dbProduct.currency, taxable: false },
+      pricing: dbProduct.pricing || { 
+        price: Number(dbProduct.price || 0), 
+        salePrice: dbProduct.sale_price !== null && dbProduct.sale_price !== undefined ? Number(dbProduct.sale_price) : undefined,
+        compareAtPrice: dbProduct.sale_price !== null && dbProduct.sale_price !== undefined ? Number(dbProduct.sale_price) : undefined,
+        costPrice: dbProduct.cost_price !== null && dbProduct.cost_price !== undefined ? Number(dbProduct.cost_price) : undefined,
+        currency: dbProduct.currency || 'KES', 
+        taxable: false 
+      },
       inventory: dbProduct.inventory || { trackInventory: dbProduct.track_inventory || false, allowBackorder: dbProduct.allow_backorders || false },
       stockQuantity: dbProduct.stock_quantity || dbProduct.stock || 0,
       attributes: dbProduct.attributes || [],

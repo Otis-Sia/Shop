@@ -387,51 +387,75 @@ export default function ProductDetailPage() {
           {/* Option Settings */}
           <div className="space-y-4 border-t-2 border-surface-container pt-4">
             {/* Variants List */}
-            {product.hasVariants && product.variants && product.variants.length > 0 && (
-              <div className="space-y-2">
-                <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">
-                  Select Variant: {selectedVariantIndex !== null ? <span className="text-on-surface font-black uppercase">{product.variants[selectedVariantIndex]?.name || product.variants[selectedVariantIndex]?.color || product.variants[selectedVariantIndex]?.size || `Option ${selectedVariantIndex + 1}`}</span> : <span className="text-error font-black uppercase">Required</span>}
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {product.variants.map((v: any, idx: number) => {
-                    const priceStr = getVariantPrice(v).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                    const variantSizes = getVariantSizes(v);
-                    const isSelected = selectedVariantIndex === idx;
-                    return (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          setSelectedVariantIndex(idx);
-                          setSelectedColor(null);
-                          setSelectedSize(null);
-                          if (v.imageUrl) setActiveImage(v.imageUrl);
-                          // Auto-select color/size if the variant only has one option
-                          const parsedColors = parseCommaSeparated(v.color);
-                          if (parsedColors.length === 1) setSelectedColor(parsedColors[0]);
-                          const parsedSizes = getVariantSizes(v);
-                          if (parsedSizes.length === 1) setSelectedSize(parsedSizes[0]);
-                        }}
-                        className={`text-left p-2.5 border-2 text-xs font-bold transition-all flex items-center justify-between gap-2 ${
-                          isSelected 
-                            ? 'bg-primary-container text-on-primary-container border-on-surface' 
-                            : 'bg-surface text-on-surface border-surface-dim hover:border-on-surface hover:bg-surface-container'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          {v.imageUrl && (
-                            <img src={v.imageUrl} alt={`${v.color || ''} ${v.size || ''}`} className="w-16 h-16 object-cover border-2 border-on-surface shrink-0" />
-                          )}
-                          <span className="truncate uppercase">
-                            {[v.name, v.color, variantSizes.join(', ')].filter(Boolean).join(' • ') || `Option ${idx + 1}`}
-                          </span>
-                        </div>
-                        <span className="font-black shrink-0">KSh {priceStr}</span>
-                      </button>
-                    )
-                  })}
+            {product.hasVariants && product.variants && product.variants.length > 0 && (() => {
+              const getVariantLabel = (v: any, idx: number) => {
+                if (v.name && !v.name.toLowerCase().startsWith('option ') && !v.name.toLowerCase().startsWith('variant ')) {
+                  return v.name;
+                }
+                const variantSizes = getVariantSizes(v);
+                const parts = [v.color, variantSizes.join(', ')].filter(Boolean);
+                if (parts.length > 0) return parts.join(' • ');
+
+                if (Array.isArray(v.attributes) && v.attributes.length > 0) {
+                  const attrVals = v.attributes.map((a: any) => a.value || a.name).filter(Boolean);
+                  if (attrVals.length > 0) return attrVals.join(' • ');
+                }
+
+                if (product.colors && product.colors[idx]) {
+                  return product.colors[idx];
+                }
+                if (product.sizes && product.sizes[idx]) {
+                  return product.sizes[idx];
+                }
+                return `Option ${idx + 1}`;
+              };
+
+              return (
+                <div className="space-y-2">
+                  <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">
+                    Select Variant: {selectedVariantIndex !== null ? <span className="text-on-surface font-black uppercase">{getVariantLabel(product.variants[selectedVariantIndex], selectedVariantIndex)}</span> : <span className="text-error font-black uppercase">Required</span>}
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {product.variants.map((v: any, idx: number) => {
+                      const priceStr = getVariantPrice(v).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                      const isSelected = selectedVariantIndex === idx;
+                      const label = getVariantLabel(v, idx);
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setSelectedVariantIndex(idx);
+                            setSelectedColor(null);
+                            setSelectedSize(null);
+                            if (v.imageUrl) setActiveImage(v.imageUrl);
+                            // Auto-select color/size if the variant only has one option
+                            const parsedColors = parseCommaSeparated(v.color);
+                            if (parsedColors.length === 1) setSelectedColor(parsedColors[0]);
+                            const parsedSizes = getVariantSizes(v);
+                            if (parsedSizes.length === 1) setSelectedSize(parsedSizes[0]);
+                          }}
+                          className={`text-left p-2.5 border-2 text-xs font-bold transition-all flex items-center justify-between gap-2 ${
+                            isSelected 
+                              ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                              : 'bg-surface text-on-surface border-surface-dim hover:border-on-surface hover:bg-surface-container'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            {v.imageUrl && (
+                              <img src={v.imageUrl} alt={label} className="w-16 h-16 object-cover border-2 border-on-surface shrink-0" />
+                            )}
+                            <span className="truncate uppercase">
+                              {label}
+                            </span>
+                          </div>
+                          <span className="font-black shrink-0">KSh {priceStr}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Colors */}
             {availableColors.length > 0 && (
