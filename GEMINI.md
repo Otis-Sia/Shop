@@ -8,6 +8,9 @@
 ## Git Workflow
 - **Push Commits to Test Branch**: Anytime a commit is made, always push it to the `Test` branch (e.g., `git push origin HEAD:Test` or pushing directly to `Test`).
 
+## Website Domain & URLs
+- **Canonical Website Address**: The website address is `https://juj4.cepine.com`. Always use `https://juj4.cepine.com` as the canonical domain for metadata, SEO, sitemaps, robots.txt, and canonical URLs.
+
 ## AI API Integrations
 - **JSON Minification**: Whenever injecting data structures or database contexts into AI prompts, always minify the JSON (e.g., `JSON.stringify(context)`) rather than pretty-printing it. This conserves tokens and prevents rate-limit errors (like the 8K TPM limit).
 - **Approved Model Versions (Do NOT Downgrade)**: 
