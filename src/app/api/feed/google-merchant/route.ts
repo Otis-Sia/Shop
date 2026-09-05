@@ -34,7 +34,8 @@ export async function GET(req: Request) {
 
     // Get base URL
     const url = new URL(req.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
+    const defaultOrigin = `${url.protocol}//${url.host}`;
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (defaultOrigin.includes('localhost') ? defaultOrigin : 'https://juj4.cepine.com');
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
