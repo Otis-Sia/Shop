@@ -125,7 +125,7 @@ export default function DeduplicatePage() {
                       <div>
                         <h4 className="font-bold text-sm">{p.name}</h4>
                         <p className="text-xs font-semibold text-secondary uppercase tracking-wider mt-1">SKU: {p.sku || 'N/A'}</p>
-                        <p className="text-xs font-semibold text-secondary uppercase tracking-wider">Price: {p.pricing?.currency || 'KES'} {p.pricing?.price || p.price}</p>
+                        <p className="text-xs font-semibold text-secondary uppercase tracking-wider">Price: {(p as any).pricing?.currency || p.currency || 'KES'} {(p as any).pricing?.price || p.price}</p>
                       </div>
                     </div>
                     <div className="mt-2 flex gap-2">

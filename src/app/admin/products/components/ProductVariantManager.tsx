@@ -146,16 +146,43 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div>
                     <label className="block font-bold text-xs uppercase mb-1">Price Override</label>
                     <input
                       type="number"
                       step="0.01"
-                      placeholder="Leave blank for base price"
-                      value={variant.price || ""}
-                      onChange={(e) => updateVariant(idx, "price", parseFloat(e.target.value) || undefined)}
-                      className="w-full p-1 border border-outline/30 rounded-lg"
+                      placeholder="Base price"
+                      value={variant.price !== undefined && variant.price !== null ? variant.price : ""}
+                      onChange={(e) => updateVariant(idx, "price", e.target.value !== "" ? parseFloat(e.target.value) : undefined)}
+                      className="w-full p-1 border border-outline/30 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-xs uppercase mb-1">Cost Override</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Base cost"
+                      value={variant.costPrice !== undefined && variant.costPrice !== null ? variant.costPrice : ""}
+                      onChange={(e) => updateVariant(idx, "costPrice", e.target.value !== "" ? parseFloat(e.target.value) : undefined)}
+                      className="w-full p-1 border border-outline/30 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-xs uppercase mb-1">Sale Price</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Discounted"
+                      value={variant.salePrice !== undefined && variant.salePrice !== null ? variant.salePrice : (variant.compareAtPrice !== undefined && variant.compareAtPrice !== null ? variant.compareAtPrice : "")}
+                      onChange={(e) => {
+                        const val = e.target.value !== "" ? parseFloat(e.target.value) : undefined;
+                        const newVariants = [...variants];
+                        newVariants[idx] = { ...newVariants[idx], salePrice: val, compareAtPrice: val };
+                        onChangeVariants(newVariants);
+                      }}
+                      className="w-full p-1 border border-outline/30 rounded-lg text-sm"
                     />
                   </div>
                 </div>

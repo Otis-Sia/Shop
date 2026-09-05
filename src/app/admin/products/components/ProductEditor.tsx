@@ -137,6 +137,21 @@ export function ProductEditor({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSkuManuallyEdited, setIsSkuManuallyEdited] = useState(Boolean(initialData?.sku));
 
+  const similarProduct = React.useMemo(() => {
+    if (!formData.name || !existingProducts || existingProducts.length === 0) return null;
+    const currentName = formData.name.toLowerCase().trim();
+    if (currentName.length < 3) return null;
+
+    for (const p of existingProducts) {
+      if (!p.name) continue;
+      const otherName = p.name.toLowerCase().trim();
+      if (currentName === otherName) {
+        return { name: p.name, similarity: 1.0 };
+      }
+    }
+    return null;
+  }, [formData.name, existingProducts]);
+
   const lastEmittedRef = useRef<string>("");
   const lastInitialDataRef = useRef<string>(JSON.stringify(initialData || {}));
 

@@ -202,6 +202,7 @@ export interface CreateProductVariantInput {
   barcode?: string;
   attributes: CreateProductAttributeInput[];
   price?: number;
+  salePrice?: number;
   compareAtPrice?: number;
   costPrice?: number;
   stockQuantity: number;

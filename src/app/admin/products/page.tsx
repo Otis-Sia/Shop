@@ -736,8 +736,8 @@ export default function MerchantProducts() {
     }
 
     const priceNum = Number(product.price || (product as any).pricing?.price || 0);
-    const costNum = product.costPrice !== undefined && product.costPrice !== null && product.costPrice !== '' ? Number(product.costPrice) : undefined;
-    const saleNum = product.salePrice !== undefined && product.salePrice !== null && product.salePrice !== '' ? Number(product.salePrice) : undefined;
+    const costNum = product.costPrice !== undefined && product.costPrice !== null ? Number(product.costPrice) : undefined;
+    const saleNum = product.salePrice !== undefined && product.salePrice !== null ? Number(product.salePrice) : undefined;
 
     setEditForm({ 
       ...product, 
@@ -1809,7 +1809,7 @@ export default function MerchantProducts() {
           onChange={(updated) => setEditForm(updated)}
           draftSaveStatus={draftSaveStatus}
           existingSuppliers={Array.from(new Set(products.map(p => p.supplierName).filter(Boolean))) as string[]}
-          existingProducts={products.map(p => ({ id: p.id, name: p.name, thumbnail: p.image_url || (p.image_urls && p.image_urls[0]) }))}
+          existingProducts={products.map(p => ({ id: p.id, name: p.name, thumbnail: p.image_url || ((p as any).imageUrls && (p as any).imageUrls[0]) }))}
           onSave={async (data) => {
             try {
               const token = await auth.currentUser?.getIdToken();
