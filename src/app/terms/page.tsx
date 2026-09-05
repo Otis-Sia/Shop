@@ -55,7 +55,7 @@ export default function TermsOfServicePage() {
               4. Orders, Shipping & Delivery
             </h2>
             <p className="font-body-md text-sm text-secondary font-medium leading-relaxed">
-              We reserve the right to refuse or cancel any order. Shipping times are estimates and not guaranteed. The risk of loss passes to you upon our delivery to the carrier.
+              We reserve the right to refuse or cancel any order. Shipping times are estimates and not guaranteed. We utilize public and third-party shipping carriers for order delivery. Once an order has been handed over to the carrier, risk of loss, damage, delays, or issues occurring during transit are the sole responsibility of and handled directly with the shipping carrier.
             </p>
           </div>
 
