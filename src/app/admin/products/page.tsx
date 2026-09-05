@@ -1844,8 +1844,13 @@ export default function MerchantProducts() {
     registeredSuppliers.forEach(s => {
       if (s.name && s.name.trim()) set.add(s.name.trim());
     });
+    products.forEach(p => {
+      if (p.supplierName && p.supplierName.trim()) {
+        set.add(p.supplierName.trim());
+      }
+    });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [registeredSuppliers]);
+  }, [registeredSuppliers, products]);
 
   const uniqueSuppliers = allSupplierNames;
 
@@ -2194,40 +2199,15 @@ export default function MerchantProducts() {
 
           {/* Bulk Action Header */}
           {selectedProductIds.length > 0 && (
-            <div className="p-4 bg-primary-container text-on-surface border-4 border-on-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 font-bold">
-              <span className="text-sm font-black uppercase">{selectedProductIds.length} item(s) selected</span>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    list="bulk-suppliers-list"
-                    value={bulkSupplierTarget}
-                    onChange={(e) => setBulkSupplierTarget(e.target.value)}
-                    placeholder="Assign supplier..."
-                    className="border-2 border-on-surface bg-surface px-2.5 py-1 text-xs font-bold focus:outline-none"
-                  />
-                  <datalist id="bulk-suppliers-list">
-                    {allSupplierNames.map(s => (
-                      <option key={s} value={s} />
-                    ))}
-                  </datalist>
-                  <button
-                    type="button"
-                    onClick={handleBulkAssignSupplier}
-                    disabled={isBulkAssigning || !bulkSupplierTarget.trim()}
-                    className="bg-on-surface text-surface border-2 border-on-surface px-3 py-1 text-xs font-black uppercase hover:bg-surface hover:text-on-surface transition-colors disabled:opacity-50"
-                  >
-                    {isBulkAssigning ? 'Assigning...' : 'Assign Supplier'}
-                  </button>
-                </div>
-                <button 
-                  onClick={handleBulkDelete}
-                  disabled={isBulkDeleting}
-                  className="bg-error text-white border-2 border-on-surface px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_var(--color-on-surface)] hover:translate-y-[1px] hover:translate-x-[1px] transition-all disabled:opacity-50"
-                >
-                  {isBulkDeleting ? 'Deleting...' : 'Delete Selected'}
-                </button>
-              </div>
+            <div className="p-4 bg-error-container text-error border-4 border-on-surface flex items-center justify-between font-bold">
+              <span>{selectedProductIds.length} item(s) selected</span>
+              <button 
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+                className="bg-error text-white border-2 border-on-surface px-4 py-1.5 text-xs font-black uppercase shadow-[2px_2px_0px_0px_var(--color-on-surface)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-[1px_1px_0px_0px_var(--color-on-surface)] transition-all disabled:opacity-50"
+              >
+                {isBulkDeleting ? 'Deleting...' : 'Delete Selected'}
+              </button>
             </div>
           )}
 
@@ -2296,25 +2276,14 @@ export default function MerchantProducts() {
                           </div>
                         </td>
                         <td className="p-4">
-                          <div className="relative inline-block max-w-[170px]">
-                            <select
-                              value={product.supplierName || ""}
-                              onChange={(e) => handleInlineSupplierChange(product.id, e.target.value)}
-                              disabled={updatingSupplierId === product.id}
-                              className={`text-xs font-bold px-2 py-1 border-2 border-on-surface cursor-pointer focus:outline-none transition-colors max-w-full truncate ${
-                                product.supplierName 
-                                  ? 'bg-primary-container text-on-surface' 
-                                  : 'bg-surface text-secondary border-dashed'
-                              }`}
-                            >
-                              <option value="">{updatingSupplierId === product.id ? 'Updating...' : '-- Select Supplier --'}</option>
-                              {allSupplierNames.map((s) => (
-                                <option key={s} value={s}>
-                                  {s}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                          {product.supplierName ? (
+                            <span className="inline-flex items-center gap-1 font-bold text-xs bg-primary-container text-on-surface px-2.5 py-1 border-2 border-on-surface shadow-[2px_2px_0px_0px_var(--color-on-surface)]">
+                              <Icon name="store" className="text-xs" />
+                              {product.supplierName}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-secondary italic">None</span>
+                          )}
                         </td>
                         <td className="p-4">
                           <div className="text-xs space-y-0.5">
@@ -2452,25 +2421,13 @@ export default function MerchantProducts() {
                             SKU: {product.sku}
                           </p>
                         )}
-                        <div className="mt-1">
-                          <select
-                            value={product.supplierName || ""}
-                            onChange={(e) => handleInlineSupplierChange(product.id, e.target.value)}
-                            disabled={updatingSupplierId === product.id}
-                            className={`text-[11px] font-bold px-1.5 py-0.5 border-2 border-on-surface cursor-pointer focus:outline-none max-w-full ${
-                              product.supplierName 
-                                ? 'bg-primary-container text-on-surface' 
-                                : 'bg-surface text-secondary border-dashed'
-                            }`}
-                          >
-                            <option value="">{updatingSupplierId === product.id ? 'Updating...' : '-- Select Supplier --'}</option>
-                            {allSupplierNames.map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        {product.supplierName ? (
+                          <div className="mt-1">
+                            <span className="inline-block text-[10px] font-bold bg-primary-container text-on-surface px-1.5 py-0.5 border border-on-surface">
+                              Supplier: {product.supplierName}
+                            </span>
+                          </div>
+                        ) : null}
                         <p className="text-xs font-semibold mt-1 text-primary-container">
                           {CURRENCY_CONFIG.symbol} {Number(product.price ?? (product as any).pricing?.price ?? 0).toFixed(2)}
                         </p>
