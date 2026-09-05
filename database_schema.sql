@@ -299,7 +299,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Popularity score calculation helper function:
--- Formula: (views * 1) + (wishlist_additions * 3) + (cart_additions * 5) + (purchases * 10)
+-- Formula: (views * 1) + (wishlist_additions * 2) + (cart_additions * 4) + (purchases * 7)
 CREATE OR REPLACE FUNCTION calculate_product_popularity_score(
     p_views INTEGER,
     p_wishlist_additions INTEGER,
@@ -310,9 +310,9 @@ RETURNS DECIMAL(10, 2) AS $$
 BEGIN
     RETURN (
         (GREATEST(COALESCE(p_views, 0), 0) * 1.0) +
-        (GREATEST(COALESCE(p_wishlist_additions, 0), 0) * 3.0) +
-        (GREATEST(COALESCE(p_cart_additions, 0), 0) * 5.0) +
-        (GREATEST(COALESCE(p_purchases, 0), 0) * 10.0)
+        (GREATEST(COALESCE(p_wishlist_additions, 0), 0) * 2.0) +
+        (GREATEST(COALESCE(p_cart_additions, 0), 0) * 4.0) +
+        (GREATEST(COALESCE(p_purchases, 0), 0) * 7.0)
     );
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;

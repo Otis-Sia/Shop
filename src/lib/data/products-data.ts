@@ -52,6 +52,13 @@ export interface Product {
   createdAt?: any;
   updatedAt?: any;
   trackInventory?: boolean;
+  analytics?: {
+    views: number;
+    cartAdditions: number;
+    wishlistAdditions: number;
+    purchases: number;
+    popularityScore: number;
+  };
 }
 
 export const productsData: Product[] = productsJson as Product[];

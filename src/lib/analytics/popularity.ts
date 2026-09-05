@@ -13,14 +13,14 @@ export interface ProductAnalytics {
 
 export const POPULARITY_WEIGHTS = {
   VIEW: 1.0,
-  WISHLIST_ADD: 3.0,
-  CART_ADD: 5.0,
-  PURCHASE: 10.0,
+  WISHLIST_ADD: 2.0,
+  CART_ADD: 4.0,
+  PURCHASE: 7.0,
 } as const;
 
 /**
  * Calculates popularity score from event metrics.
- * Formula: (views * 1) + (wishlist_additions * 3) + (cart_additions * 5) + (purchases * 10)
+ * Formula: (views * 1) + (wishlist_additions * 2) + (cart_additions * 4) + (purchases * 7)
  */
 export function calculatePopularityScore(metrics: {
   views?: number | null;

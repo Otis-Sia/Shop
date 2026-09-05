@@ -6,7 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getUserProfile } from "@/lib/api/auth";
 import Link from "next/link";
-import { Package, ShoppingCart, LayoutDashboard, Settings, Users } from "lucide-react";
+import { Package, ShoppingCart, LayoutDashboard, Settings, Users, BarChart3 } from "lucide-react";
 
 export default function MerchantLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -78,6 +78,10 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
           <Link href="/admin/orders" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container rounded-lg transition-colors rounded-none shrink-0">
             <ShoppingCart size={20} className="md:w-6 md:h-6" />
             <span className="text-sm md:text-base">My Orders</span>
+          </Link>
+          <Link href="/admin/analytics" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container rounded-lg transition-colors rounded-none shrink-0">
+            <BarChart3 size={20} className="md:w-6 md:h-6" />
+            <span className="text-sm md:text-base">Analytics</span>
           </Link>
           <Link href="/admin/suppliers" className="flex items-center gap-2 md:gap-3 p-3 hover:bg-surface hover:text-on-surface dark:hover:bg-surface-container-high dark:hover:text-primary-container rounded-lg transition-colors rounded-none shrink-0">
             <Users size={20} className="md:w-6 md:h-6" />

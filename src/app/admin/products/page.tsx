@@ -1639,6 +1639,12 @@ export default function MerchantProducts() {
 
     if (sortBy === 'newest') {
       result.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    } else if (sortBy === 'popularity_desc') {
+      result.sort((a, b) => (b.analytics?.popularityScore ?? 0) - (a.analytics?.popularityScore ?? 0));
+    } else if (sortBy === 'views_desc') {
+      result.sort((a, b) => (b.analytics?.views ?? 0) - (a.analytics?.views ?? 0));
+    } else if (sortBy === 'purchases_desc') {
+      result.sort((a, b) => (b.analytics?.purchases ?? 0) - (a.analytics?.purchases ?? 0));
     } else if (sortBy === 'price_asc') {
       result.sort((a, b) => Number(a.price ?? (a as any).pricing?.price ?? 0) - Number(b.price ?? (b as any).pricing?.price ?? 0));
     } else if (sortBy === 'price_desc') {
@@ -1885,6 +1891,9 @@ export default function MerchantProducts() {
                   className="w-full border-2 border-on-surface p-2 text-sm focus:ring-0 outline-none bg-surface font-bold uppercase"
                 >
                   <option value="newest">Newest First</option>
+                  <option value="popularity_desc">Highest Popularity Score</option>
+                  <option value="views_desc">Most Views</option>
+                  <option value="purchases_desc">Most Purchased</option>
                   <option value="name_asc">Name (A-Z)</option>
                   <option value="price_asc">Price: Low to High</option>
                   <option value="price_desc">Price: High to Low</option>
@@ -1969,13 +1978,14 @@ export default function MerchantProducts() {
                   <th className="p-4 border-b-4 border-on-surface">Supplier</th>
                   <th className="p-4 border-b-4 border-on-surface">Pricing</th>
                   <th className="p-4 border-b-4 border-on-surface">Stock</th>
+                  <th className="p-4 border-b-4 border-on-surface">Performance & Engagement</th>
                   <th className="p-4 border-b-4 border-on-surface text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {displayedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center font-bold text-secondary">
+                    <td colSpan={7} className="p-8 text-center font-bold text-secondary">
                       No products match the selected filters.
                     </td>
                   </tr>
@@ -2058,6 +2068,21 @@ export default function MerchantProducts() {
                               {product.stock} in stock
                             </span>
                           )}
+                        </td>
+                        <td className="p-4">
+                          <div className="space-y-1 text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-[11px] bg-primary-container text-on-surface px-1.5 py-0.5 border border-on-surface">
+                                Score: {product.analytics?.popularityScore ?? 0}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px] text-secondary font-medium">
+                              <span>Views (1pt): <strong className="text-on-surface">{product.analytics?.views ?? 0}</strong></span>
+                              <span>Wishlist (2pt): <strong className="text-on-surface">{product.analytics?.wishlistAdditions ?? 0}</strong></span>
+                              <span>Cart (4pt): <strong className="text-on-surface">{product.analytics?.cartAdditions ?? 0}</strong></span>
+                              <span>Bought (7pt): <strong className="text-on-surface text-green-700">{product.analytics?.purchases ?? 0}</strong></span>
+                            </div>
+                          </div>
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex flex-wrap gap-1.5 justify-end items-center">
@@ -2164,6 +2189,23 @@ export default function MerchantProducts() {
                           ) : (
                             <span className="text-[11px] text-secondary font-medium">Stock: <strong className="text-on-surface">{product.stock}</strong></span>
                           )}
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-on-surface/10 text-[10px] space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold bg-primary-container text-on-surface px-1 py-0.5 border border-on-surface text-[10px]">
+                              Score: {product.analytics?.popularityScore ?? 0}
+                            </span>
+                            <span className="text-secondary font-semibold">
+                              Views: <strong className="text-on-surface">{product.analytics?.views ?? 0}</strong>
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-secondary font-semibold">
+                            <span>Wishlist: <strong className="text-on-surface">{product.analytics?.wishlistAdditions ?? 0}</strong></span>
+                            <span>•</span>
+                            <span>Cart: <strong className="text-on-surface">{product.analytics?.cartAdditions ?? 0}</strong></span>
+                            <span>•</span>
+                            <span>Bought: <strong className="text-green-700 font-bold">{product.analytics?.purchases ?? 0}</strong></span>
+                          </div>
                         </div>
                       </div>
                     </div>

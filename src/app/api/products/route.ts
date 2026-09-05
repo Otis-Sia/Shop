@@ -71,6 +71,19 @@ const mapDbProductToProduct = (p: any, variants: any[] = [], merchantProfile: an
       stock: v.stock !== null && v.stock !== undefined ? Number(v.stock) : 0,
       imageUrl: v.image_url || ''
     })),
+    analytics: p.product_analytics ? {
+      views: Number(p.product_analytics.views || 0),
+      cartAdditions: Number(p.product_analytics.cart_additions || 0),
+      wishlistAdditions: Number(p.product_analytics.wishlist_additions || 0),
+      purchases: Number(p.product_analytics.purchases || 0),
+      popularityScore: Number(p.product_analytics.popularity_score || 0),
+    } : {
+      views: 0,
+      cartAdditions: 0,
+      wishlistAdditions: 0,
+      purchases: 0,
+      popularityScore: 0,
+    },
     
     trackInventory: p.track_inventory !== false,
     lowStockAlert: p.low_stock_alert || false,
@@ -99,6 +112,7 @@ export async function GET(request: Request) {
     let query = supabase.from('products').select(`
       *,
       product_variants (*),
+      product_analytics (*),
       users:merchant_id (uid, first_name, last_name, store_name, merchant_status, business_type)
     `);
 

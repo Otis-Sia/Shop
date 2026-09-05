@@ -4,7 +4,7 @@ import {
   calculatePopularityScore,
   normalizeTrackingEventType,
   POPULARITY_WEIGHTS
-} from '../src/lib/analytics/popularity';
+} from '../src/lib/analytics/popularity.ts';
 
 describe('Analytics Algorithm Comprehensive Edge Cases', () => {
   it('should handle large metrics without overflow or precision loss', () => {
@@ -14,9 +14,9 @@ describe('Analytics Algorithm Comprehensive Edge Cases', () => {
       cartAdditions: 100000,
       purchases: 50000
     });
-    // 1000000 * 1 + 250000 * 3 + 100000 * 5 + 50000 * 10
-    // 1000000 + 750000 + 500000 + 500000 = 2750000
-    assert.equal(score, 2750000);
+    // 1000000 * 1 + 250000 * 2 + 100000 * 4 + 50000 * 7
+    // 1000000 + 500000 + 400000 + 350000 = 2250000
+    assert.equal(score, 2250000);
   });
 
   it('should handle decimal quantities if fractional inputs are provided', () => {
@@ -26,8 +26,8 @@ describe('Analytics Algorithm Comprehensive Edge Cases', () => {
       cartAdditions: 3.1,
       purchases: 4.4
     });
-    // 1.5*1 + 2.2*3 (6.6) + 3.1*5 (15.5) + 4.4*10 (44) = 1.5 + 6.6 + 15.5 + 44 = 67.6
-    assert.equal(score, 67.6);
+    // 1.5*1 + 2.2*2 (4.4) + 3.1*4 (12.4) + 4.4*7 (30.8) = 1.5 + 4.4 + 12.4 + 30.8 = 49.1
+    assert.equal(score, 49.1);
   });
 
   it('should correctly prioritize purchases > cart_adds > wishlist_adds > views', () => {
