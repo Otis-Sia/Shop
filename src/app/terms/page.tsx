@@ -15,7 +15,7 @@ export default function TermsOfServicePage() {
       <section className="max-w-4xl mx-auto space-y-12">
         <div className="text-center space-y-4">
           <h1 className="font-headline-md text-4xl md:text-5xl font-black uppercase tracking-tight text-on-surface">Terms of Service</h1>
-          <p className="font-extrabold text-xs uppercase tracking-wider text-secondary">Last Updated: October 2024</p>
+          <p className="font-extrabold text-xs uppercase tracking-wider text-secondary">Last Updated: September 2026</p>
         </div>
 
         <div className="bg-surface border-2 border-on-surface p-8 md:p-12 shadow-[8px_8px_0px_0px_var(--color-on-surface)] space-y-10">
