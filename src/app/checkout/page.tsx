@@ -437,6 +437,22 @@ export default function CheckoutPage() {
               {submitting ? 'Placing Order...' : 'Place Order'}
             </button>
 
+            <p className="mt-3 text-[11px] text-center text-secondary leading-normal">
+              By placing an order, you agree to our{' '}
+              <Link href="/terms" className="underline font-bold text-on-surface hover:text-primary-container">
+                Terms
+              </Link>
+              ,{' '}
+              <Link href="/privacy" className="underline font-bold text-on-surface hover:text-primary-container">
+                Privacy
+              </Link>
+              , and{' '}
+              <Link href="/returns" className="underline font-bold text-on-surface hover:text-primary-container">
+                Return &amp; Refund Policy
+              </Link>
+              .
+            </p>
+
             <Link
               href="/cart"
               className="mt-4 w-full h-12 border-2 border-on-surface font-bold uppercase tracking-wider text-xs flex items-center justify-center hover:bg-surface-container-low transition-colors"

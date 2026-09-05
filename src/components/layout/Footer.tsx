@@ -112,6 +112,7 @@ export default function Footer() {
                 { label: 'Returns & Refunds', href: '/returns' },
                 { label: 'Order Tracking', href: '/orders' },
                 { label: 'Privacy Policy', href: '/privacy' },
+                { label: 'Cookie Policy', href: '/cookies' },
                 { label: 'Terms of Service', href: '/terms' },
               ].map(link => (
                 <li key={link.label}>
