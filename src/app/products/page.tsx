@@ -98,10 +98,29 @@ function ProductsPageContent() {
 
   const searchParams = useSearchParams();
 
-  // Compute which groups have products (for sidebar visibility)
+  // Compute which groups have products (for sidebar visibility), hierarchy-aware
   const productCategoryNames = useMemo(() => {
-    return new Set(products.map(p => p.category).filter(Boolean));
-  }, [products]);
+    const matchingGroups = new Set<string>();
+    products.forEach((p) => {
+      // Direct match on groupCategory or category
+      if (p.groupCategory) matchingGroups.add(p.groupCategory);
+
+      categories.forEach((group) => {
+        if (p.groupCategory === group.name || p.category === group.name) {
+          matchingGroups.add(group.name);
+          return;
+        }
+        if (group.categories?.some((node) => 
+          node.name === p.category || 
+          p.subcategories?.includes(node.name) ||
+          node.subcategories?.some((sub) => sub === p.category || p.subcategories?.includes(sub))
+        )) {
+          matchingGroups.add(group.name);
+        }
+      });
+    });
+    return matchingGroups;
+  }, [products, categories]);
 
   // Client-side filtering: category hierarchy, keyword, price
   const filteredProducts = useMemo(() => {
@@ -109,32 +128,53 @@ function ProductsPageContent() {
 
     if (category) {
       if (selectedLevel === 'group') {
-        result = result.filter(p => p.category === category);
+        result = result.filter((p) => {
+          if (p.groupCategory === category || p.category === category) return true;
+          const targetGroup = categories.find((g) => g.name === category);
+          if (!targetGroup) return false;
+          return targetGroup.categories?.some((node) => 
+            node.name === p.category || 
+            p.subcategories?.includes(node.name) ||
+            node.subcategories?.some((sub) => sub === p.category || p.subcategories?.includes(sub))
+          );
+        });
       } else if (selectedLevel === 'node') {
-        const parentGroups = categories
-          .filter(g => g.categories.some(c => c.name === category))
-          .map(g => g.name);
-        result = result.filter(p => parentGroups.includes(p.category));
+        result = result.filter((p) => {
+          if (p.category === category || p.subcategories?.includes(category)) return true;
+          // Check if product's category/subcategories are children of this node
+          for (const g of categories) {
+            const targetNode = g.categories?.find((c) => c.name === category);
+            if (targetNode) {
+              if (targetNode.subcategories?.some((sub) => sub === p.category || p.subcategories?.includes(sub))) {
+                return true;
+              }
+            }
+          }
+          return false;
+        });
       } else if (selectedLevel === 'sub') {
-        const parentGroups = categories
-          .filter(g => g.categories.some(c => c.subcategories?.includes(category)))
-          .map(g => g.name);
-        result = result.filter(p => parentGroups.includes(p.category));
+        result = result.filter((p) => 
+          p.category === category || 
+          p.subcategories?.includes(category) || 
+          p.tags?.includes(category)
+        );
       }
     }
 
     if (keyword) {
       const kw = keyword.toLowerCase();
-      result = result.filter(p =>
+      result = result.filter((p) =>
         p.name.toLowerCase().includes(kw) ||
         p.description?.toLowerCase().includes(kw) ||
-        p.brand?.toLowerCase().includes(kw)
+        p.brand?.toLowerCase().includes(kw) ||
+        p.category?.toLowerCase().includes(kw) ||
+        p.tags?.some((t) => t.toLowerCase().includes(kw))
       );
     }
 
     if (maxPrice) {
       const max = Number(maxPrice);
-      result = result.filter(p => {
+      result = result.filter((p) => {
         const salePrice = p.salePrice ? parseFloat(String(p.salePrice)) : 0;
         const finalPrice = (salePrice > 0 && salePrice < p.price) ? salePrice : p.price;
         return finalPrice <= max;
