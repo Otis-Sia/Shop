@@ -540,23 +540,7 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Delivery & Return Policies Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t-2 border-surface-container pt-6">
-            <div className="flex gap-3 items-start p-3 bg-surface border border-on-surface-variant">
-              <Icon name="local_shipping" className="text-primary-container text-2xl font-bold" />
-              <div>
-                <h4 className="font-extrabold text-[10px] uppercase text-on-surface">Free Delivery</h4>
-                <p className="text-[9px] text-secondary font-semibold uppercase mt-0.5">Complimentary for orders over Ksh 150</p>
-              </div>
-            </div>
-            <div className="flex gap-3 items-start p-3 bg-surface border border-on-surface-variant">
-              <Icon name="swap_horiz" className="text-primary-container text-2xl font-bold" />
-              <div>
-                <h4 className="font-extrabold text-[10px] uppercase text-on-surface">30 Days Return</h4>
-                <p className="text-[9px] text-secondary font-semibold uppercase mt-0.5">Hassle-free operations guarantee</p>
-              </div>
-            </div>
-          </div>
+
 
         </div>
 
