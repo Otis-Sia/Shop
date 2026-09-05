@@ -53,10 +53,25 @@ function normalizeProductData(data?: any): Partial<CreateProductInput> {
   }
 
   // Normalize pricing
+  const rawSalePrice = data.pricing?.salePrice !== undefined 
+    ? Number(data.pricing.salePrice) 
+    : (data.pricing?.compareAtPrice !== undefined 
+        ? Number(data.pricing.compareAtPrice) 
+        : (data.salePrice !== undefined && data.salePrice !== "" ? Number(data.salePrice) : undefined));
+
+  const rawCostPrice = data.pricing?.costPrice !== undefined 
+    ? Number(data.pricing.costPrice) 
+    : (data.costPrice !== undefined && data.costPrice !== "" ? Number(data.costPrice) : undefined);
+
+  const rawPrice = data.pricing?.price !== undefined 
+    ? Number(data.pricing.price) 
+    : (data.price !== undefined && data.price !== "" ? Number(data.price) : 0);
+
   const pricing = {
-    price: data.pricing?.price !== undefined ? Number(data.pricing.price) : (data.price !== undefined && data.price !== "" ? Number(data.price) : 0),
-    compareAtPrice: data.pricing?.compareAtPrice !== undefined ? Number(data.pricing.compareAtPrice) : (data.salePrice !== undefined && data.salePrice !== "" ? Number(data.salePrice) : undefined),
-    costPrice: data.pricing?.costPrice !== undefined ? Number(data.pricing.costPrice) : (data.costPrice !== undefined && data.costPrice !== "" ? Number(data.costPrice) : undefined),
+    price: rawPrice,
+    salePrice: rawSalePrice,
+    compareAtPrice: rawSalePrice,
+    costPrice: rawCostPrice,
     currency: data.pricing?.currency || data.currency || "KES",
     taxable: data.pricing?.taxable ?? true,
   };

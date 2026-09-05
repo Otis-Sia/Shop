@@ -672,6 +672,16 @@ export default function MerchantProducts() {
       sku: '',
       supplierName: '',
       costPrice: '',
+      price: 0,
+      salePrice: '',
+      pricing: {
+        price: 0,
+        costPrice: undefined,
+        salePrice: undefined,
+        compareAtPrice: undefined,
+        currency: 'KES',
+        taxable: true,
+      },
 
       groupCategory: '',
       category: 'Apparel',
@@ -688,8 +698,6 @@ export default function MerchantProducts() {
       imageAltTexts: {},
       videoUrl: '',
       
-      price: 0,
-      salePrice: 0,
       saleStartDate: '',
       saleEndDate: '',
       
@@ -727,10 +735,24 @@ export default function MerchantProducts() {
       formattedEndDate = d.toISOString().split('T')[0];
     }
 
+    const priceNum = Number(product.price || (product as any).pricing?.price || 0);
+    const costNum = product.costPrice !== undefined && product.costPrice !== null && product.costPrice !== '' ? Number(product.costPrice) : undefined;
+    const saleNum = product.salePrice !== undefined && product.salePrice !== null && product.salePrice !== '' ? Number(product.salePrice) : undefined;
+
     setEditForm({ 
       ...product, 
-      supplierName: product.supplierName || '',
+      price: priceNum,
       costPrice: product.costPrice !== undefined && product.costPrice !== null ? product.costPrice : '',
+      salePrice: product.salePrice !== undefined && product.salePrice !== null ? product.salePrice : '',
+      pricing: {
+        price: priceNum,
+        costPrice: costNum,
+        salePrice: saleNum,
+        compareAtPrice: saleNum,
+        currency: product.currency || (product as any).pricing?.currency || 'KES',
+        taxable: (product as any).pricing?.taxable ?? true,
+      },
+      supplierName: product.supplierName || '',
       groupCategory: product.groupCategory || '',
       imageUrls: product.imageUrls || [''],
       tags: product.tags?.join(', ') || '',
@@ -1770,15 +1792,6 @@ export default function MerchantProducts() {
             <button 
               onClick={() => {
                 handleAddNew();
-                setIsQuickAdd(true);
-              }}
-              className="bg-secondary-container text-on-surface border-4 border-on-surface px-4 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-base font-bold uppercase shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_var(--color-on-surface)] transition-all"
-            >
-              Quick Add
-            </button>
-            <button 
-              onClick={() => {
-                handleAddNew();
                 setIsQuickAdd(false);
               }}
               className="bg-primary-container text-on-surface border-4 border-on-surface px-4 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-base font-bold uppercase shadow-[4px_4px_0px_0px_var(--color-on-surface)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_var(--color-on-surface)] transition-all"
@@ -1822,7 +1835,11 @@ export default function MerchantProducts() {
                   ...savedItem,
                   id: isNaN(Number(savedItem.id)) ? savedItem.id : Number(savedItem.id),
                   price: Number(savedItem.pricing?.price ?? savedItem.price ?? 0),
-                  salePrice: savedItem.pricing?.salePrice ? Number(savedItem.pricing.salePrice) : (savedItem.salePrice ? Number(savedItem.salePrice) : undefined),
+                  salePrice: savedItem.pricing?.salePrice !== undefined && savedItem.pricing?.salePrice !== null 
+                    ? Number(savedItem.pricing.salePrice) 
+                    : (savedItem.pricing?.compareAtPrice !== undefined && savedItem.pricing?.compareAtPrice !== null 
+                        ? Number(savedItem.pricing.compareAtPrice) 
+                        : (savedItem.salePrice !== undefined && savedItem.salePrice !== null ? Number(savedItem.salePrice) : undefined)),
                   costPrice: savedItem.pricing?.costPrice !== undefined && savedItem.pricing?.costPrice !== null ? Number(savedItem.pricing.costPrice) : (savedItem.costPrice !== undefined && savedItem.costPrice !== null ? Number(savedItem.costPrice) : undefined),
                   stock: savedItem.stockQuantity !== undefined && savedItem.stockQuantity !== null ? Number(savedItem.stockQuantity) : (savedItem.stock !== undefined && savedItem.stock !== null ? Number(savedItem.stock) : 0),
                   category: savedItem.categoryIds?.[0] || savedItem.category || 'General',
