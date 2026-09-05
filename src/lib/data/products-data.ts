@@ -22,6 +22,10 @@ export interface Product {
   grades?: string[];
   capacity?: string;
   power?: string;
+  weight?: number;
+  weightUnit?: string;
+  attributes?: any;
+  countryOfOrigin?: string;
   discount?: number;
   additional_images?: string[];
   imageUrls?: string[];

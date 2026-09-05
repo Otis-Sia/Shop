@@ -89,6 +89,12 @@ export interface Product {
   labels?: string[];
   colors?: string[];
   sizes?: string[];
+  grades?: string[];
+  capacity?: string;
+  power?: string;
+  weight?: number;
+  weightUnit?: string;
+  attributes?: any;
   hasVariants?: boolean;
   variants?: ProductVariant[];
   supplierName?: string;

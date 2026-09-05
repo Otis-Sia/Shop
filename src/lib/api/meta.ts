@@ -18,6 +18,66 @@ const getGraphClient = () => {
   });
 };
 
+function buildRichWhatsAppDescription(product: any): string {
+  const sections: string[] = [];
+
+  // 1. Primary Description
+  const mainDesc = (product.description || product.shortDescription || "").trim();
+  if (mainDesc) {
+    sections.push(mainDesc);
+  }
+
+  // 2. Key Features / Highlights
+  const features = Array.isArray(product.features) ? product.features.filter(Boolean) : [];
+  if (features.length > 0) {
+    const featureLines = features.map((f: string) => `• ${f}`);
+    sections.push(`*Key Features:*\n${featureLines.join("\n")}`);
+  }
+
+  // 3. Specifications & Variants
+  const specs: string[] = [];
+  if (product.brand && product.brand.toLowerCase() !== "generic") {
+    specs.push(`• Brand: ${product.brand}`);
+  }
+  if (product.sku) {
+    specs.push(`• SKU / Model: ${product.sku}`);
+  }
+  if (product.category) {
+    specs.push(`• Category: ${product.category}`);
+  }
+  if (product.capacity) {
+    specs.push(`• Capacity: ${product.capacity}`);
+  }
+  if (product.power) {
+    specs.push(`• Power: ${product.power}`);
+  }
+  if (product.weight) {
+    specs.push(`• Weight: ${product.weight} ${product.weightUnit || "kg"}`);
+  }
+  if (Array.isArray(product.grades) && product.grades.length > 0) {
+    specs.push(`• Condition / Grade: ${product.grades.join(", ")}`);
+  }
+  if (Array.isArray(product.colors) && product.colors.length > 0) {
+    specs.push(`• Available Colors: ${product.colors.join(", ")}`);
+  }
+  if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+    specs.push(`• Available Sizes: ${product.sizes.join(", ")}`);
+  }
+  if (product.countryOfOrigin) {
+    specs.push(`• Origin: ${product.countryOfOrigin}`);
+  }
+
+  if (specs.length > 0) {
+    sections.push(`*Specifications:*\n${specs.join("\n")}`);
+  }
+
+  // 4. Delivery & Order Info
+  sections.push(`*Ordering & Delivery:*\n• Fast dispatch & delivery across Kenya\n• 100% Genuine & Quality Assured`);
+
+  const combined = sections.join("\n\n");
+  return combined.length > 0 ? combined.slice(0, 4900) : product.name || "";
+}
+
 /**
  * Create or update products in a Meta catalog.
  *
@@ -40,11 +100,12 @@ export async function syncProducts(products: any[]) {
       const category = product.category || "General";
       const additionalImages = (product.imageUrls || []).slice(1, 11).filter(Boolean);
       const salePriceVal = product.salePrice ? Number(product.salePrice).toFixed(2) : null;
+      const richDescription = buildRichWhatsAppDescription(product);
 
       const itemData: Record<string, any> = {
         id: productId,
         title: product.name,
-        description: product.description || product.shortDescription || product.name || "",
+        description: richDescription,
         availability: inStock ? "in stock" : "out of stock",
         condition: "new",
         price: `${priceVal} ${currencyVal}`,
