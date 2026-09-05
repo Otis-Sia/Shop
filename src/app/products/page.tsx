@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getProducts, getCategories, getAvailableTags } from '@/lib/api/products';
+import { getProducts } from '@/lib/api/products';
 import { useCategories } from '@/hooks/useCategories';
 import { addToCart } from '@/lib/api/cart';
 import { addToWishlist, removeFromWishlist, getWishlist } from '@/lib/api/wishlist';
 import { trackAddToCart, trackAddToWishlist } from '@/lib/api/analytics';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { getUserProfile, User } from '@/lib/api/auth';
+import { getUserProfile } from '@/lib/api/auth';
 import { canAddToCartRole } from '@/lib/access';
 import { Product } from '@/lib/data/products-data';
 import Icon from '@/components/Icon';
@@ -79,7 +79,9 @@ const formatSellerAge = (createdAt: any): string => {
 function ProductsPageContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const { categories } = useCategories();
-  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<'group' | 'node' | 'sub'>('group');
+  const [mobileExpandedGroup, setMobileExpandedGroup] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
@@ -93,11 +95,56 @@ function ProductsPageContent() {
   const [addingToCart, setAddingToCart] = useState<Record<number, boolean>>({});
   const [addedToCart, setAddedToCart] = useState<Record<number, boolean>>({});
   const [userRole, setUserRole] = useState<'customer' | 'admin' | 'merchant' | 'guest'>('guest');
-  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
-  const router = useRouter();
+
   const searchParams = useSearchParams();
 
-  const fetchProducts = async (filters: { keyword?: string; maxPrice?: number; category?: string; newArrivals?: boolean } = {}) => {
+  // Compute which groups have products (for sidebar visibility)
+  const productCategoryNames = useMemo(() => {
+    return new Set(products.map(p => p.category).filter(Boolean));
+  }, [products]);
+
+  // Client-side filtering: category hierarchy, keyword, price
+  const filteredProducts = useMemo(() => {
+    let result = products;
+
+    if (category) {
+      if (selectedLevel === 'group') {
+        result = result.filter(p => p.category === category);
+      } else if (selectedLevel === 'node') {
+        const parentGroups = categories
+          .filter(g => g.categories.some(c => c.name === category))
+          .map(g => g.name);
+        result = result.filter(p => parentGroups.includes(p.category));
+      } else if (selectedLevel === 'sub') {
+        const parentGroups = categories
+          .filter(g => g.categories.some(c => c.subcategories?.includes(category)))
+          .map(g => g.name);
+        result = result.filter(p => parentGroups.includes(p.category));
+      }
+    }
+
+    if (keyword) {
+      const kw = keyword.toLowerCase();
+      result = result.filter(p =>
+        p.name.toLowerCase().includes(kw) ||
+        p.description?.toLowerCase().includes(kw) ||
+        p.brand?.toLowerCase().includes(kw)
+      );
+    }
+
+    if (maxPrice) {
+      const max = Number(maxPrice);
+      result = result.filter(p => {
+        const salePrice = p.salePrice ? parseFloat(String(p.salePrice)) : 0;
+        const finalPrice = (salePrice > 0 && salePrice < p.price) ? salePrice : p.price;
+        return finalPrice <= max;
+      });
+    }
+
+    return result;
+  }, [products, category, selectedLevel, categories, keyword, maxPrice]);
+
+  const fetchProducts = async (filters: { keyword?: string; maxPrice?: number; newArrivals?: boolean } = {}) => {
     setLoading(true);
     try {
       const data = await getProducts(filters);
@@ -120,24 +167,11 @@ function ProductsPageContent() {
 
     fetchProducts({ 
       keyword: searchVal || undefined, 
-      category: catVal || undefined, 
       newArrivals: newArrivalsVal || undefined 
     });
   }, [searchParams]);
 
   useEffect(() => {
-
-    const fetchCats = async () => {
-      try {
-        const [cats, tags] = await Promise.all([getCategories(), getAvailableTags()]);
-        setAvailableCategories(Array.from(new Set([...cats, ...tags])));
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-      }
-    };
-    fetchCats();
-
-    
     const fetchW = async () => {
       try {
         const w = await getWishlist();
@@ -154,7 +188,7 @@ function ProductsPageContent() {
           if (profile && profile.role) {
             setUserRole(profile.role);
           } else {
-            setUserRole('customer'); // Default for users without explicit role
+            setUserRole('customer');
           }
           fetchW();
         } catch (err) {
@@ -188,22 +222,21 @@ function ProductsPageContent() {
     }
   };
 
+  const handleCategoryClick = (name: string, level: 'group' | 'node' | 'sub') => {
+    if (category === name) {
+      setCategory('');
+      setSelectedLevel('group');
+      setExpandedGroup(null);
+      setMobileExpandedGroup(null);
+    } else {
+      setCategory(name);
+      setSelectedLevel(level);
+    }
+  };
+
   const handleApplyFilters = () => {
     fetchProducts({
       keyword: keyword || undefined,
-      maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      category: category || undefined,
-      newArrivals: newArrivalsOnly || undefined,
-    });
-  };
-
-  const handleCategoryClick = (newCategory: string) => {
-    const targetCategory = category === newCategory ? '' : newCategory;
-    setCategory(targetCategory);
-    fetchProducts({
-      keyword: keyword || undefined,
-      maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      category: targetCategory || undefined,
       newArrivals: newArrivalsOnly || undefined,
     });
   };
@@ -212,6 +245,9 @@ function ProductsPageContent() {
     setKeyword('');
     setMaxPrice('');
     setCategory('');
+    setSelectedLevel('group');
+    setExpandedGroup(null);
+    setMobileExpandedGroup(null);
     setSortBy('default');
     setNewArrivalsOnly(false);
     fetchProducts();
@@ -261,7 +297,7 @@ function ProductsPageContent() {
         <div className="lg:hidden w-full mb-2">
           <button 
             onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-            className="w-full bg-surface text-on-surface py-3 px-4 flex items-center justify-between font-bold uppercase text-xs border-2 border-on-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_var(--color-on-surface)] transition-all"
+            className="w-full bg-surface text-on-surface py-3 px-4 flex items-center justify-between font-bold uppercase text-xs border border-outline/20 rounded-xl shadow-sm active:scale-[0.99] transition-all"
           >
             <span className="flex items-center gap-2">
               <Icon name="tune" className="text-lg" />
@@ -273,8 +309,7 @@ function ProductsPageContent() {
 
         {/* Filters Sidebar Wrapper */}
         <div 
-          className={`${isMobileFiltersOpen ? 'flex' : 'hidden'} lg:flex flex-col lg:flex-row lg:sticky lg:top-24 items-start shrink-0 z-30 w-full lg:w-auto`}
-          onMouseLeave={() => setHoveredCategory(null)}
+          className={`${isMobileFiltersOpen ? 'flex' : 'hidden'} lg:flex flex-col lg:sticky lg:top-24 items-start shrink-0 z-30 w-full lg:w-auto`}
         >
           {/* === MOBILE LAYOUT === */}
           <div className="lg:hidden w-full space-y-4">
@@ -282,39 +317,65 @@ function ProductsPageContent() {
             <div className="overflow-x-auto hide-scrollbar -mx-1 px-1 pb-2">
               <div className="flex gap-2 w-max">
                 <button
-                  onClick={() => handleCategoryClick('')}
-                  className={`shrink-0 px-4 py-2 border-2 border-on-surface text-xs font-bold uppercase tracking-wider transition-all active:scale-95 ${
+                  onClick={() => { handleCategoryClick('', 'group'); setMobileExpandedGroup(null); }}
+                  className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all active:scale-95 ${
                     category === ''
-                      ? 'bg-primary-container text-on-primary-container shadow-[3px_3px_0px_0px_var(--color-on-surface)]'
-                      : 'bg-surface text-on-surface hover:bg-surface-container'
+                      ? 'bg-primary-container text-on-primary-container shadow-sm'
+                      : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
                   }`}
                 >
                   All
                 </button>
                 {categories
-                  .filter(group => 
-                    availableCategories.includes(group.name) || 
-                    group.categories.some(c => 
-                      availableCategories.includes(c.name) || 
-                      c.subcategories?.some(sub => availableCategories.includes(sub))
-                    )
-                  )
+                  .filter(group => productCategoryNames.has(group.name))
                   .map(group => (
                   <button
                     key={group.name}
-                    onClick={() => handleCategoryClick(group.name)}
-                    className={`shrink-0 px-4 py-2 border-2 border-on-surface text-xs font-bold uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 ${
-                      category === group.name
-                        ? 'bg-primary-container text-on-primary-container shadow-[3px_3px_0px_0px_var(--color-on-surface)]'
-                        : 'bg-surface text-on-surface hover:bg-surface-container'
+                    onClick={() => {
+                      handleCategoryClick(group.name, 'group');
+                      setMobileExpandedGroup(mobileExpandedGroup === group.name ? null : group.name);
+                    }}
+                    className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 ${
+                      category === group.name || mobileExpandedGroup === group.name
+                        ? 'bg-primary-container text-on-primary-container shadow-sm'
+                        : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
                     }`}
                   >
                     <Icon name={CATEGORY_ICONS[group.name] || 'label'} className="text-[14px]" />
                     {group.name}
+                    {group.categories.length > 0 && (
+                      <Icon name={mobileExpandedGroup === group.name ? "expand_less" : "expand_more"} className="text-[14px] ml-0.5" />
+                    )}
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* Mobile expanded subcategories */}
+            {mobileExpandedGroup && (() => {
+              const group = categories.find(g => g.name === mobileExpandedGroup);
+              if (!group || group.categories.length === 0) return null;
+              return (
+                <div className="bg-surface-container rounded-xl p-3 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-secondary px-1">Browse {mobileExpandedGroup}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {group.categories.map(node => (
+                      <button
+                        key={node.name}
+                        onClick={() => handleCategoryClick(node.name, 'node')}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
+                          category === node.name
+                            ? 'bg-primary-container text-on-primary-container'
+                            : 'bg-surface text-on-surface-variant hover:bg-surface-container-high'
+                        }`}
+                      >
+                        {node.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Search & Price side by side */}
             <div className="flex gap-3">
@@ -325,7 +386,7 @@ function ProductsPageContent() {
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  className="w-full h-10 px-3 border-2 border-on-surface rounded-none font-medium text-sm focus:ring-0 focus:border-primary-container"
+                  className="w-full h-10 px-3 border border-outline/30 rounded-lg font-medium text-sm focus:ring-0 focus:border-primary-container"
                 />
               </div>
               <div className="w-28 shrink-0">
@@ -336,7 +397,7 @@ function ProductsPageContent() {
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  className="w-full h-10 px-3 border-2 border-on-surface rounded-none font-medium text-sm focus:ring-0 focus:border-primary-container"
+                  className="w-full h-10 px-3 border border-outline/30 rounded-lg font-medium text-sm focus:ring-0 focus:border-primary-container"
                 />
               </div>
             </div>
@@ -348,7 +409,7 @@ function ProductsPageContent() {
                 id="mobileNewArrivalsOnly"
                 checked={newArrivalsOnly}
                 onChange={(e) => setNewArrivalsOnly(e.target.checked)}
-                className="w-5 h-5 border-2 border-on-surface bg-surface text-primary-container focus:ring-0 rounded-none cursor-pointer"
+                className="w-5 h-5 border border-outline/30 bg-surface text-primary-container focus:ring-0 rounded cursor-pointer"
               />
               <label htmlFor="mobileNewArrivalsOnly" className="font-extrabold text-xs uppercase tracking-wider text-on-surface cursor-pointer select-none">
                 New Arrivals Only
@@ -359,13 +420,13 @@ function ProductsPageContent() {
             <div className="flex gap-3">
               <button 
                 onClick={handleApplyFilters}
-                className="flex-1 bg-primary-container text-on-primary-container py-2.5 font-bold uppercase tracking-wider text-xs border-2 border-on-surface shadow-[3px_3px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 transition-all"
+                className="flex-1 bg-primary-container text-on-primary-container py-2.5 font-bold uppercase tracking-wider text-xs rounded-lg shadow-sm hover:bg-amber-500 transition-all active:scale-[0.98]"
               >
                 Apply
               </button>
               <button 
                 onClick={handleClearFilters}
-                className="flex-1 bg-surface text-secondary py-2.5 font-bold uppercase tracking-wider text-xs border-2 border-on-surface hover:bg-surface-container active:scale-95 transition-all"
+                className="flex-1 bg-surface text-secondary py-2.5 font-bold uppercase tracking-wider text-xs border border-outline/20 rounded-lg hover:bg-surface-container active:scale-[0.98] transition-all"
               >
                 Clear
               </button>
@@ -373,59 +434,95 @@ function ProductsPageContent() {
           </div>
 
           {/* === DESKTOP LAYOUT === */}
-          <aside className="hidden lg:block w-72 shrink-0 bg-surface border-2 border-on-surface p-6 shadow-[4px_4px_0px_0px_var(--color-on-surface)] space-y-6 z-20 relative">
+          <aside className="hidden lg:block w-72 shrink-0 bg-surface border border-outline/20 rounded-xl p-6 shadow-sm space-y-6 z-20 relative">
           
           {/* Categories Menu */}
           <div>
-            <h3 className="font-headline-md text-base font-black uppercase tracking-wider text-on-surface flex items-center gap-2 pb-3 border-b-2 border-surface-container">
+            <h3 className="font-headline-md text-base font-black uppercase tracking-wider text-on-surface flex items-center gap-2 pb-3 border-b border-outline/10">
               <Icon name="category" className="font-black text-sm" />
               <span>Categories</span>
             </h3>
-            <ul className="mt-4 flex flex-col gap-1 relative z-30 max-h-[60vh] overflow-y-auto hide-scrollbar">
+            <ul className="mt-3 flex flex-col gap-0.5 max-h-[50vh] overflow-y-auto custom-scrollbar">
               <li
-                onClick={() => handleCategoryClick('')}
-                className={`flex items-center justify-between py-2 px-3 cursor-pointer transition-colors ${
+                onClick={() => { handleCategoryClick('', 'group'); setExpandedGroup(null); }}
+                className={`flex items-center gap-3 py-2 px-3 cursor-pointer rounded-lg transition-colors text-xs font-semibold ${
                   category === '' 
-                    ? 'bg-surface-container text-primary-container font-bold border-l-4 border-primary-container' 
-                    : 'text-on-surface hover:bg-surface-container border-l-4 border-transparent'
+                    ? 'bg-primary-container/10 text-primary-container' 
+                    : 'text-on-surface hover:bg-surface-container'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <Icon name="dashboard" className="text-[18px] opacity-80" />
-                  <span className="text-xs font-semibold">All Categories</span>
-                </div>
+                <Icon name="dashboard" className="text-[18px] opacity-80" />
+                All Categories
               </li>
               {categories
-                .filter(group => 
-                  availableCategories.includes(group.name) || 
-                  group.categories.some(c => 
-                    availableCategories.includes(c.name) || 
-                    c.subcategories?.some(sub => availableCategories.includes(sub))
-                  )
-                )
+                .filter(group => productCategoryNames.has(group.name))
                 .map(group => (
-                <li
-                  key={group.name}
-                  onMouseEnter={() => setHoveredCategory(group.name)}
-                  onClick={() => handleCategoryClick(group.name)}
-                  className={`flex items-center justify-between py-2 px-3 cursor-pointer transition-colors ${
-                    category === group.name || hoveredCategory === group.name 
-                      ? 'bg-surface-container text-primary-container font-bold border-l-4 border-primary-container' 
-                      : 'text-on-surface hover:bg-surface-container border-l-4 border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon name={CATEGORY_ICONS[group.name] || 'label'} className="text-[18px] opacity-80" />
-                    <span className="text-xs font-semibold truncate max-w-[140px]">{group.name}</span>
+                <li key={group.name} className="flex flex-col">
+                  <div
+                    onClick={() => {
+                      handleCategoryClick(group.name, 'group');
+                      setExpandedGroup(expandedGroup === group.name ? null : group.name);
+                    }}
+                    className={`flex items-center justify-between py-2 px-3 cursor-pointer rounded-lg transition-colors ${
+                      category === group.name 
+                        ? 'bg-primary-container/10 text-primary-container font-bold' 
+                        : 'text-on-surface hover:bg-surface-container'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon name={CATEGORY_ICONS[group.name] || 'label'} className="text-[18px] opacity-80" />
+                      <span className="text-xs font-semibold truncate max-w-[140px]">{group.name}</span>
+                    </div>
+                    {group.categories.length > 0 && (
+                      <Icon 
+                        name={expandedGroup === group.name ? "expand_less" : "expand_more"} 
+                        className="text-sm opacity-50 shrink-0" 
+                      />
+                    )}
                   </div>
-                  <Icon name="chevron_right" className="text-sm opacity-50 shrink-0" />
+                  {/* Expanded subcategories tree */}
+                  {expandedGroup === group.name && group.categories.length > 0 && (
+                    <ul className="ml-6 pl-3 border-l border-outline/10 mt-1 mb-2 space-y-0.5">
+                      {group.categories.map(node => (
+                        <li key={node.name} className="flex flex-col">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleCategoryClick(node.name, 'node'); }}
+                            className={`text-left py-1.5 px-2 rounded-md text-xs transition-colors ${
+                              category === node.name
+                                ? 'text-primary-container font-bold bg-primary-container/5'
+                                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                            }`}
+                          >
+                            {node.name}
+                          </button>
+                          {node.subcategories && node.subcategories.length > 0 && (
+                            <ul className="ml-4 pl-2 border-l border-outline/5 mt-0.5 space-y-0.5">
+                              {node.subcategories.map(sub => (
+                                <li key={sub}>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleCategoryClick(sub, 'sub'); }}
+                                    className={`text-left py-1 px-2 rounded-md text-[11px] transition-colors ${
+                                      category === sub
+                                        ? 'text-primary-container font-semibold'
+                                        : 'text-secondary hover:text-on-surface'
+                                    }`}
+                                  >
+                                    {sub}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
-
           </div>
 
-          <h3 className="font-headline-md text-base font-black uppercase tracking-wider text-on-surface flex items-center gap-2 pb-3 border-b-2 border-surface-container pt-4 mt-6">
+          <h3 className="font-headline-md text-base font-black uppercase tracking-wider text-on-surface flex items-center gap-2 pb-3 border-b border-outline/10 pt-4 mt-6">
             <Icon name="tune" className="font-black text-sm" />
             <span>Refine Search</span>
           </h3>
@@ -439,7 +536,7 @@ function ProductsPageContent() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={handleKeyPress}
-                className="w-full h-12 px-4 border-2 border-on-surface rounded-none font-medium text-sm transition-all focus:ring-0 focus:border-primary-container"
+                className="w-full h-12 px-4 border border-outline/30 rounded-lg font-medium text-sm transition-all focus:ring-0 focus:border-primary-container"
               />
             </div>
             
@@ -452,7 +549,7 @@ function ProductsPageContent() {
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
                 onKeyDown={handleKeyPress}
-                className="w-full h-12 px-4 border-2 border-on-surface rounded-none font-medium text-sm transition-all focus:ring-0 focus:border-primary-container"
+                className="w-full h-12 px-4 border border-outline/30 rounded-lg font-medium text-sm transition-all focus:ring-0 focus:border-primary-container"
               />
             </div>
 
@@ -462,7 +559,7 @@ function ProductsPageContent() {
                 id="newArrivalsOnly"
                 checked={newArrivalsOnly}
                 onChange={(e) => setNewArrivalsOnly(e.target.checked)}
-                className="w-5 h-5 border-2 border-on-surface bg-surface text-primary-container focus:ring-0 rounded-none cursor-pointer"
+                className="w-5 h-5 border border-outline/30 bg-surface text-primary-container focus:ring-0 rounded cursor-pointer"
               />
               <label htmlFor="newArrivalsOnly" className="font-extrabold text-xs uppercase tracking-wider text-on-surface cursor-pointer select-none">
                 New Arrivals Only
@@ -473,64 +570,19 @@ function ProductsPageContent() {
           <div className="space-y-2 pt-2">
             <button 
               onClick={handleApplyFilters}
-              className="w-full bg-primary-container text-on-primary-container py-3 font-headline-md font-bold uppercase tracking-wider text-xs border-2 border-on-surface transition-transform active:scale-95 shadow-[3px_3px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] hover:bg-amber-500"
+              className="w-full bg-primary-container text-on-primary-container py-3 font-headline-md font-bold uppercase tracking-wider text-xs rounded-lg shadow-sm hover:bg-amber-500 transition-all active:scale-[0.98]"
             >
               Apply Filters
             </button>
             <button 
               onClick={handleClearFilters}
-              className="w-full bg-surface text-secondary py-3.5 font-bold uppercase tracking-wider text-xs border-2 border-on-surface transition-colors hover:bg-surface-container active:scale-95"
+              className="w-full bg-surface text-secondary py-3.5 font-bold uppercase tracking-wider text-xs border border-outline/20 rounded-lg hover:bg-surface-container active:scale-[0.98] transition-all"
             >
               Clear Filters
             </button>
           </div>
         </aside>
-
-        {/* Subcategories Flyout Panel (Desktop only) */}
-        <div 
-           className={`hidden lg:flex overflow-hidden transition-[width,opacity,margin] duration-300 ease-in-out shrink-0 h-full ${hoveredCategory ? 'w-[450px] ml-6 opacity-100' : 'w-0 ml-0 opacity-0'}`}
-        >
-          {hoveredCategory && (
-            <div className="w-[450px] bg-surface border-2 border-on-surface shadow-[6px_6px_0px_0px_var(--color-on-surface)] z-50 p-6 min-h-full">
-              <h4 className="font-headline-md text-lg font-black uppercase text-on-surface mb-4 border-b-2 border-surface-container pb-2 flex items-center gap-2">
-                <Icon name={CATEGORY_ICONS[hoveredCategory] || 'label'} className="text-xl text-primary-container" />
-                {hoveredCategory}
-              </h4>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 max-h-[60vh] overflow-y-auto pr-2 hide-scrollbar">
-                {categories
-                  .find(g => g.name === hoveredCategory)?.categories
-                  .filter(c => availableCategories.includes(c.name) || c.subcategories?.some(sub => availableCategories.includes(sub)))
-                  .map(c => {
-                    const validSubcategories = c.subcategories?.filter(sub => availableCategories.includes(sub));
-                    return (
-                    <div key={c.name} className="flex flex-col gap-1.5">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleCategoryClick(c.name); setHoveredCategory(null); }}
-                        className="font-bold text-sm text-on-surface hover:text-primary-container text-left transition-colors flex items-center gap-1.5"
-                      >
-                        {c.name}
-                        <Icon name="chevron_right" className="text-[10px] opacity-30" />
-                      </button>
-                      {validSubcategories && validSubcategories.length > 0 && (
-                        <div className="flex flex-col gap-1 ml-1 pl-2 border-l-2 border-surface-container-high">
-                          {validSubcategories.map(sub => (
-                            <button 
-                              key={sub}
-                              onClick={(e) => { e.stopPropagation(); handleCategoryClick(sub); setHoveredCategory(null); }}
-                              className="font-semibold text-[11px] text-secondary hover:text-primary-container text-left transition-colors"
-                            >
-                              {sub}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )})}
-              </div>
-            </div>
-          )}
         </div>
-      </div>
 
 
         {/* Products Grid Content */}
@@ -539,7 +591,7 @@ function ProductsPageContent() {
             <div className="flex items-center gap-4">
               <h2 className="font-black text-xl tracking-tight uppercase text-on-surface hidden sm:block">Recent Listings</h2>
               <span className="font-bold text-xs uppercase tracking-wider text-secondary hidden sm:block bg-surface-container-low px-2 py-1 rounded">
-                {loading ? '...' : `${products.length} ads`}
+                {loading ? '...' : `${filteredProducts.length} ads`}
               </span>
             </div>
             
@@ -576,19 +628,19 @@ function ProductsPageContent() {
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-24 bg-surface border-2 border-on-surface">
+            <div className="flex flex-col items-center justify-center py-24 bg-surface border border-outline/20 rounded-xl">
               <Icon name="sync" className="text-4xl animate-spin text-primary-container" />
               <p className="mt-4 font-bold text-xs tracking-widest text-secondary uppercase">Loading Catalog...</p>
             </div>
-          ) : products.length === 0 ? (
-            <div className="p-12 text-center flex flex-col items-center justify-center bg-surface border-2 border-on-surface">
+          ) : filteredProducts.length === 0 ? (
+            <div className="p-12 text-center flex flex-col items-center justify-center bg-surface border border-outline/20 rounded-xl">
               <Icon name="info" className="text-4xl text-secondary mb-3" />
               <h4 className="font-extrabold uppercase text-sm">No items found</h4>
               <p className="text-xs text-secondary mt-1 max-w-[280px]">Adjust your filter query or clear searches to reset the collection grid.</p>
             </div>
           ) : (
             <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6" : "flex flex-col gap-6"}>
-              {[...products].sort((a, b) => {
+              {[...filteredProducts].sort((a, b) => {
                 const aVerified = a.merchantStatus === 'approved' || a.merchantStatus === 'verified';
                 const bVerified = b.merchantStatus === 'approved' || b.merchantStatus === 'verified';
                 
@@ -670,7 +722,7 @@ function ProductsPageContent() {
                           <span>{product.category}</span>
                           {product.tags && product.tags.length > 0 && (
                             <>
-                              <span className="text-[8px]">▶</span>
+                              <span className="text-[8px]">&#9654;</span>
                               <span className="truncate">{product.tags.join(' > ')}</span>
                             </>
                           )}
@@ -678,10 +730,10 @@ function ProductsPageContent() {
                       )}
 
                       {product.brand && product.brand.toLowerCase() !== 'generic' && (
-            <p className="text-[10px] text-secondary/80 font-semibold uppercase tracking-wide mb-1 truncate">
-              Brand: {product.brand}
-            </p>
-          )}
+                        <p className="text-[10px] text-secondary/80 font-semibold uppercase tracking-wide mb-1 truncate">
+                          Brand: {product.brand}
+                        </p>
+                      )}
                       
                       <Link href={`/products/${product.id}`}>
                         <h3 className="font-bold text-sm text-on-surface line-clamp-2 mb-2 pr-8 hover:underline">{product.name}</h3>
@@ -703,7 +755,7 @@ function ProductsPageContent() {
                             disabled={addingToCart[product.id]}
                             className={`shrink-0 px-4 py-2 border border-surface-dim bg-surface text-on-surface font-bold text-[10px] uppercase tracking-wider transition-colors hover:bg-surface-container rounded ${addedToCart[product.id] ? '!bg-green-600 !text-white !border-green-600' : ''}`}
                           >
-                            {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added ✓' : 'Adding...') : 'Add to Cart'}
+                            {addingToCart[product.id] ? (addedToCart[product.id] ? 'Added' : 'Adding...') : 'Add to Cart'}
                           </button>
                         )}
                       </div>
