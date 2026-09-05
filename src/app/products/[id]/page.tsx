@@ -359,7 +359,7 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Product Specifications Accordion */}
-          {(product.sku || product.groupCategory || (product.subcategories && product.subcategories.length > 0) || product.capacity || product.power || (product.grades && product.grades.length > 0) || (product.labels && product.labels.length > 0) || (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)) && (
+          {(product.sku || product.groupCategory || (product.subcategories && product.subcategories.length > 0) || product.capacity || product.power || (product.grades && product.grades.length > 0) || (product.labels && product.labels.length > 0) || (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0) || (product.attributes && product.attributes.length > 0)) && (
             <details className="group border-t-2 border-surface-container py-4" open>
               <summary className="flex justify-between items-center cursor-pointer font-headline-md text-xs font-black uppercase tracking-widest text-on-surface list-none [&::-webkit-details-marker]:hidden">
                 <span>Technical Specifications</span>
@@ -375,6 +375,10 @@ export default function ProductDetailPage() {
                 {product.labels && product.labels.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Labels</span> {product.labels.join(', ')}</div>}
                 {product.colors && product.colors.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Colors</span> {product.colors.join(', ')}</div>}
                 {product.sizes && product.sizes.length > 0 && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Sizes</span> {product.sizes.join(', ')}</div>}
+                {product.weight && <div><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">Weight</span> {product.weight} {product.weightUnit || 'kg'}</div>}
+                {Array.isArray(product.attributes) && product.attributes.map((attr: any, idx: number) => (
+                  <div key={`attr-${idx}`}><span className="text-on-surface font-black uppercase tracking-wider block text-[10px]">{attr.name}</span> {attr.value}</div>
+                ))}
               </div>
             </details>
           )}

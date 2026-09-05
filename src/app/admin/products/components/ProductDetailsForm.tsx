@@ -55,6 +55,17 @@ export function ProductDetailsForm({ data, onChange, existingSuppliers = [] }: P
         />
       </div>
 
+      <div>
+        <label className="block font-bold uppercase text-sm mb-1">Key Features</label>
+        <p className="text-xs text-on-surface-variant mb-1">Enter one feature per line. These will display as bullet points.</p>
+        <textarea
+          value={Array.isArray(data.features) ? data.features.join('\n') : ''}
+          onChange={(e) => onChange("features", e.target.value.split('\n').filter(l => l.trim()))}
+          className="w-full p-2 border border-outline/30 bg-background rounded-lg h-28"
+          placeholder="e.g. 1.8ltr Jug Capacity&#10;350 Watts&#10;Model(TYB-202-A)"
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block font-bold uppercase text-sm mb-1">Brand</label>
