@@ -8,8 +8,8 @@
 ## Git Workflow
 - **Push Commits to Test Branch**: Anytime a commit is made, always push it to the `Test` branch (e.g., `git push origin HEAD:Test` or pushing directly to `Test`).
 
-## Cloudflare Wrangler Deployment & Secrets
-- **Deploy After Changes**: Whenever modifications are committed in this repository, deploy the application using Wrangler (`npm run deploy` or `npx wrangler deploy`).
+## Cloudflare Wrangler Policy
+- **On-Demand Deployment**: Deploy the Shop application using Wrangler (`npm run deploy` or `npx wrangler deploy`) only when explicitly instructed by the user.
 - **Secrets Management**: Push any new or updated secrets/environment variables to Cloudflare via `npx wrangler secret put <KEY>` where necessary.
 
 ## Website Domain & URLs
