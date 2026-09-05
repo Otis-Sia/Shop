@@ -158,3 +158,89 @@ export async function DELETE(
     return NextResponse.json({ error: error.message || 'Failed to delete product' }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    let decoded;
+    try {
+      decoded = await verifyIdToken(token);
+    } catch (err) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+    }
+
+    const uid = decoded.sub;
+    const supabase = getServiceSupabase();
+
+    // Verify ownership or admin role
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('uid', uid)
+      .maybeSingle();
+
+    const { data: product } = await supabase
+      .from('products')
+      .select('merchant_id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!product) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    if (product.merchant_id !== uid && userProfile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden: You do not own this product' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const allowedUpdates: Record<string, any> = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (body.supplierName !== undefined || body.supplier_name !== undefined) {
+      allowedUpdates.supplier_name = body.supplierName ?? body.supplier_name ?? '';
+    }
+    if (body.sku !== undefined) {
+      allowedUpdates.sku = body.sku;
+    }
+    if (body.costPrice !== undefined || body.cost_price !== undefined) {
+      allowedUpdates.cost_price = body.costPrice !== undefined ? (body.costPrice === '' ? null : Number(body.costPrice)) : (body.cost_price === '' ? null : Number(body.cost_price));
+    }
+    if (body.price !== undefined) {
+      allowedUpdates.price = Number(body.price);
+    }
+    if (body.salePrice !== undefined || body.sale_price !== undefined) {
+      const sp = body.salePrice ?? body.sale_price;
+      allowedUpdates.sale_price = sp === '' || sp === null ? null : Number(sp);
+    }
+    if (body.stock !== undefined) {
+      allowedUpdates.stock = body.stock === '' || body.stock === null ? null : Number(body.stock);
+    }
+
+    const { data: updatedProduct, error: updateError } = await supabase
+      .from('products')
+      .update(allowedUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return NextResponse.json({ success: true, product: updatedProduct });
+  } catch (error: any) {
+    console.error('Error patching product:', error);
+    return NextResponse.json({ error: error.message || 'Failed to update product' }, { status: 500 });
+  }
+}

@@ -16,7 +16,12 @@ import { ProductEditor } from "./components/ProductEditor";
 export default function MerchantProducts() {
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
+  const [registeredSuppliers, setRegisteredSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingSupplierId, setUpdatingSupplierId] = useState<string | number | null>(null);
+  const [bulkSupplierTarget, setBulkSupplierTarget] = useState("");
+  const [isBulkAssigning, setIsBulkAssigning] = useState(false);
+  const [isAutoDetecting, setIsAutoDetecting] = useState(false);
   
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingQuick, setIsDraggingQuick] = useState(false);
@@ -459,6 +464,19 @@ export default function MerchantProducts() {
         });
         setProducts(productsList);
 
+        // Load Suppliers from Supabase API
+        try {
+          const supRes = await fetch('/api/admin/suppliers', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (supRes.ok) {
+            const supData = await supRes.json();
+            setRegisteredSuppliers(supData.suppliers || []);
+          }
+        } catch (sErr) {
+          console.error("Error loading suppliers:", sErr);
+        }
+
         // Load Templates from Supabase API
         try {
           const tplRes = await fetch('/api/templates', {
@@ -655,6 +673,178 @@ export default function MerchantProducts() {
       showToast('Failed to delete some products.', 'error');
     } finally {
       setIsBulkDeleting(false);
+    }
+  };
+
+  const handleInlineSupplierChange = async (productId: string | number, newSupplier: string) => {
+    const cleanSupplier = newSupplier.trim();
+    setUpdatingSupplierId(productId);
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : '';
+      const res = await fetch(`/api/products/${productId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ supplierName: cleanSupplier })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update supplier');
+      }
+
+      setProducts(prev => prev.map(p => {
+        if (String(p.id) === String(productId)) {
+          return { ...p, supplierName: cleanSupplier };
+        }
+        return p;
+      }));
+
+      // If this is a new supplier not yet in registeredSuppliers, add it
+      if (cleanSupplier && !allSupplierNames.some(s => s.toLowerCase() === cleanSupplier.toLowerCase())) {
+        setRegisteredSuppliers(prev => [...prev, { name: cleanSupplier }]);
+      }
+
+      showToast(`Supplier updated to "${cleanSupplier || 'None'}"`, 'success');
+    } catch (err: any) {
+      console.error('Error updating supplier:', err);
+      showToast(err.message || 'Failed to update supplier', 'error');
+    } finally {
+      setUpdatingSupplierId(null);
+    }
+  };
+
+  const handleBulkAssignSupplier = async () => {
+    if (!bulkSupplierTarget.trim()) {
+      showToast('Please select or enter a supplier first.', 'warning');
+      return;
+    }
+    if (selectedProductIds.length === 0) {
+      showToast('No products selected.', 'warning');
+      return;
+    }
+
+    const supplierName = bulkSupplierTarget.trim();
+    setIsBulkAssigning(true);
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : '';
+
+      let successCount = 0;
+      for (const id of selectedProductIds) {
+        try {
+          const res = await fetch(`/api/products/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ supplierName })
+          });
+          if (res.ok) successCount++;
+        } catch (e) {
+          console.error(`Failed to assign supplier for product ${id}`, e);
+        }
+      }
+
+      setProducts(prev => prev.map(p => {
+        if (selectedProductIds.includes(p.id)) {
+          return { ...p, supplierName };
+        }
+        return p;
+      }));
+
+      setSelectedProductIds([]);
+      setBulkSupplierTarget('');
+      showToast(`Assigned supplier "${supplierName}" to ${successCount} products.`, 'success');
+    } catch (err: any) {
+      console.error('Bulk supplier assignment failed:', err);
+      showToast('Failed to assign supplier to some products.', 'error');
+    } finally {
+      setIsBulkAssigning(false);
+    }
+  };
+
+  const handleAutoDetectSuppliers = async () => {
+    const unassignedProducts = products.filter(p => !p.supplierName || !p.supplierName.trim());
+    if (unassignedProducts.length === 0) {
+      showToast('All products already have a supplier assigned.', 'info');
+      return;
+    }
+
+    setIsAutoDetecting(true);
+    let matchedCount = 0;
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : '';
+
+      const supplierPool = allSupplierNames;
+
+      for (const p of unassignedProducts) {
+        let inferredSupplier = '';
+
+        // 1. Check brand match against existing suppliers
+        const pBrand = p.brand ? p.brand.trim() : '';
+        if (pBrand) {
+          const brandMatch = supplierPool.find(s => s.toLowerCase() === pBrand.toLowerCase());
+          if (brandMatch) {
+            inferredSupplier = brandMatch;
+          } else {
+            // Brand can directly serve as the supplier name
+            inferredSupplier = pBrand;
+          }
+        }
+
+        // 2. If no brand, try to extract from product name prefix
+        if (!inferredSupplier && p.name) {
+          const words = p.name.trim().split(/\s+/);
+          const firstWord = words[0];
+          const firstTwoWords = words.slice(0, 2).join(' ');
+
+          const exactMatchTwo = supplierPool.find(s => s.toLowerCase() === firstTwoWords.toLowerCase());
+          const exactMatchOne = supplierPool.find(s => s.toLowerCase() === firstWord.toLowerCase());
+
+          if (exactMatchTwo) {
+            inferredSupplier = exactMatchTwo;
+          } else if (exactMatchOne) {
+            inferredSupplier = exactMatchOne;
+          }
+        }
+
+        if (inferredSupplier) {
+          try {
+            const res = await fetch(`/api/products/${p.id}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ supplierName: inferredSupplier })
+            });
+
+            if (res.ok) {
+              matchedCount++;
+              setProducts(prev => prev.map(item => item.id === p.id ? { ...item, supplierName: inferredSupplier } : item));
+            }
+          } catch (updateErr) {
+            console.error(`Auto-detect update failed for ${p.id}`, updateErr);
+          }
+        }
+      }
+
+      if (matchedCount > 0) {
+        showToast(`Auto-detected and assigned suppliers for ${matchedCount} products.`, 'success');
+      } else {
+        showToast('No supplier matches could be automatically inferred.', 'info');
+      }
+    } catch (err: any) {
+      console.error('Error in auto-detect suppliers:', err);
+      showToast('Error auto-detecting suppliers', 'error');
+    } finally {
+      setIsAutoDetecting(false);
     }
   };
 
@@ -1649,15 +1839,20 @@ export default function MerchantProducts() {
     return Array.from(new Set(list)).sort();
   }, [categories]);
 
-  const uniqueSuppliers = useMemo(() => {
+  const allSupplierNames = useMemo(() => {
     const set = new Set<string>();
+    registeredSuppliers.forEach(s => {
+      if (s.name && s.name.trim()) set.add(s.name.trim());
+    });
     products.forEach(p => {
       if (p.supplierName && p.supplierName.trim()) {
         set.add(p.supplierName.trim());
       }
     });
-    return Array.from(set).sort();
-  }, [products]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [registeredSuppliers, products]);
+
+  const uniqueSuppliers = allSupplierNames;
 
   const displayedItems = useMemo(() => {
     let result = [...products];
@@ -1776,6 +1971,14 @@ export default function MerchantProducts() {
         </div>
         {(!isAdding && editingId === null) && (
           <div className="flex flex-wrap gap-2 sm:gap-4 mt-2 sm:mt-0">
+            <button 
+              onClick={handleAutoDetectSuppliers}
+              disabled={isAutoDetecting}
+              title="Infer missing suppliers from product brand or title"
+              className="bg-blue-100 text-blue-900 border-4 border-blue-600 px-4 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-base font-bold uppercase shadow-[4px_4px_0px_0px_#2563eb] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_#2563eb] transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
+            >
+              {isAutoDetecting ? "Detecting..." : "Auto-Detect Suppliers"}
+            </button>
             <Link 
               href="/admin/products/duplicates"
               className="bg-yellow-400 text-yellow-900 border-4 border-yellow-600 px-4 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-base font-bold uppercase shadow-[4px_4px_0px_0px_#ca8a04] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_#ca8a04] transition-all inline-flex items-center gap-1.5"
@@ -1808,7 +2011,7 @@ export default function MerchantProducts() {
           initialData={editForm || {}}
           onChange={(updated) => setEditForm(updated)}
           draftSaveStatus={draftSaveStatus}
-          existingSuppliers={Array.from(new Set(products.map(p => p.supplierName).filter(Boolean))) as string[]}
+          existingSuppliers={allSupplierNames}
           existingProducts={products.map(p => ({ id: p.id, name: p.name, thumbnail: p.image_url || ((p as any).imageUrls && (p as any).imageUrls[0]) }))}
           onSave={async (data) => {
             try {
@@ -2004,15 +2207,40 @@ export default function MerchantProducts() {
 
           {/* Bulk Action Header */}
           {selectedProductIds.length > 0 && (
-            <div className="p-4 bg-error-container text-error border-4 border-on-surface flex items-center justify-between font-bold">
-              <span>{selectedProductIds.length} item(s) selected</span>
-              <button 
-                onClick={handleBulkDelete}
-                disabled={isBulkDeleting}
-                className="bg-error text-white border-2 border-on-surface px-4 py-1.5 text-xs font-black uppercase shadow-[2px_2px_0px_0px_var(--color-on-surface)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-[1px_1px_0px_0px_var(--color-on-surface)] transition-all disabled:opacity-50"
-              >
-                {isBulkDeleting ? 'Deleting...' : 'Delete Selected'}
-              </button>
+            <div className="p-4 bg-primary-container text-on-surface border-4 border-on-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 font-bold">
+              <span className="text-sm font-black uppercase">{selectedProductIds.length} item(s) selected</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    list="bulk-suppliers-list"
+                    value={bulkSupplierTarget}
+                    onChange={(e) => setBulkSupplierTarget(e.target.value)}
+                    placeholder="Assign supplier..."
+                    className="border-2 border-on-surface bg-surface px-2.5 py-1 text-xs font-bold focus:outline-none"
+                  />
+                  <datalist id="bulk-suppliers-list">
+                    {allSupplierNames.map(s => (
+                      <option key={s} value={s} />
+                    ))}
+                  </datalist>
+                  <button
+                    type="button"
+                    onClick={handleBulkAssignSupplier}
+                    disabled={isBulkAssigning || !bulkSupplierTarget.trim()}
+                    className="bg-on-surface text-surface border-2 border-on-surface px-3 py-1 text-xs font-black uppercase hover:bg-surface hover:text-on-surface transition-colors disabled:opacity-50"
+                  >
+                    {isBulkAssigning ? 'Assigning...' : 'Assign Supplier'}
+                  </button>
+                </div>
+                <button 
+                  onClick={handleBulkDelete}
+                  disabled={isBulkDeleting}
+                  className="bg-error text-white border-2 border-on-surface px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_var(--color-on-surface)] hover:translate-y-[1px] hover:translate-x-[1px] transition-all disabled:opacity-50"
+                >
+                  {isBulkDeleting ? 'Deleting...' : 'Delete Selected'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -2081,14 +2309,36 @@ export default function MerchantProducts() {
                           </div>
                         </td>
                         <td className="p-4">
-                          {product.supplierName ? (
-                            <span className="inline-flex items-center gap-1 font-bold text-xs bg-primary-container text-on-surface px-2 py-0.5 border border-on-surface">
-                              <Icon name="store" className="text-xs" />
-                              {product.supplierName}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-secondary italic">None</span>
-                          )}
+                          <div className="relative inline-block max-w-[170px]">
+                            <select
+                              value={product.supplierName || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === "__ADD_NEW__") {
+                                  const custom = prompt("Enter new supplier name:");
+                                  if (custom && custom.trim()) {
+                                    handleInlineSupplierChange(product.id, custom.trim());
+                                  }
+                                } else {
+                                  handleInlineSupplierChange(product.id, val);
+                                }
+                              }}
+                              disabled={updatingSupplierId === product.id}
+                              className={`text-xs font-bold px-2 py-1 border-2 border-on-surface cursor-pointer focus:outline-none transition-colors max-w-full truncate ${
+                                product.supplierName 
+                                  ? 'bg-primary-container text-on-surface' 
+                                  : 'bg-surface text-secondary border-dashed'
+                              }`}
+                            >
+                              <option value="">{updatingSupplierId === product.id ? 'Updating...' : '-- Select Supplier --'}</option>
+                              {allSupplierNames.map((s) => (
+                                <option key={s} value={s}>
+                                  {s}
+                                </option>
+                              ))}
+                              <option value="__ADD_NEW__">+ Add New Supplier...</option>
+                            </select>
+                          </div>
                         </td>
                         <td className="p-4">
                           <div className="text-xs space-y-0.5">
@@ -2226,11 +2476,36 @@ export default function MerchantProducts() {
                             SKU: {product.sku}
                           </p>
                         )}
-                        {product.supplierName && (
-                          <span className="inline-block mt-1 text-[10px] font-bold bg-primary-container text-on-surface px-1.5 py-0.5 border border-on-surface">
-                            Supplier: {product.supplierName}
-                          </span>
-                        )}
+                        <div className="mt-1">
+                          <select
+                            value={product.supplierName || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "__ADD_NEW__") {
+                                const custom = prompt("Enter new supplier name:");
+                                if (custom && custom.trim()) {
+                                  handleInlineSupplierChange(product.id, custom.trim());
+                                }
+                              } else {
+                                handleInlineSupplierChange(product.id, val);
+                              }
+                            }}
+                            disabled={updatingSupplierId === product.id}
+                            className={`text-[11px] font-bold px-1.5 py-0.5 border-2 border-on-surface cursor-pointer focus:outline-none max-w-full ${
+                              product.supplierName 
+                                ? 'bg-primary-container text-on-surface' 
+                                : 'bg-surface text-secondary border-dashed'
+                            }`}
+                          >
+                            <option value="">{updatingSupplierId === product.id ? 'Updating...' : '-- Select Supplier --'}</option>
+                            {allSupplierNames.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                            <option value="__ADD_NEW__">+ Add New Supplier...</option>
+                          </select>
+                        </div>
                         <p className="text-xs font-semibold mt-1 text-primary-container">
                           {CURRENCY_CONFIG.symbol} {Number(product.price ?? (product as any).pricing?.price ?? 0).toFixed(2)}
                         </p>
