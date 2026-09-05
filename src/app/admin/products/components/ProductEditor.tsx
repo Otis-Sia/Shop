@@ -120,17 +120,33 @@ export function ProductEditor({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSkuManuallyEdited, setIsSkuManuallyEdited] = useState(Boolean(initialData?.sku));
 
-  // Sync state if initialData changes (e.g., resuming an unsaved draft)
+  const lastEmittedRef = useRef<string>("");
+  const lastInitialDataRef = useRef<string>(JSON.stringify(initialData || {}));
+
+  // Sync state if initialData changes externally (e.g., resuming an unsaved draft or switching products)
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-    if (initialData) {
-      setFormData(normalizeProductData(initialData));
+    const currentSerialized = JSON.stringify(initialData || {});
+    if (currentSerialized !== lastEmittedRef.current && currentSerialized !== lastInitialDataRef.current) {
+      lastInitialDataRef.current = currentSerialized;
+      if (initialData) {
+        setFormData(normalizeProductData(initialData));
+      }
     }
   }, [initialData]);
+
+  // Safely emit changes to parent after render
+  useEffect(() => {
+    const serialized = JSON.stringify(formData);
+    if (serialized !== lastEmittedRef.current) {
+      lastEmittedRef.current = serialized;
+      onChange?.(formData);
+    }
+  }, [formData, onChange]);
 
   function generateSku(supplierName: string = "", productName: string = "") {
     const cleanTarget = (supplierName || "").replace(/[^a-zA-Z]/g, "");
@@ -201,7 +217,6 @@ export function ProductEditor({
       if (!isSkuManuallyEdited && (field === "name" || field === "supplierName")) {
         next.sku = generateSku(next.supplierName, next.name);
       }
-      onChange?.(next);
       return next;
     });
   };
@@ -212,7 +227,6 @@ export function ProductEditor({
       if (!isSkuManuallyEdited && (next.name || next.supplierName)) {
         next.sku = generateSku(next.supplierName, next.name);
       }
-      onChange?.(next);
       return next;
     });
   };
