@@ -19,6 +19,7 @@ export type IconName =
   | 'headset_mic'
   | 'storefront'
   | 'expand_more'
+  | 'expand_less'
   | 'sync'
   | 'info'
   | 'shopping_bag'
@@ -296,6 +297,13 @@ export default function Icon({ name, className = '', ...props }: IconProps) {
       return (
         <svg {...baseSvgProps}>
           <polyline points="6 9 12 15 18 9" />
+        </svg>
+      );
+
+    case 'expand_less': // Chevron up
+      return (
+        <svg {...baseSvgProps}>
+          <polyline points="18 15 12 9 6 15" />
         </svg>
       );
 

@@ -98,28 +98,63 @@ function ProductsPageContent() {
 
   const searchParams = useSearchParams();
 
-  // Compute which groups have products (for sidebar visibility), hierarchy-aware
-  const productCategoryNames = useMemo(() => {
-    const matchingGroups = new Set<string>();
+  // Build a filtered categories tree containing only groups, categories, and subcategories with present products
+  const availableCategoryTree = useMemo(() => {
+    // Collect all present values from products
+    const presentValues = new Set<string>();
     products.forEach((p) => {
-      // Direct match on groupCategory or category
-      if (p.groupCategory) matchingGroups.add(p.groupCategory);
-
-      categories.forEach((group) => {
-        if (p.groupCategory === group.name || p.category === group.name) {
-          matchingGroups.add(group.name);
-          return;
-        }
-        if (group.categories?.some((node) => 
-          node.name === p.category || 
-          p.subcategories?.includes(node.name) ||
-          node.subcategories?.some((sub) => sub === p.category || p.subcategories?.includes(sub))
-        )) {
-          matchingGroups.add(group.name);
-        }
-      });
+      if (p.category) presentValues.add(p.category.trim().toLowerCase());
+      if (p.groupCategory) presentValues.add(p.groupCategory.trim().toLowerCase());
+      if (Array.isArray(p.subcategories)) {
+        p.subcategories.forEach((s) => {
+          if (typeof s === 'string' && s.trim()) presentValues.add(s.trim().toLowerCase());
+        });
+      }
+      if (Array.isArray(p.tags)) {
+        p.tags.forEach((t) => {
+          if (typeof t === 'string' && t.trim()) presentValues.add(t.trim().toLowerCase());
+        });
+      }
     });
-    return matchingGroups;
+
+    return categories
+      .map((group) => {
+        const groupMatchesDirectly = presentValues.has(group.name.trim().toLowerCase());
+        const rawNodes = Array.isArray(group.categories) ? group.categories : [];
+
+        // Filter nodes and their subcategories
+        const validNodes = rawNodes
+          .map((node) => {
+            const nodeNameLower = node.name.trim().toLowerCase();
+            const nodeMatches = presentValues.has(nodeNameLower);
+
+            // Filter subcategories that actually match a product's subcategories, category, or tags
+            const validSubs = (node.subcategories || []).filter((sub) => {
+              const subLower = sub.trim().toLowerCase();
+              return presentValues.has(subLower);
+            });
+
+            // Keep the node if it or any of its subcategories are present
+            if (nodeMatches || validSubs.length > 0) {
+              return {
+                ...node,
+                subcategories: validSubs,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean) as typeof rawNodes;
+
+        // Keep the group if it matches directly or has any valid category nodes
+        if (groupMatchesDirectly || validNodes.length > 0) {
+          return {
+            ...group,
+            categories: validNodes,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean) as typeof categories;
   }, [products, categories]);
 
   // Client-side filtering: category hierarchy, keyword, price
@@ -366,9 +401,7 @@ function ProductsPageContent() {
                 >
                   All
                 </button>
-                {categories
-                  .filter(group => productCategoryNames.has(group.name))
-                  .map(group => (
+                {availableCategoryTree.map((group) => (
                   <button
                     key={group.name}
                     onClick={() => {
@@ -393,13 +426,13 @@ function ProductsPageContent() {
 
             {/* Mobile expanded subcategories */}
             {mobileExpandedGroup && (() => {
-              const group = categories.find(g => g.name === mobileExpandedGroup);
+              const group = availableCategoryTree.find((g) => g.name === mobileExpandedGroup);
               if (!group || group.categories.length === 0) return null;
               return (
                 <div className="bg-surface-container rounded-xl p-3 space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-secondary px-1">Browse {mobileExpandedGroup}</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {group.categories.map(node => (
+                    {group.categories.map((node) => (
                       <button
                         key={node.name}
                         onClick={() => handleCategoryClick(node.name, 'node')}
@@ -494,9 +527,7 @@ function ProductsPageContent() {
                 <Icon name="dashboard" className="text-[18px] opacity-80" />
                 All Categories
               </li>
-              {categories
-                .filter(group => productCategoryNames.has(group.name))
-                .map(group => (
+              {availableCategoryTree.map((group) => (
                 <li key={group.name} className="flex flex-col">
                   <div
                     onClick={() => {
@@ -523,7 +554,7 @@ function ProductsPageContent() {
                   {/* Expanded subcategories tree */}
                   {expandedGroup === group.name && group.categories.length > 0 && (
                     <ul className="ml-6 pl-3 border-l border-outline/10 mt-1 mb-2 space-y-0.5">
-                      {group.categories.map(node => (
+                      {group.categories.map((node) => (
                         <li key={node.name} className="flex flex-col">
                           <button
                             onClick={(e) => { e.stopPropagation(); handleCategoryClick(node.name, 'node'); }}
@@ -537,7 +568,7 @@ function ProductsPageContent() {
                           </button>
                           {node.subcategories && node.subcategories.length > 0 && (
                             <ul className="ml-4 pl-2 border-l border-outline/5 mt-0.5 space-y-0.5">
-                              {node.subcategories.map(sub => (
+                              {node.subcategories.map((sub) => (
                                 <li key={sub}>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); handleCategoryClick(sub, 'sub'); }}
