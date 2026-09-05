@@ -1,6 +1,7 @@
 "use client";
 import { useToast } from '@/components/providers/ToastProvider';
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 import React, { useEffect, useState, useMemo } from "react";
 import { auth } from "@/lib/firebase";
