@@ -217,6 +217,15 @@ export function ProductEditor({
       if (!isSkuManuallyEdited && (field === "name" || field === "supplierName")) {
         next.sku = generateSku(next.supplierName, next.name);
       }
+      if (next.variants && next.variants.length > 0) {
+        next.variants = next.variants.map((v) => {
+          if (!v.sku || field === "name" || field === "supplierName") {
+            const variantName = (next.name || "") + " " + (v.attributes || []).map((a) => a.value).join(" ");
+            return { ...v, sku: generateSku(next.supplierName, variantName) };
+          }
+          return v;
+        });
+      }
       return next;
     });
   };
@@ -226,6 +235,12 @@ export function ProductEditor({
       const next = { ...prev, ...updates };
       if (!isSkuManuallyEdited && (next.name || next.supplierName)) {
         next.sku = generateSku(next.supplierName, next.name);
+      }
+      if (next.variants && next.variants.length > 0) {
+        next.variants = next.variants.map((v) => {
+          const variantName = (next.name || "") + " " + (v.attributes || []).map((a) => a.value).join(" ");
+          return { ...v, sku: generateSku(next.supplierName, variantName) };
+        });
       }
       return next;
     });
