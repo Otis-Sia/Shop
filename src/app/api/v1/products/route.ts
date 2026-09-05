@@ -37,6 +37,16 @@ export async function POST(req: Request) {
       body.categoryIds = body.category ? [body.category] : ["General"];
     }
 
+    if (body.productType !== "service" || !body.service || Object.keys(body.service).length === 0 || !body.service.durationMinutes) {
+      delete body.service;
+    }
+    if (body.productType !== "physical" || !body.shipping || Object.keys(body.shipping).length === 0) {
+      delete body.shipping;
+    }
+    if (body.productType !== "digital" || !body.downloadUrl) {
+      delete body.downloadUrl;
+    }
+
     // 2. Parse and validate
     const parsed = createProductSchema.parse(body);
 

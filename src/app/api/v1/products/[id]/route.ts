@@ -41,6 +41,15 @@ export async function PUT(
     // const user = await verifyIdToken(token);
     
     const body = await request.json();
+    if (body.productType && (body.productType !== "service" || !body.service || Object.keys(body.service).length === 0 || !body.service.durationMinutes)) {
+      delete body.service;
+    }
+    if (body.productType && (body.productType !== "physical" || !body.shipping || Object.keys(body.shipping).length === 0)) {
+      delete body.shipping;
+    }
+    if (body.productType && (body.productType !== "digital" || !body.downloadUrl)) {
+      delete body.downloadUrl;
+    }
 
     // Re-using the same schema but making it partial is common,
     // For now we'll do a partial validation or rely on the frontend passing the full object

@@ -101,7 +101,7 @@ function normalizeProductData(data?: any): Partial<CreateProductInput> {
     inventory,
     seo: data.seo || {},
     shipping: data.shipping || {},
-    service: data.service || {},
+    service: data.service && Object.keys(data.service).length > 0 ? data.service : undefined,
     downloadUrl: data.downloadUrl || "",
   };
 }
@@ -260,10 +260,22 @@ export function ProductEditor({
         throw new Error("Product type is required");
       }
       
+      const targetProductType = formData.productType || "physical";
       const payload: CreateProductInput = {
         ...(formData as CreateProductInput),
         name: formData.name || "Untitled Draft",
+        productType: targetProductType,
         status: targetStatus,
+        service: targetProductType === "service" && formData.service?.durationMinutes 
+          ? {
+              durationMinutes: Number(formData.service.durationMinutes) || 60,
+              locationType: formData.service.locationType || "on_site",
+              bufferMinutes: formData.service.bufferMinutes ? Number(formData.service.bufferMinutes) : undefined,
+              maxBookingsPerSlot: formData.service.maxBookingsPerSlot ? Number(formData.service.maxBookingsPerSlot) : undefined,
+            }
+          : undefined,
+        shipping: targetProductType === "physical" ? formData.shipping : undefined,
+        downloadUrl: targetProductType === "digital" ? formData.downloadUrl : undefined,
       };
 
       await onSave(payload);
