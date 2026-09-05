@@ -19,7 +19,6 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'customer' | 'merchant'>('customer');
   const [rememberMe, setRememberMe] = useState(false);
 
   // Status fields
@@ -102,7 +101,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
         first_name: firstName,
         last_name: lastName,
         phone: phone,
-        role: role
+        role: 'customer'
       });
       await syncLocalCartToFirestore(user.uid);
       
@@ -384,36 +383,6 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"
                 />
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <label className="font-bold text-xs tracking-wider block text-on-background uppercase">
-                  Account Type
-                </label>
-                <div className="flex gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="radio" 
-                      name="role" 
-                      value="customer" 
-                      checked={role === 'customer'} 
-                      onChange={() => setRole('customer')}
-                      className="w-4 h-4 accent-on-background cursor-pointer"
-                    />
-                    <span className="text-sm font-medium uppercase tracking-wide">Customer</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="radio" 
-                      name="role" 
-                      value="merchant" 
-                      checked={role === 'merchant'} 
-                      onChange={() => setRole('merchant')}
-                      className="w-4 h-4 accent-on-background cursor-pointer"
-                    />
-                    <span className="text-sm font-medium uppercase tracking-wide">Merchant</span>
-                  </label>
-                </div>
               </div>
 
               <p className="text-xs text-secondary leading-relaxed">
