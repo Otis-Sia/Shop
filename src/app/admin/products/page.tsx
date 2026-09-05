@@ -1971,14 +1971,6 @@ export default function MerchantProducts() {
         </div>
         {(!isAdding && editingId === null) && (
           <div className="flex flex-wrap gap-2 sm:gap-4 mt-2 sm:mt-0">
-            <button 
-              onClick={handleAutoDetectSuppliers}
-              disabled={isAutoDetecting}
-              title="Infer missing suppliers from product brand or title"
-              className="bg-blue-100 text-blue-900 border-4 border-blue-600 px-4 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-base font-bold uppercase shadow-[4px_4px_0px_0px_#2563eb] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_#2563eb] transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
-            >
-              {isAutoDetecting ? "Detecting..." : "Auto-Detect Suppliers"}
-            </button>
             <Link 
               href="/admin/products/duplicates"
               className="bg-yellow-400 text-yellow-900 border-4 border-yellow-600 px-4 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-base font-bold uppercase shadow-[4px_4px_0px_0px_#ca8a04] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_#ca8a04] transition-all inline-flex items-center gap-1.5"
