@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { syncProducts, deleteProducts } from "@/lib/api/meta";
+import { syncProducts, deleteProducts, syncProductSets } from "@/lib/api/meta";
 import { getServiceSupabase } from "@/lib/supabase/server";
 import { verifyIdToken } from "@/lib/firebase-auth-edge";
 import { Product } from "@/types/schema";
@@ -85,10 +85,25 @@ export async function POST(request: Request) {
     // 2. Push to Meta Catalog Batch API
     const result = await syncProducts(productsToSync);
 
+    // 3. Automatically create/sync Meta Product Sets for all categories
+    let setsResult = null;
+    try {
+      const categories = productsToSync
+        .map((p) => p.category)
+        .filter((cat): cat is string => Boolean(cat) && cat.trim() !== "");
+      
+      if (categories.length > 0) {
+        setsResult = await syncProductSets(categories);
+      }
+    } catch (setError: any) {
+      console.warn("Automated Meta Product Sets sync warning:", setError.message);
+    }
+
     return NextResponse.json({
       success: true,
       synced: productsToSync.length,
       meta: result,
+      sets: setsResult,
     });
   } catch (error: any) {
     console.error("Meta Sync Error:", error.response?.data || error.message);

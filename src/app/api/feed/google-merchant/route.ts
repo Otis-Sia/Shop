@@ -82,6 +82,17 @@ export async function GET(req: Request) {
            xml += `      <g:mpn>${escapeXml(product.sku)}</g:mpn>\n`;
         }
 
+        // Categories & Sets for Google Product Groups
+        const category = product.category || 'General';
+        const groupCategory = product.group_category || '';
+        const fullProductType = groupCategory ? `${groupCategory} > ${category}` : category;
+
+        xml += `      <g:product_type>${escapeXml(fullProductType)}</g:product_type>\n`;
+        xml += `      <g:custom_label_0>${escapeXml(category)}</g:custom_label_0>\n`;
+        if (groupCategory) {
+          xml += `      <g:custom_label_1>${escapeXml(groupCategory)}</g:custom_label_1>\n`;
+        }
+
         xml += `    </item>\n`;
       }
     }

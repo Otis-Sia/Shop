@@ -27,7 +27,7 @@ export async function syncProducts(products: any[]) {
   if (!CATALOG_ID) throw new Error("META_CATALOG_ID is not set.");
   
   const graph = getGraphClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://shop.example.com";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://juj4.cepine.com";
   
   const requests = products
     .filter((p) => p && (p.id || p.sku) && p.name)
@@ -37,6 +37,7 @@ export async function syncProducts(products: any[]) {
       const priceVal = Number(product.price || 0).toFixed(2);
       const currencyVal = (product.currency || "KES").toUpperCase();
       const inStock = (product.stock === null || product.stock === undefined || Number(product.stock) > 0) && product.trackInventory !== false;
+      const category = product.category || "General";
 
       return {
         method: "UPDATE",
@@ -50,6 +51,10 @@ export async function syncProducts(products: any[]) {
           link: `${appUrl}/products/${productId}`,
           image_link: mainImage,
           brand: product.brand || "Generic",
+          category: category,
+          retailer_category: category,
+          product_type: category,
+          custom_label_0: category,
           visibility: "published",
         },
       };
@@ -66,6 +71,72 @@ export async function syncProducts(products: any[]) {
   });
 
   return response.data;
+}
+
+/**
+ * Automatically create or sync Product Sets on Meta Catalog for each product category.
+ */
+export async function syncProductSets(categories: string[]) {
+  if (!CATALOG_ID) throw new Error("META_CATALOG_ID is not set.");
+  const graph = getGraphClient();
+
+  const uniqueCategories = Array.from(new Set(categories.filter((c) => Boolean(c) && c.trim() !== "")));
+  if (uniqueCategories.length === 0) {
+    return { message: "No categories to sync." };
+  }
+
+  // Fetch existing product sets
+  let existingSets: { id: string; name: string }[] = [];
+  try {
+    const existingRes = await graph.get(`/${CATALOG_ID}/product_sets`, {
+      params: { fields: "id,name,filter", limit: 100 },
+    });
+    existingSets = existingRes.data?.data || [];
+  } catch (err: any) {
+    console.warn("Could not fetch existing Meta product sets:", err.response?.data || err.message);
+  }
+
+  const existingSetNames = new Set(existingSets.map((s) => s.name?.trim().toLowerCase()));
+  const createdSets: any[] = [];
+  const errors: any[] = [];
+
+  for (const category of uniqueCategories) {
+    if (existingSetNames.has(category.trim().toLowerCase())) {
+      continue;
+    }
+
+    try {
+      const response = await graph.post(`/${CATALOG_ID}/product_sets`, {
+        name: category,
+        filter: {
+          retailer_category: { eq: category },
+        },
+      });
+      createdSets.push({ category, id: response.data?.id });
+    } catch (createErr: any) {
+      // Fallback filter using product_type if retailer_category fails
+      try {
+        const fallbackRes = await graph.post(`/${CATALOG_ID}/product_sets`, {
+          name: category,
+          filter: {
+            product_type: { eq: category },
+          },
+        });
+        createdSets.push({ category, id: fallbackRes.data?.id });
+      } catch (fallbackErr: any) {
+        console.error(`Failed to create Meta Product Set for "${category}":`, fallbackErr.response?.data || fallbackErr.message);
+        errors.push({ category, error: fallbackErr.response?.data || fallbackErr.message });
+      }
+    }
+  }
+
+  return {
+    totalCategories: uniqueCategories.length,
+    existingSetsCount: existingSets.length,
+    createdSetsCount: createdSets.length,
+    createdSets,
+    errors,
+  };
 }
 
 /**
