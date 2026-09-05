@@ -38,25 +38,41 @@ export async function syncProducts(products: any[]) {
       const currencyVal = (product.currency || "KES").toUpperCase();
       const inStock = (product.stock === null || product.stock === undefined || Number(product.stock) > 0) && product.trackInventory !== false;
       const category = product.category || "General";
+      const additionalImages = (product.imageUrls || []).slice(1, 11).filter(Boolean);
+      const salePriceVal = product.salePrice ? Number(product.salePrice).toFixed(2) : null;
+
+      const itemData: Record<string, any> = {
+        id: productId,
+        title: product.name,
+        description: product.description || product.shortDescription || product.name || "",
+        availability: inStock ? "in stock" : "out of stock",
+        condition: "new",
+        price: `${priceVal} ${currencyVal}`,
+        link: `${appUrl}/products/${productId}`,
+        image_link: mainImage,
+        brand: product.brand || "Generic",
+        category: category,
+        retailer_category: category,
+        product_type: category,
+        custom_label_0: category,
+        visibility: "published",
+      };
+
+      if (salePriceVal) {
+        itemData.sale_price = `${salePriceVal} ${currencyVal}`;
+      }
+
+      if (additionalImages.length > 0) {
+        itemData.additional_image_urls = additionalImages;
+      }
+
+      if (product.groupCategory) {
+        itemData.custom_label_1 = product.groupCategory;
+      }
 
       return {
         method: "UPDATE",
-        data: {
-          id: productId,
-          title: product.name,
-          description: product.description || product.shortDescription || product.name || "",
-          availability: inStock ? "in stock" : "out of stock",
-          condition: "new",
-          price: `${priceVal} ${currencyVal}`,
-          link: `${appUrl}/products/${productId}`,
-          image_link: mainImage,
-          brand: product.brand || "Generic",
-          category: category,
-          retailer_category: category,
-          product_type: category,
-          custom_label_0: category,
-          visibility: "published",
-        },
+        data: itemData,
       };
     });
 

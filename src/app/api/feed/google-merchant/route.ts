@@ -82,6 +82,25 @@ export async function GET(req: Request) {
            xml += `      <g:mpn>${escapeXml(product.sku)}</g:mpn>\n`;
         }
 
+        // Additional images (up to 10 for Google Merchant Center)
+        if (imageUrls.length > 1) {
+          imageUrls.slice(1, 11).forEach((imgUrl: string) => {
+            if (imgUrl) {
+              xml += `      <g:additional_image_link>${escapeXml(imgUrl)}</g:additional_image_link>\n`;
+            }
+          });
+        }
+
+        // Shipping weight
+        if (product.weight) {
+          const weightUnit = product.weight_unit || 'kg';
+          xml += `      <g:shipping_weight>${Number(product.weight)} ${escapeXml(weightUnit)}</g:shipping_weight>\n`;
+        }
+
+        // Identifiers
+        const hasBrandOrMpn = Boolean(product.brand || product.sku);
+        xml += `      <g:identifier_exists>${hasBrandOrMpn ? 'true' : 'false'}</g:identifier_exists>\n`;
+
         // Categories & Sets for Google Product Groups
         const category = product.category || 'General';
         const groupCategory = product.group_category || '';
