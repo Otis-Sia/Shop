@@ -73,11 +73,11 @@ export async function POST(request: Request) {
         id: draftId,
         merchant_id: uid,
         edit_form: body.editForm || {},
-        is_adding: body.isAdding || false,
-        editing_id: body.editingId || null,
-        is_quick_add: body.isQuickAdd || false,
+        is_adding: body.isAdding !== undefined ? Boolean(body.isAdding) : true,
+        editing_id: body.editingId !== undefined && body.editingId !== null ? String(body.editingId) : null,
+        is_quick_add: Boolean(body.isQuickAdd),
         updated_at: new Date().toISOString()
-      })
+      }, { onConflict: 'id' })
       .select()
       .single();
 

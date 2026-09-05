@@ -11,7 +11,7 @@ interface ProductPricingFormProps {
 export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProps) {
   const currentPricing: ProductPricing = {
     price: 0,
-    currency: "USD",
+    currency: "KES",
     taxable: true,
     ...pricing,
   };

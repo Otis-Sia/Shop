@@ -216,7 +216,7 @@ CREATE TABLE IF NOT EXISTS drafts (
     merchant_id VARCHAR(255) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
     edit_form JSONB DEFAULT '{}'::jsonb,
     is_adding BOOLEAN DEFAULT FALSE,
-    editing_id BIGINT,
+    editing_id VARCHAR(255),
     is_quick_add BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -282,7 +282,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_merchant ON orders(merchant_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_user_cart_items_user ON user_cart_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_wishlist_items_user ON user_wishlist_items(user_id);
-CREATE INDEX IF NOT EXISTS idx_drafts_merchant ON drafts(merchant_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_drafts_merchant ON drafts(merchant_id);
 CREATE INDEX IF NOT EXISTS idx_product_templates_merchant ON product_templates(merchant_id);
 CREATE INDEX IF NOT EXISTS idx_product_analytics_popularity ON product_analytics(popularity_score DESC);
 CREATE INDEX IF NOT EXISTS idx_product_analytics_views ON product_analytics(views DESC);

@@ -62,6 +62,7 @@ export default function MerchantProducts() {
   const [isSyncingCatalog, setIsSyncingCatalog] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [draftToResume, setDraftToResume] = useState<any>(null);
+  const [draftSaveStatus, setDraftSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingFromDetails, setIsGeneratingFromDetails] = useState(false);
 
@@ -448,10 +449,22 @@ export default function MerchantProducts() {
           if (draftRes.ok) {
             const draftData = await draftRes.json();
             if (draftData.draft && !isAdding && editingId === null) {
-              setDraftToResume({
-                ...draftData.draft,
-                timestamp: draftData.draft.updatedAt ? new Date(draftData.draft.updatedAt).getTime() : Date.now()
-              });
+              const ef = draftData.draft.editForm || {};
+              const hasContent = Boolean(
+                ef.name?.trim() ||
+                ef.description?.trim() ||
+                ef.sku?.trim() ||
+                (ef.pricing && (ef.pricing.price || ef.pricing.compareAtPrice)) ||
+                ef.price ||
+                (ef.media && ef.media.length > 0) ||
+                (ef.imageUrls && Array.isArray(ef.imageUrls) && ef.imageUrls.some((u: string) => u && u.trim() !== ''))
+              );
+              if (hasContent) {
+                setDraftToResume({
+                  ...draftData.draft,
+                  timestamp: draftData.draft.updatedAt ? new Date(draftData.draft.updatedAt).getTime() : Date.now()
+                });
+              }
             }
           }
         } catch (dErr) {
@@ -478,11 +491,25 @@ export default function MerchantProducts() {
   useEffect(() => {
     const user = auth.currentUser;
     if (!user || (!isAdding && editingId === null)) return;
+    if (!editForm || Object.keys(editForm).length === 0) return;
 
+    // Check if editForm contains meaningful data
+    const hasContent = Boolean(
+      editForm.name?.trim() ||
+      editForm.description?.trim() ||
+      editForm.sku?.trim() ||
+      (editForm.pricing && (editForm.pricing.price || editForm.pricing.compareAtPrice)) ||
+      editForm.price ||
+      (editForm.media && editForm.media.length > 0) ||
+      (editForm.imageUrls && Array.isArray(editForm.imageUrls) && editForm.imageUrls.some((u: string) => u && u.trim() !== ''))
+    );
+    if (!hasContent) return;
+
+    setDraftSaveStatus('saving');
     const delayDebounceFn = setTimeout(async () => {
       try {
         const token = await user.getIdToken();
-        await fetch('/api/drafts', {
+        const res = await fetch('/api/drafts', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -491,14 +518,20 @@ export default function MerchantProducts() {
           body: JSON.stringify({
             editForm,
             isAdding,
-            editingId,
+            editingId: editingId ? String(editingId) : null,
             isQuickAdd
           })
         });
+        if (res.ok) {
+          setDraftSaveStatus('saved');
+        } else {
+          setDraftSaveStatus('error');
+        }
       } catch (err) {
         console.error("Error auto-saving draft to DB:", err);
+        setDraftSaveStatus('error');
       }
-    }, 3000); // 3.0 seconds debounce
+    }, 2000); // 2.0 seconds debounce
 
     return () => clearTimeout(delayDebounceFn);
   }, [editForm, isAdding, editingId, isQuickAdd]);
@@ -512,6 +545,7 @@ export default function MerchantProducts() {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        setDraftSaveStatus('idle');
       } catch (err) {
         console.error("Error clearing draft from DB:", err);
       }
@@ -1634,14 +1668,14 @@ export default function MerchantProducts() {
           <div className="flex gap-2 shrink-0">
             <button 
               onClick={() => {
-                setEditForm(draftToResume.editForm);
-                setIsAdding(draftToResume.isAdding);
-                setEditingId(draftToResume.editingId);
+                setEditForm(draftToResume.editForm || {});
+                setIsAdding(draftToResume.isAdding !== undefined ? draftToResume.isAdding : !draftToResume.editingId);
+                setEditingId(draftToResume.editingId || null);
                 setIsQuickAdd(draftToResume.isQuickAdd || false);
                 setDraftToResume(null);
                 showToast("Draft recovered successfully", "success");
               }}
-              className="bg-on-surface text-surface px-4 py-1.5 text-xs font-black uppercase border-2 border-on-surface hover:bg-surface hover:text-on-surface transition-colors"
+              className="bg-on-surface text-surface px-4 py-1.5 text-xs font-black uppercase border-2 border-on-surface hover:bg-surface hover:text-on-surface transition-colors cursor-pointer"
             >
               Resume Editing
             </button>
@@ -1651,7 +1685,7 @@ export default function MerchantProducts() {
                 setDraftToResume(null);
                 showToast("Draft discarded", "info");
               }}
-              className="bg-surface text-on-surface px-4 py-1.5 text-xs font-black uppercase border-2 border-on-surface hover:bg-on-surface hover:text-surface transition-colors"
+              className="bg-surface text-on-surface px-4 py-1.5 text-xs font-black uppercase border-2 border-on-surface hover:bg-on-surface hover:text-surface transition-colors cursor-pointer"
             >
               Discard
             </button>
@@ -1715,7 +1749,9 @@ export default function MerchantProducts() {
       {(isAdding || editingId !== null) ? (
         <ProductEditor 
           isAdding={isAdding}
-          initialData={editingId ? editForm : {}}
+          initialData={editForm || {}}
+          onChange={(updated) => setEditForm(updated)}
+          draftSaveStatus={draftSaveStatus}
           existingSuppliers={Array.from(new Set(products.map(p => p.supplierName).filter(Boolean))) as string[]}
           onSave={async (data) => {
             try {
@@ -1731,9 +1767,12 @@ export default function MerchantProducts() {
               });
               const result = await res.json();
               if (res.ok) {
+                await clearDraft();
                 showToast(`Product successfully ${isAdding ? 'created' : 'updated'}`, 'success');
                 setIsAdding(false);
                 setEditingId(null);
+                setEditForm({});
+                setDraftSaveStatus('idle');
                 const savedItem = result.data;
                 const normalizedProduct: Product = {
                   ...savedItem,
@@ -1770,6 +1809,8 @@ export default function MerchantProducts() {
           onCancel={() => {
             setIsAdding(false);
             setEditingId(null);
+            setEditForm({});
+            setDraftSaveStatus('idle');
           }}
         />
       ) : (
