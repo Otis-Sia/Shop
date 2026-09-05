@@ -96,7 +96,7 @@ export async function syncProducts(products: any[]) {
       const mainImage = (product.imageUrls && product.imageUrls[0]) || product.image_url || "";
       const priceVal = Number(product.price || 0).toFixed(2);
       const currencyVal = (product.currency || "KES").toUpperCase();
-      const inStock = (product.stock === null || product.stock === undefined || Number(product.stock) > 0) && product.trackInventory !== false;
+      const inStock = product.trackInventory === false || product.stock === null || product.stock === undefined || Number(product.stock) > 0;
       const category = product.category || "General";
       const additionalImages = (product.imageUrls || []).slice(1, 11).filter(Boolean);
       const salePriceVal = product.salePrice ? Number(product.salePrice).toFixed(2) : null;
