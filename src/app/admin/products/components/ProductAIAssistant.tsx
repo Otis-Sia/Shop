@@ -94,7 +94,6 @@ const handleAIAutoFill = async () => {
           stockQuantity: v.stockQuantity || 0,
           isActive: true
         })) : currentData.variants,
-        hasVariants: Array.isArray(generated.variants) && generated.variants.length > 0 ? true : currentData.hasVariants,
         // Basic SEO injection
         seo: {
           ...currentData.seo,

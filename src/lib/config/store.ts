@@ -1,8 +1,8 @@
 export const STORE_CONFIG = {
   name: "JUJ4",
-  email: "support@juj4.com",
-  phone: "+254 700 000 000",
-  address: "Nairobi, Kenya",
+  email: "support@juj4.cepine.com",
+  phone: "+254 754 866 279",
+  address: "Juja, Kiambu, Kenya",
   poBox: "PO BOX 12345-00100",
   businessHours: "Monday - Friday: 9am - 6pm (EAT)\nSaturday: 10am - 4pm",
   founded: "2024",

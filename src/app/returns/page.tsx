@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Icon from '@/components/Icon';
+import { STORE_CONFIG } from '@/lib/config/store';
 
 export default function ReturnsPage() {
   return (
@@ -13,7 +14,7 @@ export default function ReturnsPage() {
       <section className="max-w-4xl mx-auto space-y-12">
         <div className="text-center space-y-4">
           <h1 className="font-headline-md text-4xl md:text-5xl font-black uppercase tracking-tight text-on-surface">Returns & Refunds</h1>
-          <p className="font-extrabold text-xs uppercase tracking-wider text-secondary">Our 30-Day Hassle-Free Guarantee</p>
+          <p className="font-extrabold text-xs uppercase tracking-wider text-secondary">Our 7-Day Hassle-Free Guarantee</p>
         </div>
 
         <div className="bg-surface border-2 border-on-surface p-8 md:p-12 shadow-[8px_8px_0px_0px_var(--color-on-surface)] space-y-10">
@@ -24,7 +25,7 @@ export default function ReturnsPage() {
               Return Window
             </h2>
             <p className="font-body-md text-sm text-secondary font-medium leading-relaxed">
-              We accept returns within 30 days of the original purchase date. Items must be unworn, unwashed, and in their original condition with all tags attached.
+              We accept returns within 7 days of the delivery date. Items must be unworn, unwashed, and in their original condition with all tags attached.
             </p>
           </div>
 
@@ -35,7 +36,7 @@ export default function ReturnsPage() {
             </h2>
             <ol className="space-y-6 list-decimal list-inside font-body-md text-sm text-secondary font-medium pl-4">
               <li className="pl-2">
-                <strong className="text-on-surface font-bold">Initiate the Return:</strong> Contact our support team via the Contact page or email support@juj4.com with your order number.
+                <strong className="text-on-surface font-bold">Initiate the Return:</strong> Contact our support team via the Contact page or email {STORE_CONFIG.email} with your order number.
               </li>
               <li className="pl-2">
                 <strong className="text-on-surface font-bold">Receive Label:</strong> We will provide a prepaid shipping label via email.
