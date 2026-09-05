@@ -10,9 +10,9 @@ import { POST, GET } from '../src/app/api/analytics/track/route';
 describe('Popularity Score Algorithm', () => {
   it('should verify defined weights', () => {
     assert.equal(POPULARITY_WEIGHTS.VIEW, 1.0);
-    assert.equal(POPULARITY_WEIGHTS.WISHLIST_ADD, 3.0);
-    assert.equal(POPULARITY_WEIGHTS.CART_ADD, 5.0);
-    assert.equal(POPULARITY_WEIGHTS.PURCHASE, 10.0);
+    assert.equal(POPULARITY_WEIGHTS.WISHLIST_ADD, 2.0);
+    assert.equal(POPULARITY_WEIGHTS.CART_ADD, 4.0);
+    assert.equal(POPULARITY_WEIGHTS.PURCHASE, 7.0);
   });
 
   it('should return 0 when all metrics are 0 or empty', () => {
@@ -24,23 +24,23 @@ describe('Popularity Score Algorithm', () => {
   it('should calculate popularity score correctly for single metric increments', () => {
     // 10 views = 10 * 1 = 10
     assert.equal(calculatePopularityScore({ views: 10 }), 10);
-    // 5 wishlist additions = 5 * 3 = 15
-    assert.equal(calculatePopularityScore({ wishlistAdditions: 5 }), 15);
-    // 4 cart additions = 4 * 5 = 20
-    assert.equal(calculatePopularityScore({ cartAdditions: 4 }), 20);
-    // 3 purchases = 3 * 10 = 30
-    assert.equal(calculatePopularityScore({ purchases: 3 }), 30);
+    // 5 wishlist additions = 5 * 2 = 10
+    assert.equal(calculatePopularityScore({ wishlistAdditions: 5 }), 10);
+    // 4 cart additions = 4 * 4 = 16
+    assert.equal(calculatePopularityScore({ cartAdditions: 4 }), 16);
+    // 3 purchases = 3 * 7 = 21
+    assert.equal(calculatePopularityScore({ purchases: 3 }), 21);
   });
 
   it('should calculate combined weighted popularity score accurately', () => {
-    // 100 views (100) + 20 wishlists (60) + 10 cart adds (50) + 5 purchases (50) = 260.00
+    // 100 views (100) + 20 wishlists (40) + 10 cart adds (40) + 5 purchases (35) = 215.00
     const score = calculatePopularityScore({
       views: 100,
       wishlistAdditions: 20,
       cartAdditions: 10,
       purchases: 5
     });
-    assert.equal(score, 260);
+    assert.equal(score, 215);
   });
 
   it('should handle negative numbers safely by clamping to 0', () => {
@@ -50,8 +50,8 @@ describe('Popularity Score Algorithm', () => {
       cartAdditions: 10,
       purchases: 2
     });
-    // 0 + 0 + (10*5) + (2*10) = 70
-    assert.equal(score, 70);
+    // 0 + 0 + (10*4) + (2*7) = 40 + 14 = 54
+    assert.equal(score, 54);
   });
 });
 

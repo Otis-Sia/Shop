@@ -15,8 +15,8 @@ describe('Adversarial Analytics Stress & Edge Cases', () => {
     
     // Decimal precision
     const decimalScore = calculatePopularityScore({ views: 0.1, wishlistAdditions: 0.3, cartAdditions: 0.5, purchases: 0.7 });
-    // 0.1*1 + 0.3*3 (0.9) + 0.5*5 (2.5) + 0.7*10 (7) = 0.1 + 0.9 + 2.5 + 7.0 = 10.5
-    assert.equal(decimalScore, 10.5);
+    // 0.1*1 (0.1) + 0.3*2 (0.6) + 0.5*4 (2.0) + 0.7*7 (4.9) = 0.1 + 0.6 + 2.0 + 4.9 = 7.6
+    assert.equal(decimalScore, 7.6);
   });
 
   it('should verify event normalization against adversarial attacks and unusual casing', () => {
@@ -92,7 +92,7 @@ describe('Adversarial Analytics Stress & Edge Cases', () => {
       cartAdditions: freshRowFromDb.cart_additions,
       purchases: freshRowFromDb.purchases
     });
-    // 8*1 + 2*3 + 1*5 + 0 = 8 + 6 + 5 = 19
-    assert.equal(retryScore, 19);
+    // 8*1 + 2*2 + 1*4 + 0 = 8 + 4 + 4 = 16
+    assert.equal(retryScore, 16);
   });
 });
