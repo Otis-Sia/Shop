@@ -157,6 +157,24 @@ export async function syncProducts(products: any[]) {
 }
 
 /**
+ * Synchronize a single product delta to Meta Catalog and ensure its category set exists.
+ */
+export async function syncSingleProduct(product: any) {
+  if (!product || (!product.id && !product.sku)) {
+    return { message: "Invalid product data." };
+  }
+  const syncResult = await syncProducts([product]);
+  if (product.category) {
+    try {
+      await syncProductSets([product.category]);
+    } catch (setErr: any) {
+      console.warn("Could not sync category set for single product:", setErr.message);
+    }
+  }
+  return syncResult;
+}
+
+/**
  * Automatically create or sync Product Sets on Meta Catalog for each product category.
  */
 export async function syncProductSets(categories: string[]) {

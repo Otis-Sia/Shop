@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyIdToken } from '@/lib/firebase-auth-edge';
 import { getServiceSupabase } from '@/lib/supabase/server';
+import { syncSingleProduct } from '@/lib/api/meta';
 
 export const dynamic = 'force-dynamic';
 
@@ -373,7 +374,16 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, product: mapDbProductToProduct(insertedProduct, (body.hasVariants && body.variants) ? body.variants : [], userProfile) });
+    const finalProduct = mapDbProductToProduct(insertedProduct, (body.hasVariants && body.variants) ? body.variants : [], userProfile);
+
+    // Delta sync: sync this single product to Meta Catalog in the background
+    try {
+      syncSingleProduct(finalProduct).catch((syncErr: any) => {
+        console.warn("Background delta sync warning for product", productId, syncErr.message);
+      });
+    } catch (_) {}
+
+    return NextResponse.json({ success: true, product: finalProduct });
   } catch (error: any) {
     console.error('Error in POST /api/products:', error);
     return NextResponse.json({ error: error.message || 'Failed to save product' }, { status: 500 });

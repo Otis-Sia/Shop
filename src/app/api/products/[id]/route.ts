@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyIdToken } from '@/lib/firebase-auth-edge';
 import { getServiceSupabase } from '@/lib/supabase/server';
+import { syncSingleProduct, deleteProducts } from '@/lib/api/meta';
 
 export const dynamic = 'force-dynamic';
 
@@ -152,6 +153,13 @@ export async function DELETE(
       throw delError;
     }
 
+    // Delta sync: delete product from Meta Catalog in the background
+    try {
+      deleteProducts([String(id)]).catch((metaErr: any) => {
+        console.warn("Background Meta delete warning for product", id, metaErr.message);
+      });
+    } catch (_) {}
+
     return NextResponse.json({ success: true, message: 'Product deleted successfully' });
   } catch (error: any) {
     console.error('Error deleting product:', error);
@@ -237,6 +245,13 @@ export async function PATCH(
     if (updateError) {
       throw updateError;
     }
+
+    // Delta sync: sync updated fields to Meta Catalog in the background
+    try {
+      syncSingleProduct(updatedProduct).catch((syncErr: any) => {
+        console.warn("Background delta sync warning for product", id, syncErr.message);
+      });
+    } catch (_) {}
 
     return NextResponse.json({ success: true, product: updatedProduct });
   } catch (error: any) {
