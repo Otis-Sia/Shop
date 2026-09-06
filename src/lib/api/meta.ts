@@ -1,5 +1,11 @@
 import axios from "axios";
 
+try {
+  // Prevent IPv6 timeout issues when calling Meta Graph API on Linux/serverless
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require("dns").setDefaultResultOrder?.("ipv4first");
+} catch (_) {}
+
 const GRAPH_VERSION = process.env.META_GRAPH_VERSION || "v18.0";
 const ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
 const CATALOG_ID = process.env.META_CATALOG_ID;
