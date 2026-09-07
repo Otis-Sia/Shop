@@ -6,7 +6,8 @@
 - **Provide Actionable Steps**: When a manual or automated schema update is needed, clearly specify the exact commands or queries the user can run in the Supabase SQL Editor or migration CLI.
 
 ## Git Workflow
-- **Push Commits to Test Branch**: Anytime a commit is made, always push it to the `Test` branch (e.g., `git push origin HEAD:Test` or pushing directly to `Test`).
+- **On-Demand Git Commits & Pushes**: Do NOT automatically commit or push code after every chat or code edit. Only stage, commit, and push when explicitly instructed by the user (e.g., "push", "commit", "commit and push").
+- **Push Commits to Test Branch**: Whenever committing and pushing is requested, always push to the `Test` branch (e.g., `git push origin HEAD:Test` or pushing directly to `Test`).
 
 ## Cloudflare Wrangler Policy
 - **On-Demand Deployment**: Deploy the Shop application using Wrangler (`npm run deploy` or `npx wrangler deploy`) only when explicitly instructed by the user.

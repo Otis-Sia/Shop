@@ -251,6 +251,9 @@ export default function MerchantProducts() {
                     sku: `${finalSku || 'SKU'}-${c.substring(0, 3).toUpperCase()}`
                   }))
                 : prev.variants),
+          imageUrls: (Array.isArray(data.imageUrls) && data.imageUrls.length > 0 && (!prev.imageUrls || prev.imageUrls.length === 0))
+            ? data.imageUrls 
+            : prev.imageUrls,
           imageAltTexts: Object.keys(altTextsObj).length > 0 ? altTextsObj : prev.imageAltTexts,
         };
       });
@@ -1649,6 +1652,22 @@ export default function MerchantProducts() {
     const costPrice = Number(editForm.costPrice);
     if (editForm.costPrice === undefined || editForm.costPrice === null || editForm.costPrice === '' || isNaN(costPrice) || costPrice <= 0) {
       errors.costPrice = 'A valid cost (> 0) is required.';
+    }
+
+    if (price > 0 && costPrice > 0 && price <= costPrice) {
+      errors.price = `Regular price (${price}) must be strictly greater than cost price (${costPrice}).`;
+    }
+
+    const rawSale = editForm.salePrice;
+    if (rawSale !== undefined && rawSale !== null && rawSale !== '') {
+      const salePrice = Number(rawSale);
+      if (isNaN(salePrice) || salePrice <= 0) {
+        errors.salePrice = 'Sale price must be greater than 0 if provided.';
+      } else if (price > 0 && salePrice >= price) {
+        errors.salePrice = `Sale price (${salePrice}) must be lower than regular price (${price}).`;
+      } else if (costPrice > 0 && salePrice < costPrice) {
+        errors.salePrice = `Sale price (${salePrice}) cannot be lower than cost price (${costPrice}).`;
+      }
     }
 
     const category = (editForm.category || '').trim();
