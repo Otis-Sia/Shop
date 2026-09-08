@@ -285,11 +285,42 @@ export function ProductEditor({
     
     try {
       const targetStatus = customStatus || formData.status || "active";
-      if (!formData.name && targetStatus !== "draft") {
+      if (!formData.name || !formData.name.trim()) {
         throw new Error("Product name is required");
       }
       if (!formData.productType) {
         throw new Error("Product type is required");
+      }
+      if (!formData.supplierName || !formData.supplierName.trim()) {
+        throw new Error("Supplier name is required");
+      }
+
+      const regularPrice = Number(formData.pricing?.price);
+      if (formData.pricing?.price === undefined || formData.pricing?.price === null || isNaN(regularPrice) || regularPrice <= 0) {
+        throw new Error("Regular Price is required and must be greater than 0");
+      }
+
+      const costPrice = Number(formData.pricing?.costPrice);
+      if (formData.pricing?.costPrice === undefined || formData.pricing?.costPrice === null || isNaN(costPrice) || costPrice <= 0) {
+        throw new Error("Cost Price (Buying Price) is required and must be greater than 0");
+      }
+
+      if (regularPrice <= costPrice) {
+        throw new Error(`Regular Price (${regularPrice}) must be strictly greater than Cost Price (${costPrice})`);
+      }
+
+      const rawSalePrice = formData.pricing?.salePrice ?? formData.pricing?.compareAtPrice;
+      if (rawSalePrice !== undefined && rawSalePrice !== null && !isNaN(Number(rawSalePrice))) {
+        const salePrice = Number(rawSalePrice);
+        if (salePrice <= 0) {
+          throw new Error("Sale Price must be greater than 0 if provided");
+        }
+        if (salePrice >= regularPrice) {
+          throw new Error(`Sale Price (${salePrice}) must be lower than Regular Price (${regularPrice})`);
+        }
+        if (salePrice < costPrice) {
+          throw new Error(`Sale Price (${salePrice}) cannot be lower than Cost Price (${costPrice})`);
+        }
       }
       
       const targetProductType = formData.productType || "physical";

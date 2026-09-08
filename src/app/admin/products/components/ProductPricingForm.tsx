@@ -74,20 +74,21 @@ export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProp
         {/* Cost Price */}
         <div>
           <label className="block font-bold uppercase text-xs mb-1">
-            Cost (Buying Price)
+            Cost (Buying Price) *
           </label>
           <div className="relative">
             <input
               type="number"
-              min="0"
+              min="0.01"
               step="0.01"
               value={currentPricing.costPrice !== undefined && currentPricing.costPrice !== null ? currentPricing.costPrice : ""}
               placeholder="0.00"
               onChange={(e) => updateField("costPrice", e.target.value !== "" ? parseFloat(e.target.value) : undefined)}
               className="w-full p-2 border-2 border-on-surface bg-surface text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary"
+              required
             />
           </div>
-          <p className="text-[11px] text-secondary mt-1">Internal cost per unit</p>
+          <p className="text-[11px] text-secondary mt-1">Internal cost per unit (must be &lt; Regular Price)</p>
         </div>
 
         {/* Sale Price */}
@@ -98,7 +99,7 @@ export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProp
           <div className="relative">
             <input
               type="number"
-              min="0"
+              min="0.01"
               step="0.01"
               value={currentPricing.salePrice !== undefined && currentPricing.salePrice !== null ? currentPricing.salePrice : ""}
               placeholder="Optional discount"
@@ -107,10 +108,27 @@ export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProp
             />
           </div>
           <p className="text-[11px] text-secondary mt-1">
-            {discountPercent ? `${discountPercent}% off regular price` : "Customer pays this if entered"}
+            {discountPercent ? `${discountPercent}% off regular price` : "Customer pays this if entered (Cost ≤ Sale < Price)"}
           </p>
         </div>
       </div>
+
+      {/* Real-time Pricing Validation Warnings */}
+      {regularPrice > 0 && cost > 0 && regularPrice <= cost && (
+        <div className="p-3 bg-red-100 border-2 border-red-600 text-red-800 text-xs font-bold uppercase">
+          Warning: Regular Price ({regularPrice}) must be greater than Cost Price ({cost}).
+        </div>
+      )}
+      {salePrice !== null && salePrice > 0 && regularPrice > 0 && salePrice >= regularPrice && (
+        <div className="p-3 bg-red-100 border-2 border-red-600 text-red-800 text-xs font-bold uppercase">
+          Warning: Sale Price ({salePrice}) must be lower than Regular Price ({regularPrice}).
+        </div>
+      )}
+      {salePrice !== null && salePrice > 0 && cost > 0 && salePrice < cost && (
+        <div className="p-3 bg-red-100 border-2 border-red-600 text-red-800 text-xs font-bold uppercase">
+          Warning: Sale Price ({salePrice}) cannot be lower than Cost Price ({cost}).
+        </div>
+      )}
 
       {/* Currency & Tax Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-outline/20">

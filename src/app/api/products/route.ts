@@ -232,8 +232,36 @@ export async function POST(request: Request) {
     }
 
     const price = Number(body.price);
-    if (body.price === undefined || body.price === null || isNaN(price) || price < 0) {
-      return NextResponse.json({ error: 'A valid product price is required' }, { status: 400 });
+    if (body.price === undefined || body.price === null || isNaN(price) || price <= 0) {
+      return NextResponse.json({ error: 'A valid product price (> 0) is required' }, { status: 400 });
+    }
+
+    const costPrice = Number(body.costPrice !== undefined ? body.costPrice : body.cost_price);
+    if (body.costPrice === undefined && body.cost_price === undefined || isNaN(costPrice) || costPrice <= 0) {
+      return NextResponse.json({ error: 'A valid cost price (> 0) is required' }, { status: 400 });
+    }
+
+    if (price <= costPrice) {
+      return NextResponse.json({ error: 'Product regular price must be strictly greater than cost price' }, { status: 400 });
+    }
+
+    const supplierName = typeof (body.supplierName || body.supplier_name) === 'string' ? (body.supplierName || body.supplier_name).trim() : '';
+    if (!supplierName) {
+      return NextResponse.json({ error: 'Supplier name is required' }, { status: 400 });
+    }
+
+    const rawSalePrice = body.salePrice ?? body.sale_price;
+    if (rawSalePrice !== undefined && rawSalePrice !== null && rawSalePrice !== '') {
+      const salePrice = Number(rawSalePrice);
+      if (isNaN(salePrice) || salePrice <= 0) {
+        return NextResponse.json({ error: 'Sale price must be greater than 0 if provided' }, { status: 400 });
+      }
+      if (salePrice >= price) {
+        return NextResponse.json({ error: 'Sale price must be lower than regular price' }, { status: 400 });
+      }
+      if (salePrice < costPrice) {
+        return NextResponse.json({ error: 'Sale price cannot be lower than cost price' }, { status: 400 });
+      }
     }
 
     const category = typeof body.category === 'string' ? body.category.trim() : '';

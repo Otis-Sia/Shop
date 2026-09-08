@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getServiceSupabase } from '@/lib/supabase/server';
+import { searchProductImages } from '@/lib/images/search';
 
 export const dynamic = 'force-dynamic';
 
@@ -246,6 +247,19 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
           });
         }
       }
+      // Auto-discover product photos from the web if no images were provided
+      if ((!images || images.length === 0) && (parsed.name || currentName)) {
+        try {
+          const searchQuery = `${parsed.brand && parsed.brand !== 'Generic' ? parsed.brand : ''} ${parsed.name || currentName}`.trim();
+          const foundImages = await searchProductImages(searchQuery, 4);
+          if (foundImages.length > 0) {
+            parsed.imageUrls = foundImages.map(img => img.url);
+          }
+        } catch (imgErr) {
+          console.warn('Image auto-discovery error:', imgErr);
+        }
+      }
+
       return NextResponse.json(parsed);
     }
     return NextResponse.json({ error: 'Failed to generate content.' }, { status: 500 });

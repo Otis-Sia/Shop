@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { createProductSchema } from "@/lib/products/validator";
+import { createProductSchema, updateProductSchema } from "@/lib/products/validator";
 import { ProductService, SupabaseProductRepository, DuplicateSkuError, SlugCollisionError } from "@/lib/products/service";
 // import { verifyIdToken } from "@/lib/firebase-auth-edge";
 
@@ -51,9 +51,7 @@ export async function PUT(
       delete body.downloadUrl;
     }
 
-    // Re-using the same schema but making it partial is common,
-    // For now we'll do a partial validation or rely on the frontend passing the full object
-    const parsed = createProductSchema.partial().parse(body);
+    const parsed = updateProductSchema.parse(body);
 
     const repo = new SupabaseProductRepository();
     const service = new ProductService(repo);
@@ -73,7 +71,11 @@ export async function PUT(
       return NextResponse.json({ success: false, error: err.name, message: err.message }, { status: 409 });
     }
     console.error("Error updating product:", err);
-    return NextResponse.json({ success: false, error: "InternalServerError" }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      error: "InternalServerError",
+      message: err instanceof Error ? err.message : "Something went wrong while updating the product"
+    }, { status: 500 });
   }
 }
 

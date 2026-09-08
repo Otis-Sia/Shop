@@ -94,6 +94,16 @@ const handleAIAutoFill = async () => {
           stockQuantity: v.stockQuantity || 0,
           isActive: true
         })) : currentData.variants,
+        media: (Array.isArray(generated.imageUrls) && generated.imageUrls.length > 0 && (!currentData.media || currentData.media.length === 0))
+          ? generated.imageUrls.map((url: string, pIdx: number) => ({
+              id: `media-${Date.now()}-${pIdx}`,
+              url,
+              type: "image" as const,
+              position: pIdx,
+              isPrimary: pIdx === 0,
+              altText: (Array.isArray(generated.imageAltTexts) && generated.imageAltTexts[pIdx]) ? generated.imageAltTexts[pIdx] : generated.name
+            }))
+          : currentData.media,
         // Basic SEO injection
         seo: {
           ...currentData.seo,
@@ -115,10 +125,10 @@ const handleAIAutoFill = async () => {
 
   return (
     <div className="p-6 border border-primary/40 bg-surface-dim rounded-xl space-y-4">
-      <h3 className="font-bold text-xl mb-4 border-b border-primary/20 pb-2 text-primary">✨ AI Magic Fill</h3>
+      <h3 className="font-bold text-xl mb-4 border-b border-primary/20 pb-2 text-primary">AI Magic Fill</h3>
       
       <p className="text-xs text-on-surface-variant leading-relaxed">
-        One button to rule them all! The AI will scan any uploaded <strong>images</strong> and read the <strong>notes</strong> below to automatically generate the product name, SKU, price, SEO, categories, tags, description, and specs.
+        One button to rule them all! The AI will scan any uploaded <strong>images</strong> and read the <strong>notes</strong> below to automatically generate the product name, SKU, price, SEO, categories, tags, description, specs, and matching web product images.
       </p>
 
       <div className="space-y-2">
@@ -134,7 +144,7 @@ const handleAIAutoFill = async () => {
           disabled={isGeneratingDetails || (!rawDetails.trim() && !(currentData.media && currentData.media.length > 0))}
           className="w-full px-4 py-3 bg-primary text-on-primary font-bold uppercase tracking-wider text-sm hover:bg-primary/90 disabled:opacity-50 rounded-lg shadow-sm transition-all"
         >
-          {isGeneratingDetails ? "Generating Magic..." : "✨ Auto-Fill Everything"}
+          {isGeneratingDetails ? "Generating Magic..." : "Auto-Fill Everything"}
         </button>
       </div>
     </div>

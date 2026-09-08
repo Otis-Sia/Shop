@@ -151,7 +151,7 @@ export default function CheckoutPage() {
         country: '',
       },
       shippingInformation: {
-        method: 'FREE EXPRESS',
+        method: 'Standard Delivery',
         cost: 0,
       },
       items: cartItems.map(item => {
@@ -416,11 +416,6 @@ export default function CheckoutPage() {
                   ))}
                 </div>
               )}
-
-              <div className="flex justify-between border-b border-surface-container pb-3 text-sm">
-                <span className="text-secondary font-bold uppercase tracking-wider">Shipping</span>
-                <span className="font-black text-primary-container uppercase tracking-wider">FREE EXPRESS</span>
-              </div>
 
               <div className="flex justify-between pt-3 pb-1 font-black text-lg border-t-2 border-on-surface border-dashed">
                 <span className="uppercase tracking-widest text-on-surface">Total to Pay</span>

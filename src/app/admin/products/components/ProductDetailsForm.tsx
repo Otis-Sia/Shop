@@ -77,7 +77,7 @@ export function ProductDetailsForm({ data, onChange, existingSuppliers = [] }: P
           />
         </div>
         <div>
-          <label className="block font-bold uppercase text-sm mb-1">Supplier</label>
+          <label className="block font-bold uppercase text-sm mb-1">Supplier *</label>
           <input
             type="text"
             list="suppliers-list"
@@ -85,6 +85,7 @@ export function ProductDetailsForm({ data, onChange, existingSuppliers = [] }: P
             onChange={(e) => onChange("supplierName", e.target.value)}
             className="w-full p-2 border border-outline/30 bg-background rounded-lg"
             placeholder="e.g. Cedar Supply"
+            required
           />
           <datalist id="suppliers-list">
             {existingSuppliers.map((s) => (

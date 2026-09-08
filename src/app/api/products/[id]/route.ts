@@ -198,7 +198,7 @@ export async function PATCH(
 
     const { data: product } = await supabase
       .from('products')
-      .select('merchant_id')
+      .select('merchant_id, price, cost_price')
       .eq('id', id)
       .maybeSingle();
 
@@ -216,20 +216,52 @@ export async function PATCH(
     };
 
     if (body.supplierName !== undefined || body.supplier_name !== undefined) {
-      allowedUpdates.supplier_name = body.supplierName ?? body.supplier_name ?? '';
+      const sup = (body.supplierName ?? body.supplier_name ?? '').trim();
+      if (!sup) {
+        return NextResponse.json({ error: 'Supplier name cannot be empty' }, { status: 400 });
+      }
+      allowedUpdates.supplier_name = sup;
     }
     if (body.sku !== undefined) {
       allowedUpdates.sku = body.sku;
     }
     if (body.costPrice !== undefined || body.cost_price !== undefined) {
-      allowedUpdates.cost_price = body.costPrice !== undefined ? (body.costPrice === '' ? null : Number(body.costPrice)) : (body.cost_price === '' ? null : Number(body.cost_price));
+      const cp = body.costPrice !== undefined ? (body.costPrice === '' ? null : Number(body.costPrice)) : (body.cost_price === '' ? null : Number(body.cost_price));
+      if (cp !== null && (isNaN(cp) || cp <= 0)) {
+        return NextResponse.json({ error: 'Cost price must be greater than 0' }, { status: 400 });
+      }
+      allowedUpdates.cost_price = cp;
     }
     if (body.price !== undefined) {
-      allowedUpdates.price = Number(body.price);
+      const p = Number(body.price);
+      if (isNaN(p) || p <= 0) {
+        return NextResponse.json({ error: 'Regular price must be greater than 0' }, { status: 400 });
+      }
+      allowedUpdates.price = p;
     }
+
+    // Relational check: price must be > cost_price
+    const finalPrice = allowedUpdates.price !== undefined ? allowedUpdates.price : Number(product.price);
+    const finalCost = allowedUpdates.cost_price !== undefined ? allowedUpdates.cost_price : (product.cost_price ? Number(product.cost_price) : null);
+    if (finalPrice !== undefined && finalCost !== null && finalPrice <= finalCost) {
+      return NextResponse.json({ error: `Regular price (${finalPrice}) must be strictly greater than cost price (${finalCost})` }, { status: 400 });
+    }
+
     if (body.salePrice !== undefined || body.sale_price !== undefined) {
       const sp = body.salePrice ?? body.sale_price;
-      allowedUpdates.sale_price = sp === '' || sp === null ? null : Number(sp);
+      const parsedSp = sp === '' || sp === null ? null : Number(sp);
+      if (parsedSp !== null) {
+        if (isNaN(parsedSp) || parsedSp <= 0) {
+          return NextResponse.json({ error: 'Sale price must be greater than 0' }, { status: 400 });
+        }
+        if (finalPrice && parsedSp >= finalPrice) {
+          return NextResponse.json({ error: `Sale price (${parsedSp}) must be lower than regular price (${finalPrice})` }, { status: 400 });
+        }
+        if (finalCost && parsedSp < finalCost) {
+          return NextResponse.json({ error: `Sale price (${parsedSp}) cannot be lower than cost price (${finalCost})` }, { status: 400 });
+        }
+      }
+      allowedUpdates.sale_price = parsedSp;
     }
     if (body.stock !== undefined) {
       allowedUpdates.stock = body.stock === '' || body.stock === null ? null : Number(body.stock);

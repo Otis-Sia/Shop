@@ -46,15 +46,42 @@ export const mediaSchema = z.object({
   isPrimary: z.boolean().optional(),
 });
 
-export const pricingSchema = z.object({
-  price: z.number().nonnegative("Price must be 0 or greater").default(0),
-  salePrice: z.number().nonnegative("Sale price must be 0 or greater").optional(),
-  compareAtPrice: z.number().nonnegative().optional(),
-  costPrice: z.number().nonnegative("Cost price must be 0 or greater").optional(),
-  currency: z.string().min(1).max(10).optional().default("KES"),
-  taxable: z.boolean().optional().default(false),
-  taxClass: z.string().max(50).optional(),
-});
+export const pricingSchema = z
+  .object({
+    price: z.number().positive("Regular price must be greater than 0"),
+    salePrice: z.number().positive("Sale price must be greater than 0").optional(),
+    compareAtPrice: z.number().positive("Sale price must be greater than 0").optional(),
+    costPrice: z.number().positive("Cost price must be greater than 0"),
+    currency: z.string().min(1).max(10).optional().default("KES"),
+    taxable: z.boolean().optional().default(false),
+    taxClass: z.string().max(50).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.price <= data.costPrice) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Regular price must be strictly greater than cost price",
+        path: ["price"],
+      });
+    }
+    const effectiveSale = data.salePrice ?? data.compareAtPrice;
+    if (effectiveSale !== undefined && effectiveSale !== null) {
+      if (effectiveSale >= data.price) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Sale price must be lower than regular price",
+          path: ["salePrice"],
+        });
+      }
+      if (effectiveSale < data.costPrice) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Sale price cannot be lower than cost price",
+          path: ["salePrice"],
+        });
+      }
+    }
+  });
 
 export const inventoryPolicySchema = z.object({
   trackInventory: z.boolean().optional().default(false),
@@ -89,58 +116,63 @@ export const serviceInfoSchema = z.object({
 
 const slugSafe = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export const createProductSchema = z
-  .object({
-    merchantId: z.string().optional().default("admin"),
-    productType: z.enum(["physical", "digital", "service"]).optional().default("physical"),
+export const baseProductSchema = z.object({
+  merchantId: z.string().optional().default("admin"),
+  productType: z.enum(["physical", "digital", "service"]).optional().default("physical"),
 
-    name: z.string().min(1, "Product name is required").max(255),
-    description: z.string().max(50000).optional().default(""),
-    shortDescription: z.string().max(1000).optional(),
-    sku: z.string().max(100).optional(),
-    status: z.enum(["draft", "active", "archived", "out_of_stock"]).optional().default("draft"),
+  name: z.string().min(1, "Product name is required").max(255),
+  description: z.string().max(50000).optional().default(""),
+  shortDescription: z.string().max(1000).optional(),
+  sku: z.string().max(100).optional(),
+  status: z.enum(["draft", "active", "archived", "out_of_stock"]).optional().default("draft"),
 
-    categoryIds: z.array(z.string()).optional().default([]),
-    tags: z.array(z.string().max(60)).max(50).optional().default([]),
-    brand: z.string().max(120).optional(),
+  categoryIds: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string().max(60)).max(50).optional().default([]),
+  brand: z.string().max(120).optional(),
+  supplierName: z.string().min(1, "Supplier name is required").max(255),
 
-    pricing: pricingSchema.optional().default({ price: 0, currency: "KES", taxable: false }),
-    inventory: inventoryPolicySchema.optional().default({ trackInventory: false, allowBackorder: false }),
-    stockQuantity: z.number().int().nonnegative().optional().default(0),
+  pricing: pricingSchema,
+  inventory: inventoryPolicySchema.optional().default({ trackInventory: false, allowBackorder: false }),
+  stockQuantity: z.number().int().nonnegative().optional().default(0),
 
-    attributes: z.array(attributeSchema).optional().default([]),
-    variants: z.array(variantSchema).optional().default([]),
+  attributes: z.array(attributeSchema).optional().default([]),
+  variants: z.array(variantSchema).optional().default([]),
 
-    media: z.array(mediaSchema).optional().default([]),
+  media: z.array(mediaSchema).optional().default([]),
 
-    seo: seoSchema.optional(),
+  seo: seoSchema.optional(),
 
-    shipping: shippingSchema.optional(),
-    service: serviceInfoSchema.optional(),
-    downloadUrl: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.variants && data.variants.length > 0) {
-      const skus = data.variants.map((v) => v.sku);
-      const dupes = skus.filter((s, i) => skus.indexOf(s) !== i);
-      if (dupes.length > 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate variant SKUs: ${[...new Set(dupes)].join(", ")}`,
-          path: ["variants"],
-        });
-      }
-      const defaults = data.variants.filter((v) => v.isDefault);
-      if (defaults.length > 1) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Only one variant may be marked isDefault",
-          path: ["variants"],
-        });
-      }
+  shipping: shippingSchema.optional(),
+  service: serviceInfoSchema.optional(),
+  downloadUrl: z.string().optional(),
+});
+
+const refineVariants = (data: { variants?: any[] }, ctx: z.RefinementCtx) => {
+  if (data.variants && data.variants.length > 0) {
+    const skus = data.variants.map((v) => v.sku);
+    const dupes = skus.filter((s, i) => skus.indexOf(s) !== i);
+    if (dupes.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Duplicate variant SKUs: ${[...new Set(dupes)].join(", ")}`,
+        path: ["variants"],
+      });
     }
-  });
+    const defaults = data.variants.filter((v) => v.isDefault);
+    if (defaults.length > 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Only one variant may be marked isDefault",
+        path: ["variants"],
+      });
+    }
+  }
+};
+
+export const createProductSchema = baseProductSchema.superRefine(refineVariants);
+export const updateProductSchema = baseProductSchema.partial().superRefine(refineVariants);
 
 export const slugSchema = z.string().regex(slugSafe, "Slug must be lowercase, alphanumeric, hyphen-separated");
 
 export type CreateProductSchema = z.infer<typeof createProductSchema>;
+export type UpdateProductSchema = z.infer<typeof updateProductSchema>;

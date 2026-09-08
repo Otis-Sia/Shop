@@ -286,11 +286,6 @@ export default function CartPage() {
                 <span className="text-secondary uppercase tracking-wider">Subtotal</span>
                 <span className="font-extrabold">{CURRENCY_CONFIG.symbol} {total.toFixed(2)}</span>
               </div>
-              
-              <div className="flex justify-between border-b border-surface-container pb-3 font-semibold text-sm">
-                <span className="text-secondary uppercase tracking-wider">Shipping</span>
-                <span className="font-extrabold text-primary-container">FREE</span>
-              </div>
 
               <div className="flex justify-between pb-3 pt-2 font-black text-lg">
                 <span className="uppercase tracking-widest text-on-surface">Total</span>
