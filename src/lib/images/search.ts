@@ -40,7 +40,40 @@ export async function searchProductImages(query: string, count: number = 6): Pro
     }
   }
 
-  // 2. Check SerpApi (if configured)
+  // 2. Check Serper.dev (if configured) - 2,500 free queries
+  const serperApiKey = process.env.SERPER_API_KEY;
+  if (serperApiKey) {
+    try {
+      const res = await fetch('https://google.serper.dev/images', {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': serperApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ q: cleanQuery, num: count }),
+      });
+      if (res.ok) {
+        const data: any = await res.json();
+        if (Array.isArray(data.images)) {
+          for (const item of data.images) {
+            if (item.imageUrl) {
+              results.push({
+                url: item.imageUrl,
+                thumbnail: item.thumbnailUrl || item.imageUrl,
+                title: item.title || cleanQuery,
+                source: 'Serper',
+              });
+            }
+          }
+          if (results.length > 0) return results.slice(0, count);
+        }
+      }
+    } catch (err) {
+      console.warn('Serper search error:', err);
+    }
+  }
+
+  // 3. Check SerpApi (if configured)
   const serpApiKey = process.env.SERPAPI_API_KEY;
   if (serpApiKey) {
     try {

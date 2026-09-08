@@ -245,6 +245,8 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
+        }
+      }
       // Auto-discover product photos from the web if no images were provided
       if ((!images || images.length === 0) && (parsed.name || currentName)) {
         try {

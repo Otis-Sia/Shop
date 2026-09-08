@@ -6,7 +6,10 @@
 - **Provide Actionable Steps**: When a manual or automated schema update is needed, clearly specify the exact commands or queries the user can run in the Supabase SQL Editor or migration CLI.
 
 ## Git Workflow
-- **On-Demand Git Commits & Pushes**: Do NOT automatically commit or push code after every chat or code edit. Only stage, commit, and push when explicitly instructed by the user (e.g., "push", "commit", "commit and push").
+- **Strict On-Demand Commits & Pushes (No Automatic Commits/Pushes)**: 
+  - NEVER execute `git commit` or `git push` automatically after making code changes, fixing bugs, or implementing features.
+  - ONLY run git commit and push when the user explicitly instructs you in the prompt (e.g., "commit", "push", "push to test", "commit and push").
+  - When completing a task, report the changes and ask the user if they would like to commit and push.
 - **Push Commits to Test Branch**: Whenever committing and pushing is requested, always push to the `Test` branch (e.g., `git push origin HEAD:Test` or pushing directly to `Test`).
 
 ## Cloudflare Wrangler Policy
