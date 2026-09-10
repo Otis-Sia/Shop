@@ -172,10 +172,10 @@ export async function GET(request: Request) {
       });
     }
 
-    // New arrivals filter (within past 7 days)
+    // New arrivals filter (within past 14 days)
     if (newArrivals) {
       const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 14);
       products = products.filter(p => {
         if (!p.createdAt) return false;
         return new Date(p.createdAt).getTime() >= oneWeekAgo.getTime();

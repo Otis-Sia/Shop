@@ -239,6 +239,7 @@ function ProductsPageContent() {
     setKeyword(searchVal);
     setCategory(catVal);
     setNewArrivalsOnly(newArrivalsVal);
+    if (newArrivalsVal) setSortBy('newest');
 
     fetchProducts({ 
       keyword: searchVal || undefined, 
@@ -481,7 +482,7 @@ function ProductsPageContent() {
                 type="checkbox"
                 id="mobileNewArrivalsOnly"
                 checked={newArrivalsOnly}
-                onChange={(e) => setNewArrivalsOnly(e.target.checked)}
+                onChange={(e) => { setNewArrivalsOnly(e.target.checked); if (e.target.checked) setSortBy('newest'); }}
                 className="w-5 h-5 border border-outline/30 bg-surface text-primary-container focus:ring-0 rounded cursor-pointer"
               />
               <label htmlFor="mobileNewArrivalsOnly" className="font-extrabold text-xs uppercase tracking-wider text-on-surface cursor-pointer select-none">
@@ -629,7 +630,7 @@ function ProductsPageContent() {
                 type="checkbox"
                 id="newArrivalsOnly"
                 checked={newArrivalsOnly}
-                onChange={(e) => setNewArrivalsOnly(e.target.checked)}
+                onChange={(e) => { setNewArrivalsOnly(e.target.checked); if (e.target.checked) setSortBy('newest'); }}
                 className="w-5 h-5 border border-outline/30 bg-surface text-primary-container focus:ring-0 rounded cursor-pointer"
               />
               <label htmlFor="newArrivalsOnly" className="font-extrabold text-xs uppercase tracking-wider text-on-surface cursor-pointer select-none">
@@ -673,6 +674,7 @@ function ProductsPageContent() {
                 className="h-10 px-3 border border-surface-dim rounded font-bold text-xs uppercase bg-surface cursor-pointer"
               >
                 <option value="default">Sort By: Default</option>
+                <option value="newest">Sort By: New to Old</option>
                 <option value="price-asc">Price: Low to High</option>
                 <option value="price-desc">Price: High to Low</option>
                 <option value="name-asc">Name: A to Z</option>
@@ -723,6 +725,7 @@ function ProductsPageContent() {
                 const salePriceB = b.salePrice ? parseFloat(String(b.salePrice)) : 0;
                 const priceB = (salePriceB > 0 && salePriceB < b.price) ? salePriceB : b.price;
                 switch (sortBy) {
+                  case 'newest': return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
                   case 'price-asc': return priceA - priceB;
                   case 'price-desc': return priceB - priceA;
                   case 'name-asc': return a.name.localeCompare(b.name);
