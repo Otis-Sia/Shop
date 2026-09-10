@@ -2,7 +2,14 @@ import { clearCart } from './cart';
 import { auth } from '@/lib/firebase';
 import { Order } from '@/types/schema';
 
-export const createOrder = async (orderData: Partial<Order>): Promise<Order> => {
+export interface CreateOrderResult extends Order {
+  redirectUrl?: string | null;
+  checkoutId?: string;
+}
+
+export const createOrder = async (
+  orderData: Partial<Order> & { paymentMethod?: string }
+): Promise<CreateOrderResult> => {
   const user = auth.currentUser;
   if (!user) throw new Error("User must be logged in to create an order");
 
@@ -20,7 +27,8 @@ export const createOrder = async (orderData: Partial<Order>): Promise<Order> => 
         contactInformation: orderData.contactInformation,
         shippingAddress: orderData.shippingAddress,
         shippingInformation: orderData.shippingInformation,
-        totalAmount: orderData.totalAmount
+        totalAmount: orderData.totalAmount,
+        paymentMethod: orderData.paymentMethod || 'pesapal'
       }),
     });
 
@@ -33,7 +41,10 @@ export const createOrder = async (orderData: Partial<Order>): Promise<Order> => 
     await clearCart();
 
     if (data.createdOrders && data.createdOrders.length > 0) {
-      return data.createdOrders[0] as Order;
+      const order = data.createdOrders[0] as CreateOrderResult;
+      order.redirectUrl = data.redirectUrl || null;
+      order.checkoutId = data.checkoutId;
+      return order;
     }
 
     throw new Error("Order created but no order data returned");

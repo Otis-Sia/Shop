@@ -35,7 +35,14 @@ export async function GET() {
       updatedAt: c.updated_at
     }));
 
-    return NextResponse.json({ categories: formatted });
+    return NextResponse.json(
+      { categories: formatted },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        }
+      }
+    );
   } catch (error: any) {
     console.error('Error in GET /api/categories:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch categories' }, { status: 500 });

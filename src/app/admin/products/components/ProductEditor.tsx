@@ -12,15 +12,50 @@ import { ProductFulfillmentForm } from "./ProductFulfillmentForm";
 import { ProductSEOForm } from "./ProductSEOForm";
 import { ProductAIAssistant } from "./ProductAIAssistant";
 
+import { AlertTriangle, ChevronDown, ChevronUp, ExternalLink, X } from "lucide-react";
+
+export interface ExistingProductSummary {
+  id: string | number;
+  name: string;
+  thumbnail?: string;
+  sku?: string;
+  price?: number;
+  currency?: string;
+  stock?: number | null;
+  status?: string;
+  supplierName?: string;
+}
+
 interface ProductEditorProps {
   initialData?: Partial<CreateProductInput> | any;
   isAdding: boolean;
   onSave: (data: CreateProductInput) => Promise<void>;
   onCancel: () => void;
   existingSuppliers?: string[];
-  existingProducts?: { id: string | number; name: string; thumbnail?: string }[];
+  existingProducts?: ExistingProductSummary[];
   onChange?: (data: Partial<CreateProductInput>) => void;
   draftSaveStatus?: "idle" | "saving" | "saved" | "error";
+}
+
+function getBigrams(str: string) {
+  const s = str.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const bigrams = new Set<string>();
+  for (let i = 0; i < s.length - 1; i++) {
+    bigrams.add(s.slice(i, i + 2));
+  }
+  return bigrams;
+}
+
+function calcSimilarity(s1: string, s2: string) {
+  const b1 = getBigrams(s1);
+  const b2 = getBigrams(s2);
+  if (b1.size === 0 || b2.size === 0) return 0;
+  let intersection = 0;
+  b1.forEach((b) => {
+    if (b2.has(b)) intersection++;
+  });
+  const union = b1.size + b2.size - intersection;
+  return union === 0 ? 0 : intersection / union;
 }
 
 function normalizeProductData(data?: any): Partial<CreateProductInput> {
@@ -28,7 +63,7 @@ function normalizeProductData(data?: any): Partial<CreateProductInput> {
     return {
       productType: "physical",
       status: "draft",
-      categoryIds: ["Apparel"],
+      categoryIds: [],
       tags: [],
       attributes: [],
       variants: [],
@@ -90,7 +125,7 @@ function normalizeProductData(data?: any): Partial<CreateProductInput> {
   // Normalize categories
   const categoryIds = Array.isArray(data.categoryIds) && data.categoryIds.length > 0
     ? data.categoryIds
-    : (data.category ? [data.category] : ["Apparel"]);
+    : (data.category ? [data.category] : []);
 
   // Normalize tags
   const tags = Array.isArray(data.tags)
@@ -137,20 +172,43 @@ export function ProductEditor({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSkuManuallyEdited, setIsSkuManuallyEdited] = useState(Boolean(initialData?.sku));
 
-  const similarProduct = React.useMemo(() => {
-    if (!formData.name || !existingProducts || existingProducts.length === 0) return null;
+  const [showDuplicateDropdown, setShowDuplicateDropdown] = useState(false);
+  const [dismissedName, setDismissedName] = useState<string | null>(null);
+
+  const suspectedDuplicates = React.useMemo(() => {
+    if (!formData.name || !existingProducts || existingProducts.length === 0) return [];
     const currentName = formData.name.toLowerCase().trim();
-    if (currentName.length < 3) return null;
+    if (currentName.length < 3) return [];
+
+    const currentId = initialData?.id !== undefined && initialData?.id !== null ? String(initialData.id) : null;
+
+    const matches: (ExistingProductSummary & { similarity: number })[] = [];
 
     for (const p of existingProducts) {
       if (!p.name) continue;
+      // Exclude the current product being edited
+      if (currentId && String(p.id) === currentId) {
+        continue;
+      }
+
       const otherName = p.name.toLowerCase().trim();
+      let similarity = 0;
       if (currentName === otherName) {
-        return { name: p.name, similarity: 1.0 };
+        similarity = 1.0;
+      } else {
+        similarity = calcSimilarity(currentName, otherName);
+      }
+
+      if (similarity >= 0.85) {
+        matches.push({ ...p, similarity });
       }
     }
-    return null;
-  }, [formData.name, existingProducts]);
+
+    return matches.sort((a, b) => b.similarity - a.similarity);
+  }, [formData.name, existingProducts, initialData?.id]);
+
+  const isDuplicateDismissed = dismissedName !== null && dismissedName === (formData.name || "").trim().toLowerCase();
+  const hasDuplicates = suspectedDuplicates.length > 0 && !isDuplicateDismissed;
 
   const lastEmittedRef = useRef<string>("");
   const lastInitialDataRef = useRef<string>(JSON.stringify(initialData || {}));
@@ -410,22 +468,122 @@ export function ProductEditor({
         </div>
       )}
 
-      {similarProduct && (
-        <div className="p-4 bg-yellow-100 text-yellow-900 border-2 border-yellow-600 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center shadow-[4px_4px_0px_0px_#ca8a04]">
-          <div>
-            <span className="block text-sm font-black uppercase tracking-wider text-yellow-800 mb-1">WARNING: Possible Duplicate Detected</span>
-            <span className="font-semibold text-sm">The product name looks {(similarProduct.similarity * 100).toFixed(0)}% similar to an existing product: <strong>{similarProduct.name}</strong>.</span>
+      {hasDuplicates && (
+        <div className="p-4 bg-yellow-50 text-yellow-900 border-2 border-yellow-600 mb-6 shadow-[4px_4px_0px_0px_#ca8a04] transition-all">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-700 shrink-0 mt-0.5" />
+              <div>
+                <span className="block text-sm font-black uppercase tracking-wider text-yellow-800 mb-0.5">
+                  WARNING: Possible Duplicate Detected
+                </span>
+                <span className="font-medium text-sm text-yellow-950">
+                  {suspectedDuplicates.length === 1 ? (
+                    <>
+                      The product name looks {Math.round(suspectedDuplicates[0].similarity * 100)}% similar to an existing product:{" "}
+                      <strong>{suspectedDuplicates[0].name}</strong>.
+                    </>
+                  ) : (
+                    <>
+                      Found {suspectedDuplicates.length} existing products with very similar names (up to {Math.round(suspectedDuplicates[0].similarity * 100)}% match).
+                    </>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowDuplicateDropdown((prev) => !prev)}
+                className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold uppercase text-xs border-2 border-yellow-800 shadow-[2px_2px_0px_0px_#854d0e] hover:translate-y-[1px] hover:translate-x-[1px] transition-all flex items-center gap-1.5"
+              >
+                <span>{showDuplicateDropdown ? "Hide Suspected" : "Show Suspected Product"}</span>
+                {showDuplicateDropdown ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDismissedName((formData.name || "").trim().toLowerCase())}
+                title="Dismiss warning"
+                className="p-2 text-yellow-800 hover:text-yellow-950 hover:bg-yellow-200/60 border border-yellow-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <button type="button" onClick={() => window.open(`/admin/products`, '_blank')} className="px-4 py-2 bg-yellow-600 text-white font-bold uppercase text-xs border-2 border-yellow-800 shadow-[2px_2px_0px_0px_#854d0e] hover:translate-y-[1px] hover:translate-x-[1px] transition-all shrink-0">
-            Check Catalog
-          </button>
+
+          {showDuplicateDropdown && (
+            <div className="mt-4 pt-4 border-t-2 border-yellow-300/80 space-y-3">
+              <div className="text-[11px] font-black uppercase tracking-wider text-yellow-800 flex items-center justify-between">
+                <span>Suspected Duplicate Products ({suspectedDuplicates.length})</span>
+              </div>
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {suspectedDuplicates.map((p) => (
+                  <div
+                    key={p.id}
+                    className="p-3 bg-white border-2 border-yellow-700 shadow-[2px_2px_0px_0px_#ca8a04] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {p.thumbnail ? (
+                        <img
+                          src={p.thumbnail}
+                          alt={p.name}
+                          className="w-12 h-12 object-cover border border-yellow-800 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-yellow-100 border border-yellow-800 flex items-center justify-center text-[10px] uppercase font-bold text-yellow-800 shrink-0">
+                          No Img
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-sm text-gray-900 truncate">{p.name}</span>
+                          <span className="px-1.5 py-0.5 text-[10px] font-black uppercase bg-yellow-200 text-yellow-900 border border-yellow-700 shrink-0">
+                            {Math.round(p.similarity * 100)}% match
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-secondary font-medium mt-1">
+                          <span>SKU: <strong>{p.sku || "N/A"}</strong></span>
+                          {p.price !== undefined && (
+                            <span>Price: <strong>{p.currency || "KES"} {Number(p.price).toLocaleString()}</strong></span>
+                          )}
+                          {p.stock !== undefined && p.stock !== null && (
+                            <span>Stock: <strong>{p.stock}</strong></span>
+                          )}
+                          {p.supplierName && (
+                            <span>Supplier: <strong>{p.supplierName}</strong></span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      <a
+                        href={`/admin/products?search=${encodeURIComponent(p.name)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 bg-yellow-600 text-white border-2 border-yellow-800 font-bold uppercase text-[11px] hover:bg-yellow-700 shadow-[2px_2px_0px_0px_#854d0e] hover:translate-y-[1px] hover:translate-x-[1px] transition-all flex items-center gap-1.5"
+                      >
+                        <span>View in Catalog</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 order-2 lg:order-1 space-y-6">
           <ProductDetailsForm data={formData} onChange={handleUpdate} existingSuppliers={existingSuppliers} />
-          <ProductPricingForm pricing={formData.pricing} onChange={(val) => handleUpdate("pricing", val)} />
+          <ProductPricingForm 
+            pricing={formData.pricing} 
+            onChange={(val) => handleUpdate("pricing", val)} 
+            productName={formData.name}
+            brand={formData.brand}
+          />
           <ProductInventoryForm 
             stockQuantity={formData.stockQuantity} 
             inventory={formData.inventory} 
@@ -485,7 +643,7 @@ export function ProductEditor({
             currentData={formData} 
             onApply={handleApplyAI} 
           />
-          <ProductMediaManager media={formData.media} onChange={(val) => handleUpdate("media", val)} />
+          <ProductMediaManager media={formData.media} onChange={(val) => handleUpdate("media", val)} productName={formData.name} />
         </div>
       </div>
     </form>

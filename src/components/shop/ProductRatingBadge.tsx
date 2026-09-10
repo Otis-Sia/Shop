@@ -7,12 +7,15 @@ import Icon from '@/components/Icon';
 interface ProductRatingBadgeProps {
   productId: string | number;
   showCount?: boolean;
+  initialStats?: ReviewStats | null;
 }
 
-export default function ProductRatingBadge({ productId, showCount = true }: ProductRatingBadgeProps) {
-  const [stats, setStats] = useState<ReviewStats | null>(null);
+export default function ProductRatingBadge({ productId, showCount = true, initialStats = null }: ProductRatingBadgeProps) {
+  const [stats, setStats] = useState<ReviewStats | null>(initialStats);
 
   useEffect(() => {
+    if (initialStats) return; // Skip fetching if initial stats are provided
+
     let mounted = true;
     const fetchStats = async () => {
       try {

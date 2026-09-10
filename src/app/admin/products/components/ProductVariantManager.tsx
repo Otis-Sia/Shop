@@ -31,13 +31,16 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
   };
 
   const addEmptyVariant = () => {
+    const defaultAttributes = attributes.length > 0
+      ? [attributes[0]]
+      : [{ name: "Title", value: `Option ${variants.length + 1}`, isVariantAxis: true }];
+
     onChangeVariants([
       ...variants,
       {
         sku: `VAR-${Date.now()}`,
-        attributes: [],
+        attributes: defaultAttributes,
         stockQuantity: 0,
-
       }
     ]);
   };

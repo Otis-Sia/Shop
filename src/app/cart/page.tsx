@@ -204,7 +204,7 @@ export default function CartPage() {
                       </div>
                       <div className="flex flex-col gap-1 w-full max-w-xs">
                         <span className="bg-surface-container text-on-surface border border-on-surface text-[9px] font-black uppercase px-2 py-0.5 self-start">
-                          {product.category || 'Apparel'}
+                          {product.category || 'General'}
                         </span>
                         <Link href={`/products/${item.product_id}`} className="font-headline-md font-bold text-lg hover:text-primary-container transition-colors truncate">
                           {product.name || 'Unknown Product'}

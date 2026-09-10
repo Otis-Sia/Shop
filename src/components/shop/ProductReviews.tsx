@@ -13,6 +13,7 @@ import {
   Review,
   ReviewStats,
 } from '@/lib/api/reviews';
+import { getUserFriendlyError } from '@/lib/utils/errorMessages';
 import Icon from '@/components/Icon';
 
 interface ProductReviewsProps {
@@ -176,7 +177,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
       await fetchReviews();
       await checkUserReview();
     } catch (err: any) {
-      setError(err.message || 'Failed to submit review.');
+      setError(getUserFriendlyError(err, 'Failed to submit review. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -190,7 +191,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
       await fetchReviews();
       await checkUserReview();
     } catch (err: any) {
-      setError(err.message || 'Failed to delete review.');
+      setError(getUserFriendlyError(err, 'Failed to delete review. Please try again.'));
     }
   };
 

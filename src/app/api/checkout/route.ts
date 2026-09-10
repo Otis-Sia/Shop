@@ -104,8 +104,61 @@ export async function POST(request: Request) {
     });
     if (cartError) console.error('Error recording cart:', cartError);
 
-    // 4. Create Checkout record in Supabase
+    // 4. Payment processing configuration
+    // Pesapal is disconnected temporarily for later activation via ENABLE_PESAPAL=true
+    const paymentMethod = body.paymentMethod || 'demo_card';
     const checkoutId = `chk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    let pesapalRedirectUrl: string | null = null;
+    let pesapalTrackingId: string | null = null;
+
+    if (process.env.ENABLE_PESAPAL === 'true' && paymentMethod === 'pesapal' && process.env.PESAPAL_CONSUMER_KEY && process.env.PESAPAL_CONSUMER_SECRET) {
+      try {
+        const { submitPesapalOrder, registerPesapalIPN } = await import('@/lib/api/pesapal');
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://juj4.cepine.com';
+        let ipnId = process.env.PESAPAL_IPN_ID;
+        
+        // Auto-register IPN if missing in environment
+        if (!ipnId) {
+          try {
+            ipnId = await registerPesapalIPN(`${baseUrl}/api/pesapal/ipn`);
+          } catch (ipnErr) {
+            console.warn('Could not auto-register Pesapal IPN:', ipnErr);
+          }
+        }
+
+        const names = (contactInformation?.fullName || 'Customer').trim().split(' ');
+        const firstName = names[0] || 'Customer';
+        const lastName = names.slice(1).join(' ') || '';
+
+        const pesapalRes = await submitPesapalOrder({
+          id: checkoutId,
+          currency: 'KES',
+          amount: calculatedTotal,
+          description: `Order checkout for ${items.length} item(s)`,
+          callback_url: `${baseUrl}/order-confirmation?checkoutId=${encodeURIComponent(checkoutId)}`,
+          notification_id: ipnId || '',
+          billing_address: {
+            email_address: contactInformation?.email || 'customer@example.com',
+            phone_number: contactInformation?.phone || '',
+            first_name: firstName,
+            last_name: lastName,
+            line_1: shippingAddress?.street || '',
+            city: shippingAddress?.city || 'Nairobi',
+            country_code: 'KE'
+          }
+        });
+
+        pesapalRedirectUrl = pesapalRes.redirect_url;
+        pesapalTrackingId = pesapalRes.order_tracking_id;
+      } catch (pesapalErr) {
+        console.error('Pesapal order initiation error:', pesapalErr);
+        if (paymentMethod === 'pesapal' && process.env.NODE_ENV === 'production') {
+          return NextResponse.json({ error: 'Failed to initiate payment gateway with Pesapal' }, { status: 502 });
+        }
+      }
+    }
+
+    // 5. Create Checkout record in Supabase
     const { error: chkError } = await supabase.from('checkouts').insert({
       id: checkoutId,
       user_id: secureUserId,
@@ -113,14 +166,18 @@ export async function POST(request: Request) {
       contact_information: contactInformation || {},
       shipping_address: shippingAddress || {},
       shipping_information: shippingInformation || {},
-      status: 'completed',
+      status: 'pending',
       total_amount: calculatedTotal,
+      payment_method: paymentMethod,
+      payment_reference: checkoutId,
+      pesapal_tracking_id: pesapalTrackingId,
+      payment_status: 'pending',
       created_at: timestamp,
       updated_at: timestamp
     });
     if (chkError) console.error('Error recording checkout:', chkError);
 
-    // 5. Create Orders for each merchant
+    // 6. Create Orders for each merchant
     let firstOrderId = '';
     const createdOrders: { id: string }[] = [];
 
@@ -138,6 +195,10 @@ export async function POST(request: Request) {
         checkout_id: checkoutId,
         status: 'pending',
         total_amount: mTotal,
+        payment_method: paymentMethod,
+        payment_reference: checkoutId,
+        pesapal_tracking_id: pesapalTrackingId,
+        payment_status: 'pending',
         contact_information: contactInformation || {},
         shipping_address: shippingAddress || {},
         shipping_information: shippingInformation || {},
@@ -157,10 +218,10 @@ export async function POST(request: Request) {
       createdOrders.push({ id: orderId });
     }
 
-    // 6. Clear user cart items in Supabase
+    // 7. Clear user cart items in Supabase
     await supabase.from('user_cart_items').delete().eq('user_id', secureUserId);
 
-    // 7. Track analytics purchase events for purchased products
+    // 8. Track analytics purchase events for purchased products
     for (const item of items) {
       const pId = item.productId.toString();
       const pQty = Math.max(1, Number(item.quantity) || 1);
@@ -217,8 +278,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      checkoutId,
       firstOrderId,
-      createdOrders
+      createdOrders,
+      redirectUrl: pesapalRedirectUrl
     });
   } catch (error: any) {
     console.error('Checkout error:', error);

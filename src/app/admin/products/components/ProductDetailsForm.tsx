@@ -98,10 +98,10 @@ export function ProductDetailsForm({ data, onChange, existingSuppliers = [] }: P
       <div>
         {/* Placeholder for actual Category picker component */}
         <div>
-          <label className="block font-bold uppercase text-sm mb-1">Category IDs</label>
+          <label className="block font-bold uppercase text-sm mb-1">Categories</label>
           <input
             type="text"
-            placeholder="comma separated UUIDs"
+            placeholder="comma separated categories (e.g. Wearable Technology, Smartwatches)"
             value={(data.categoryIds || []).join(", ")}
             onChange={(e) => onChange("categoryIds", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
             className="w-full p-2 border border-outline/30 bg-background rounded-lg"

@@ -1,14 +1,19 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { ProductPricing } from "@/lib/products/types";
+import { MarketPriceModal } from "./MarketPriceModal";
 
 interface ProductPricingFormProps {
   pricing?: Partial<ProductPricing>;
   onChange: (value: ProductPricing) => void;
+  productName?: string;
+  brand?: string;
 }
 
-export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProps) {
+export function ProductPricingForm({ pricing, onChange, productName = "", brand = "" }: ProductPricingFormProps) {
+  const [isMarketModalOpen, setIsMarketModalOpen] = useState(false);
+
   const currentPricing: ProductPricing = {
     price: pricing?.price ?? 0,
     salePrice: pricing?.salePrice ?? pricing?.compareAtPrice ?? undefined,
@@ -30,6 +35,16 @@ export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProp
     onChange(updated);
   };
 
+  const handleApplyMarketPrice = (recPrice: number, compareAt?: number) => {
+    const updated: ProductPricing = {
+      ...currentPricing,
+      price: recPrice,
+      compareAtPrice: compareAt,
+      salePrice: compareAt ? recPrice : currentPricing.salePrice,
+    };
+    onChange(updated);
+  };
+
   const regularPrice = Number(currentPricing.price) || 0;
   const cost = Number(currentPricing.costPrice) || 0;
   const salePrice = currentPricing.salePrice !== undefined && currentPricing.salePrice !== null ? Number(currentPricing.salePrice) : null;
@@ -43,12 +58,31 @@ export function ProductPricingForm({ pricing, onChange }: ProductPricingFormProp
 
   return (
     <div className="p-6 border-2 border-on-surface bg-surface shadow-[4px_4px_0px_0px_var(--color-on-surface)] space-y-4">
-      <div className="flex justify-between items-center border-b-2 border-on-surface pb-2">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b-2 border-on-surface pb-2">
         <h3 className="font-headline-lg font-black text-lg uppercase">Pricing & Profitability</h3>
-        <span className="text-xs uppercase font-bold bg-primary-container px-2 py-0.5 border border-on-surface">
-          {currentPricing.currency || "KES"}
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsMarketModalOpen(true)}
+            className="px-3 py-1 bg-primary text-on-primary border border-on-surface text-xs font-black uppercase tracking-wider hover:bg-primary/90 transition-all shadow-[1px_1px_0px_0px_var(--color-on-surface)]"
+          >
+            Check Kenyan Market Price
+          </button>
+          <span className="text-xs uppercase font-bold bg-primary-container px-2 py-0.5 border border-on-surface">
+            {currentPricing.currency || "KES"}
+          </span>
+        </div>
       </div>
+
+      <MarketPriceModal
+        isOpen={isMarketModalOpen}
+        onClose={() => setIsMarketModalOpen(false)}
+        productName={productName}
+        brand={brand}
+        costPrice={cost}
+        currentRegularPrice={regularPrice}
+        onApplyPrice={handleApplyMarketPrice}
+      />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Regular Price */}

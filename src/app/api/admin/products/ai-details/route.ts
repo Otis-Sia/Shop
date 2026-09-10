@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const { rawDetails = '', images = [], currentName = '' } = await req.json();
+    const { rawDetails = '', images = [], currentName = '', findImages = false } = await req.json();
     if (!rawDetails && (!images || images.length === 0)) {
       return NextResponse.json({ error: 'Please provide either raw details or at least one image.' }, { status: 400 });
     }
@@ -59,6 +59,7 @@ Return a JSON object containing the following fields based on the provided text 
 - grades: array of distinct grades or qualities mentioned (e.g. ["Grade A", "Premium"]).
 - capacity: product capacity or volume if mentioned (e.g. "1.8ltr").
 - power: product power rating or wattage if mentioned (e.g. "350 Watts").
+- features: array of 4-7 punchy bullet-point feature highlights, key specs, and selling points (e.g. ["1.8ltr Jug Capacity", "350 Watts Powerful Motor", "Model TYB-202-A", "High-Quality Borosilicate Glass", "Airtight Snap-Lock Lids", "Microwave and Oven Safe"]).
 - variants: array of variant objects whenever multiple colors, sizes, capacities, materials, or options are mentioned or detected.
   CRITICAL RULES FOR EVERY VARIANT OBJECT:
   * "name": A descriptive title for the variant (e.g. "Green", "Blue", "500ml Set", "Pink / 1040ml"). NEVER output generic placeholders like "Option 1" or "Variant 1".
@@ -247,14 +248,22 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
           });
         }
       }
-      // Auto-discover product photos from the web if no images were provided
-      if ((!images || images.length === 0) && (parsed.name || currentName)) {
+      // Auto-discover high-quality product photos from the web if explicitly requested
+      const productNameQuery = parsed.name || currentName || '';
+      if (findImages && productNameQuery) {
         try {
-          const searchQuery = `${parsed.brand && parsed.brand !== 'Generic' ? parsed.brand : ''} ${parsed.name || currentName}`.trim();
-          const foundImages = await searchProductImages(searchQuery, 4);
-          if (foundImages.length > 0) {
-            parsed.imageUrls = foundImages.map(img => img.url);
-          }
+          const brandPart = (parsed.brand && parsed.brand !== 'Generic') ? `${parsed.brand} ` : '';
+          const searchQuery = `${brandPart}${productNameQuery}`.trim();
+          const foundImages = await searchProductImages(searchQuery, 6);
+          const foundUrls = foundImages.map(img => img.url).filter(Boolean);
+          
+          const existingImages = Array.isArray(images) ? images.filter(Boolean) : [];
+          const combined = [...existingImages];
+          foundUrls.forEach(url => {
+            if (!combined.includes(url)) combined.push(url);
+          });
+          
+          parsed.imageUrls = combined;
         } catch (imgErr) {
           console.warn('Image auto-discovery error:', imgErr);
         }

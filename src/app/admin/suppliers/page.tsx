@@ -136,7 +136,7 @@ export default function AdminSuppliers() {
   if (loading) {
     return (
       <div className="p-8 flex justify-center">
-        <div className="w-8 h-8 border-4 border-on-surface border-t-primary-container rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-on-surface/20 border-t-primary-container rounded-full animate-spin"></div>
       </div>
     );
   }

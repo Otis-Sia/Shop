@@ -173,6 +173,10 @@ CREATE TABLE IF NOT EXISTS checkouts (
     shipping_information JSONB DEFAULT '{}'::jsonb,
     status checkout_status NOT NULL DEFAULT 'pending',
     total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    payment_method VARCHAR(50) DEFAULT 'pesapal',
+    payment_reference VARCHAR(255),
+    pesapal_tracking_id VARCHAR(255),
+    payment_status VARCHAR(50) DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -186,12 +190,26 @@ CREATE TABLE IF NOT EXISTS orders (
     checkout_id VARCHAR(255),
     status order_status NOT NULL DEFAULT 'pending',
     total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    payment_method VARCHAR(50) DEFAULT 'pesapal',
+    payment_reference VARCHAR(255),
+    pesapal_tracking_id VARCHAR(255),
+    payment_status VARCHAR(50) DEFAULT 'pending',
     contact_information JSONB DEFAULT '{}'::jsonb,
     shipping_address JSONB NOT NULL DEFAULT '{}'::jsonb,
     shipping_information JSONB DEFAULT '{}'::jsonb,
     items JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9b. Pesapal IPN Logs Table
+CREATE TABLE IF NOT EXISTS pesapal_ipn_logs (
+    id VARCHAR(255) PRIMARY KEY,
+    order_tracking_id VARCHAR(255) NOT NULL,
+    order_merchant_reference VARCHAR(255),
+    ipn_status VARCHAR(50),
+    payload JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 10. Contact Messages Table (Public contact & inquiry submissions)
@@ -522,3 +540,27 @@ ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS dimensions JSONB;
 ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT false;
 ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
+-- Checkouts & Orders Pesapal Payment Support
+ALTER TABLE checkouts ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'pesapal';
+ALTER TABLE checkouts ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(255);
+ALTER TABLE checkouts ADD COLUMN IF NOT EXISTS pesapal_tracking_id VARCHAR(255);
+ALTER TABLE checkouts ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'pending';
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'pesapal';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(255);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS pesapal_tracking_id VARCHAR(255);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'pending';
+
+CREATE TABLE IF NOT EXISTS pesapal_ipn_logs (
+    id VARCHAR(255) PRIMARY KEY,
+    order_tracking_id VARCHAR(255) NOT NULL,
+    order_merchant_reference VARCHAR(255),
+    ipn_status VARCHAR(50),
+    payload JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_checkouts_tracking_id ON checkouts(pesapal_tracking_id);
+CREATE INDEX IF NOT EXISTS idx_orders_checkout_id ON orders(checkout_id);
+CREATE INDEX IF NOT EXISTS idx_orders_tracking_id ON orders(pesapal_tracking_id);

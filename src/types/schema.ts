@@ -156,6 +156,10 @@ export interface Order {
   shippingAddress: ShippingAddress;
   shippingInformation?: ShippingInformation;
   items: OrderItem[];
+  paymentMethod?: string;
+  paymentReference?: string;
+  pesapalTrackingId?: string;
+  paymentStatus?: "pending" | "completed" | "failed";
   createdAt: TimestampType;
   updatedAt: TimestampType;
 }
@@ -182,6 +186,10 @@ export interface Checkout {
   shippingInformation?: ShippingInformation;
   status: "pending" | "processing" | "completed" | "failed";
   totalAmount: number;
+  paymentMethod?: string;
+  paymentReference?: string;
+  pesapalTrackingId?: string;
+  paymentStatus?: "pending" | "completed" | "failed";
   createdAt: TimestampType;
   updatedAt: TimestampType;
 }

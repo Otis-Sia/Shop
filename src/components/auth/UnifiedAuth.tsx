@@ -255,7 +255,7 @@ export default function UnifiedAuth({ initialTab = 'login' }: UnifiedAuthProps) 
                       window.location.href = '/products';
                     }
                   } catch (err: any) {
-                    setError(err.message || 'Google sign-in failed');
+                    setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.');
                     setSubmitting(false);
                   }
                 }}

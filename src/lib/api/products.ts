@@ -13,6 +13,10 @@ export interface ProductFilters {
   includeUnapproved?: boolean;
 }
 
+// In-memory cache for rapid client-side navigation
+const cache: Record<string, { data: Product[]; timestamp: number }> = {};
+const CACHE_TTL = 30000; // 30 seconds
+
 export const getProducts = async (filters: ProductFilters = {}): Promise<Product[]> => {
   try {
     const params = new URLSearchParams();
@@ -25,10 +29,32 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
     if (filters.newArrivals) params.append('newArrivals', 'true');
     if (filters.includeUnapproved) params.append('includeUnapproved', 'true');
 
-    const res = await fetch(`/api/products?${params.toString()}`);
+    const cacheKey = params.toString() || 'all';
+    
+    // Check client cache if running in browser
+    if (typeof window !== 'undefined' && cache[cacheKey]) {
+      if (Date.now() - cache[cacheKey].timestamp < CACHE_TTL) {
+        return cache[cacheKey].data;
+      }
+    }
+
+    // Construct absolute URL for server-side rendering
+    let baseUrl = '';
+    if (typeof window === 'undefined') {
+      baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    }
+
+    const res = await fetch(`${baseUrl}/api/products?${params.toString()}`);
     if (res.ok) {
       const data = await res.json();
-      return (data.products || []) as Product[];
+      const products = (data.products || []) as Product[];
+      
+      // Store in client cache
+      if (typeof window !== 'undefined') {
+        cache[cacheKey] = { data: products, timestamp: Date.now() };
+      }
+      
+      return products;
     }
     return [];
   } catch (error) {

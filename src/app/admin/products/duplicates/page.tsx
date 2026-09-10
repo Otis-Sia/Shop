@@ -5,6 +5,7 @@ import { getProducts, Product } from "@/lib/api/products";
 import Link from "next/link";
 import { useToast } from "@/components/providers/ToastProvider";
 import { auth } from "@/lib/firebase";
+import { CheckCircle } from "lucide-react";
 
 function getBigrams(str: string) {
   const s = str.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -104,7 +105,7 @@ export default function DeduplicatePage() {
           
           {duplicateGroups.length === 0 && (
             <div className="p-12 border-4 border-on-surface bg-surface-container flex flex-col items-center justify-center text-center">
-              <span className="text-4xl mb-4">✨</span>
+              <CheckCircle className="w-10 h-10 text-secondary mb-4" />
               <h2 className="font-black uppercase text-xl text-on-surface mb-2">Clean Database!</h2>
               <p className="text-secondary font-bold uppercase text-xs tracking-wider">No similar products were found.</p>
             </div>

@@ -51,6 +51,17 @@ export async function PUT(
       delete body.downloadUrl;
     }
 
+    if (Array.isArray(body.variants)) {
+      body.variants = body.variants.map((v: any, idx: number) => ({
+        ...v,
+        attributes: (Array.isArray(v.attributes) && v.attributes.length > 0)
+          ? v.attributes
+          : [{ name: "Title", value: v.name || `Variant ${idx + 1}`, isVariantAxis: true }],
+        price: v.price !== undefined && v.price !== null && v.price !== "" ? Number(v.price) : (body.pricing?.price !== undefined ? Number(body.pricing.price) : undefined),
+        stockQuantity: v.stockQuantity !== undefined && v.stockQuantity !== null && v.stockQuantity !== "" ? Number(v.stockQuantity) : 0,
+      }));
+    }
+
     const parsed = updateProductSchema.parse(body);
 
     const repo = new SupabaseProductRepository();

@@ -132,6 +132,8 @@ export default function CheckoutPage() {
     return () => unsubscribe();
   }, [router]);
 
+  const [paymentMethod, setPaymentMethod] = useState<'demo_card' | 'cod'>('demo_card');
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!confirm('Confirm order placement?')) return;
@@ -139,6 +141,7 @@ export default function CheckoutPage() {
     const formData = new FormData(e.currentTarget);
     const orderData = {
       totalAmount: total,
+      paymentMethod,
       contactInformation: {
         fullName: formData.get('fullName') as string,
         email: formData.get('email') as string,
@@ -201,11 +204,15 @@ export default function CheckoutPage() {
     try {
       const order = await createOrder(orderData);
       if (order) {
-        router.push(`/order-confirmation?id=${order.id}`);
+        if (order.redirectUrl) {
+          window.location.href = order.redirectUrl;
+          return;
+        }
+        router.push(`/order-confirmation?id=${order.id || order.checkoutId}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      showToast('Failed to place order. Please try again.', 'error');
+      showToast(err.message || 'Failed to place order. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -368,7 +375,7 @@ export default function CheckoutPage() {
               <div>
                 <h4 className="font-bold text-sm uppercase tracking-wider mb-1">Demo Environment</h4>
                 <p className="text-xs leading-relaxed opacity-90 font-medium">
-                  This checkout is in demo mode. No payment will be processed, and no real credit card numbers will be verified.
+                  This checkout is currently in demo mode. No real card payments will be processed.
                 </p>
               </div>
             </div>

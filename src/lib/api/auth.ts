@@ -9,6 +9,7 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import { getUserFriendlyError } from '../utils/errorMessages';
 
 export interface User {
   uid: string;
@@ -75,7 +76,7 @@ export const register = async (userData: { email: string; password: string; firs
       ...profileData
     };
   } catch (error: any) {
-    throw new Error(error.message || 'Registration failed');
+    throw new Error(getUserFriendlyError(error, 'Registration failed. Please try again.'));
   }
 };
 
@@ -105,7 +106,7 @@ export const login = async (credentials: { email: string; password: string }) =>
       ...profileData
     };
   } catch (error: any) {
-    throw new Error(error.message || 'Login failed');
+    throw new Error(getUserFriendlyError(error, 'Sign in failed. Please try again.'));
   }
 };
 
@@ -154,7 +155,7 @@ export const loginWithGoogle = async () => {
       ...profileData
     };
   } catch (error: any) {
-    throw new Error(error.message || 'Google login failed');
+    throw new Error(getUserFriendlyError(error, 'Google sign-in failed. Please try again.'));
   }
 };
 
@@ -214,7 +215,7 @@ export const updateProfile = async (uid: string, data: Partial<User>) => {
     return true;
   } catch (error: any) {
     console.error('Error updating user profile:', error);
-    throw new Error(error.message || 'Failed to update profile');
+    throw new Error(getUserFriendlyError(error, 'Failed to update profile. Please try again.'));
   }
 };
 
@@ -265,7 +266,7 @@ export const applyForMerchantRole = async (
     });
   } catch (error: any) {
     console.error('Error applying for merchant role:', error);
-    throw new Error(error.message || 'Failed to apply for merchant role');
+    throw new Error(getUserFriendlyError(error, 'Failed to submit merchant application. Please try again.'));
   }
 };
 
@@ -285,7 +286,7 @@ export const checkEmailExists = async (email: string): Promise<boolean> => {
       data = await response.json();
     } else {
       const text = await response.text();
-      throw new Error(`Server returned HTML/Text instead of JSON. Status: ${response.status}. Body: ${text.substring(0, 150)}...`);
+      throw new Error('Something went wrong. Please try again later.');
     }
 
     if (!response.ok) {
@@ -295,6 +296,6 @@ export const checkEmailExists = async (email: string): Promise<boolean> => {
     return !!data.exists;
   } catch (error: any) {
     console.error('Error checking email existence:', error);
-    throw new Error(error.message || 'Failed to check email');
+    throw new Error(getUserFriendlyError(error, 'Unable to verify email. Please try again.'));
   }
 };

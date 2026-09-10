@@ -7,12 +7,75 @@ import { auth } from "@/lib/firebase";
 interface ProductMediaManagerProps {
   media?: Omit<ProductMedia, "id">[];
   onChange: (media: Omit<ProductMedia, "id">[]) => void;
+  productName?: string;
 }
 
-export function ProductMediaManager({ media = [], onChange }: ProductMediaManagerProps) {
+export function ProductMediaManager({ media = [], onChange, productName = "" }: ProductMediaManagerProps) {
   const [newUrl, setNewUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Web Image Search State
+  const [searchQuery, setSearchQuery] = useState(productName || "");
+  const [searchResults, setSearchResults] = useState<Array<{ url: string; thumbnail?: string; title?: string; source?: string }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Sync searchQuery if productName changes and searchQuery is empty
+  React.useEffect(() => {
+    if (productName && !searchQuery) {
+      setSearchQuery(productName);
+    }
+  }, [productName]);
+
+  const handleSearchWebImages = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const res = await fetch('/api/admin/products/search-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: searchQuery.trim(), count: 8 }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to search images');
+      setSearchResults(data.images || []);
+    } catch (err: any) {
+      console.error('Image search failed:', err);
+      alert(err.message || 'Error searching images');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleAddSearchResult = (url: string) => {
+    if (!url || media.some(m => m.url === url)) return;
+    onChange([
+      ...media,
+      {
+        url,
+        type: "image",
+        position: media.length,
+        isPrimary: media.length === 0,
+      }
+    ]);
+  };
+
+  const handleAddAllSearchResults = () => {
+    const newItems: Omit<ProductMedia, "id">[] = [];
+    searchResults.forEach((img, i) => {
+      if (img.url && !media.some(m => m.url === img.url) && !newItems.some(n => n.url === img.url)) {
+        newItems.push({
+          url: img.url,
+          type: "image",
+          position: media.length + newItems.length,
+          isPrimary: media.length === 0 && newItems.length === 0,
+        });
+      }
+    });
+    if (newItems.length > 0) {
+      onChange([...media, ...newItems]);
+    }
+  };
   
   // Basic URL Add
   const handleAddMedia = () => {
@@ -157,6 +220,66 @@ export function ProductMediaManager({ media = [], onChange }: ProductMediaManage
         >
           Add
         </button>
+      </div>
+
+      {/* Web Image Search */}
+      <div className="p-3 border border-primary/20 bg-primary/5 rounded-lg space-y-3">
+        <span className="text-xs uppercase font-extrabold text-primary block">Search Web Images:</span>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Search Google for product images (e.g., Ailyons Blender TYB-202-A)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearchWebImages(); } }}
+            className="flex-1 p-2 border border-outline/30 bg-background rounded-lg text-sm"
+          />
+          <button
+            type="button"
+            onClick={handleSearchWebImages}
+            disabled={isSearching || !searchQuery.trim()}
+            className="px-4 py-2 bg-primary text-on-primary font-bold uppercase text-xs rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-all shrink-0"
+          >
+            {isSearching ? "Searching..." : "Search"}
+          </button>
+        </div>
+
+        {searchResults.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-primary/10">
+            <div className="flex justify-between items-center">
+              <span className="text-[11px] font-bold text-on-surface-variant">Found {searchResults.length} images:</span>
+              <button
+                type="button"
+                onClick={handleAddAllSearchResults}
+                className="text-[11px] font-bold text-primary uppercase hover:underline"
+              >
+                + Add All Images
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {searchResults.map((img, sIdx) => {
+                const alreadyAdded = media.some(m => m.url === img.url);
+                return (
+                  <div key={sIdx} className="relative group border border-outline/30 rounded-lg overflow-hidden bg-background p-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.thumbnail || img.url} alt={img.title || 'Search result'} className="w-full h-24 object-cover rounded" />
+                    <div className="mt-1 flex justify-between items-center">
+                      <span className="text-[10px] truncate text-on-surface-variant max-w-[70px]">{img.source || 'Web'}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleAddSearchResult(img.url)}
+                        disabled={alreadyAdded}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${alreadyAdded ? 'bg-surface-dim text-on-surface-variant cursor-default' : 'bg-primary text-on-primary hover:bg-primary/90'}`}
+                      >
+                        {alreadyAdded ? "Added" : "+ Add"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">

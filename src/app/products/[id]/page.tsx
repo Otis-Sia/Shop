@@ -45,6 +45,7 @@ export default function ProductDetailPage() {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [userRole, setUserRole] = useState<'customer' | 'admin' | 'merchant' | 'guest'>('guest');
+  const [validationError, setValidationError] = useState<string | null>(null);
   const lastTrackedProductId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -151,20 +152,21 @@ export default function ProductDetailPage() {
     if (!canAddToCartRole(userRole)) return;
 
     if (availableColors.length > 0 && !selectedColor) {
-      alert("Please select a color.");
+      setValidationError("Please select a color before adding to cart.");
       return;
     }
     
     if (availableSizes.length > 0 && !selectedSize) {
-      alert("Please select a size.");
+      setValidationError("Please select a size before adding to cart.");
       return;
     }
 
     if (product.hasVariants && product.variants && product.variants.length > 0 && selectedVariantIndex === null) {
-      alert("Please select a specific variant.");
+      setValidationError("Please select a variant before adding to cart.");
       return;
     }
 
+    setValidationError(null);
     setCartStatus('adding');
     try {
       await addToCart(
@@ -314,7 +316,7 @@ export default function ProductDetailPage() {
           {/* Header */}
           <div className="border-b-2 border-surface-container pb-4 space-y-2">
             <span className="bg-surface-container text-on-surface border border-on-surface text-[9px] font-black uppercase px-2 py-0.5 tracking-wider">
-              {product.category || 'Apparel'}
+              {product.category || 'General'}
             </span>
             <h1 className="font-headline-md text-2xl md:text-3xl font-black uppercase tracking-tight text-on-surface">
               {product.name}
@@ -347,14 +349,14 @@ export default function ProductDetailPage() {
               <ul className="list-inside space-y-1 mb-2 font-body-md text-xs font-semibold text-secondary">
                 {product.features.map((feature: string, idx: number) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="text-primary-container mt-0.5">❇️</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary-container mt-1.5 shrink-0" />
                     <span>{feature}</span>
                   </li>
                 ))}
               </ul>
             )}
             <p className="font-body-md text-xs text-secondary leading-relaxed font-semibold">
-              {product.description || 'Premium engineered sports apparel curated utilizing extreme-velocity structural textures, optimized for peak retail execution.'}
+              {product.description || product.shortDescription || 'No description available for this product.'}
             </p>
           </div>
 
@@ -504,6 +506,17 @@ export default function ProductDetailPage() {
             )}
           </div>
 
+          {/* Validation Error Banner */}
+          {validationError && (
+            <div className="border-2 border-error bg-error-container p-3 flex items-center gap-3 animate-in slide-in-from-top-2 duration-200">
+              <Icon name="error" className="text-error text-lg shrink-0" />
+              <p className="text-sm font-bold text-on-error-container flex-grow">{validationError}</p>
+              <button onClick={() => setValidationError(null)} className="text-on-error-container opacity-70 hover:opacity-100 shrink-0" aria-label="Dismiss">
+                <Icon name="close" className="text-base" />
+              </button>
+            </div>
+          )}
+
           {/* Cart Quantity Adjustments & Primary Call-to-Action */}
           <div className="space-y-4 border-t-2 border-surface-container pt-6">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -538,12 +551,12 @@ export default function ProductDetailPage() {
                     onClick={handleAddToCart}
                     disabled={cartStatus === 'adding'}
                     className={`flex-1 h-12 bg-primary-container text-on-primary-container font-headline-md font-bold uppercase tracking-wider text-xs border-2 border-on-surface transition-transform active:scale-95 shadow-[4px_4px_0px_0px_var(--color-on-surface)] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_var(--color-on-surface)] hover:bg-amber-500 disabled:opacity-50 flex items-center justify-center gap-2 ${
-                      cartStatus === 'added' ? '!bg-green-600 !text-white' : ''
+                      cartStatus === 'added' ? '!bg-green-600 !text-white' : cartStatus === 'error' ? '!bg-error !text-white' : ''
                     }`}
                   >
-                    <Icon name={cartStatus === 'added' ? 'check' : 'shopping_cart'} className="text-sm font-black" />
+                    <Icon name={cartStatus === 'added' ? 'check' : cartStatus === 'error' ? 'error' : 'shopping_cart'} className="text-sm font-black" />
                     <span>
-                      {cartStatus === 'adding' ? 'Adding to Cart...' : cartStatus === 'added' ? 'Added successfully ✓' : cartStatus === 'error' ? 'Pipeline error' : 'Add to Shopping Cart'}
+                      {cartStatus === 'adding' ? 'Adding to Cart...' : cartStatus === 'added' ? 'Added to Cart' : cartStatus === 'error' ? 'Could not add to cart' : 'Add to Shopping Cart'}
                     </span>
                   </button>
                 )}

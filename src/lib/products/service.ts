@@ -132,21 +132,22 @@ export class SupabaseProductRepository implements ProductRepository {
 
     // Save Variants
     if (product.variants && product.variants.length > 0) {
+      const fallbackPrice = Number(product.pricing?.price ?? 0);
       const variantsToUpsert = product.variants.map((v) => ({
         id: v.id,
         product_id: product.id,
         sku: v.sku,
         barcode: v.barcode,
         attributes: v.attributes,
-        price: v.price,
-        compare_at_price: v.compareAtPrice,
-        cost_price: v.costPrice,
-        stock: v.stockQuantity,
-        weight: v.weight,
-        dimensions: v.dimensions,
-        images: v.images,
-        is_default: v.isDefault,
-        is_active: v.isActive,
+        price: v.price !== undefined && v.price !== null ? Number(v.price) : fallbackPrice,
+        compare_at_price: v.compareAtPrice !== undefined && v.compareAtPrice !== null ? Number(v.compareAtPrice) : null,
+        cost_price: v.costPrice !== undefined && v.costPrice !== null ? Number(v.costPrice) : null,
+        stock: v.stockQuantity ?? 0,
+        weight: v.weight ?? null,
+        dimensions: v.dimensions ?? null,
+        images: v.images ?? [],
+        is_default: v.isDefault ?? false,
+        is_active: v.isActive ?? true,
       }));
 
       const { error: variantError } = await supabase
@@ -257,12 +258,13 @@ export class ProductService {
     if (attempt > 0) slug = `${slug}-${attempt}`;
 
     // 2. Build variants with generated ids, defaulting one variant if needed
+    const defaultPrice = input.pricing?.price !== undefined && input.pricing?.price !== null ? Number(input.pricing.price) : 0;
     const variants: ProductVariant[] = (input.variants ?? []).map((v) => ({
       id: randomUUID(),
       sku: v.sku,
       barcode: v.barcode,
       attributes: v.attributes,
-      price: v.price,
+      price: v.price !== undefined && v.price !== null ? Number(v.price) : defaultPrice,
       compareAtPrice: v.compareAtPrice,
       costPrice: v.costPrice,
       stockQuantity: v.stockQuantity,
@@ -332,7 +334,12 @@ export class ProductService {
       publishedAt: input.status === "active" ? now : undefined,
     };
     
-    return this.repo.save(product);
+    try {
+      return await this.repo.save(product);
+    } catch (saveError) {
+      await this.repo.delete(product.id).catch(() => {});
+      throw saveError;
+    }
   }
 
   async getProduct(id: string): Promise<Product | null> {
@@ -365,12 +372,13 @@ export class ProductService {
       if (attempt > 0) slug = `${slug}-${attempt}`;
     }
 
+    const defaultPrice = (input.pricing?.price ?? existing.pricing?.price) !== undefined ? Number(input.pricing?.price ?? existing.pricing?.price) : 0;
     const variants: ProductVariant[] = (input.variants ?? existing.variants).map((v) => ({
       id: (v as any).id || randomUUID(),
       sku: v.sku,
       barcode: v.barcode,
       attributes: v.attributes,
-      price: v.price,
+      price: v.price !== undefined && v.price !== null ? Number(v.price) : defaultPrice,
       compareAtPrice: v.compareAtPrice,
       costPrice: v.costPrice,
       stockQuantity: v.stockQuantity,

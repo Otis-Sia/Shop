@@ -75,6 +75,12 @@ const mapDbProductToProduct = (p: any, variants: any[] = [], merchantProfile: an
       stock: v.stock !== null && v.stock !== undefined ? Number(v.stock) : 0,
       imageUrl: v.image_url || ''
     })),
+    reviewStats: {
+      totalReviews: (p.product_reviews || []).length,
+      averageRating: (p.product_reviews || []).length > 0
+        ? (p.product_reviews.reduce((acc: number, r: any) => acc + (Number(r.rating) || 0), 0) / p.product_reviews.length)
+        : 0
+    },
     analytics: p.product_analytics ? {
       views: Number(p.product_analytics.views || 0),
       cartAdditions: Number(p.product_analytics.cart_additions || 0),
@@ -117,6 +123,7 @@ export async function GET(request: Request) {
       *,
       product_variants (*),
       product_analytics (*),
+      product_reviews (rating),
       users:merchant_id (uid, first_name, last_name, store_name, merchant_status, business_type)
     `);
 
@@ -132,6 +139,10 @@ export async function GET(request: Request) {
 
     if (maxPrice !== null && !isNaN(maxPrice)) {
       query = query.lte('price', maxPrice);
+    }
+
+    if (limit && limit > 0) {
+      query = query.limit(limit);
     }
 
     query = query.order('created_at', { ascending: false });
@@ -186,7 +197,14 @@ export async function GET(request: Request) {
       products = products.slice(0, limit);
     }
 
-    return NextResponse.json({ products });
+    return NextResponse.json(
+      { products },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        }
+      }
+    );
   } catch (error: any) {
     console.error('Error in GET /api/products:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch products' }, { status: 500 });

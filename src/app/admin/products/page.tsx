@@ -54,6 +54,10 @@ export default function MerchantProducts() {
     if (supplierParam !== null && supplierParam !== undefined) {
       setSelectedSupplierFilter(supplierParam);
     }
+    const searchParam = searchParams?.get("search");
+    if (searchParam !== null && searchParam !== undefined) {
+      setSearchQuery(searchParam);
+    }
   }, [searchParams]);
 
   const [selectedStockFilter, setSelectedStockFilter] = useState("all");
@@ -251,7 +255,7 @@ export default function MerchantProducts() {
                     sku: `${finalSku || 'SKU'}-${c.substring(0, 3).toUpperCase()}`
                   }))
                 : prev.variants),
-          imageUrls: (Array.isArray(data.imageUrls) && data.imageUrls.length > 0 && (!prev.imageUrls || prev.imageUrls.length === 0))
+          imageUrls: (Array.isArray(data.imageUrls) && data.imageUrls.length > 0)
             ? data.imageUrls 
             : prev.imageUrls,
           imageAltTexts: Object.keys(altTextsObj).length > 0 ? altTextsObj : prev.imageAltTexts,
@@ -877,7 +881,7 @@ export default function MerchantProducts() {
       },
 
       groupCategory: '',
-      category: 'Apparel',
+      category: '',
       subcategories: '',
       tags: '',
       features: '',
@@ -2023,7 +2027,17 @@ export default function MerchantProducts() {
           onChange={(updated) => setEditForm(updated)}
           draftSaveStatus={draftSaveStatus}
           existingSuppliers={allSupplierNames}
-          existingProducts={products.map(p => ({ id: p.id, name: p.name, thumbnail: p.image_url || ((p as any).imageUrls && (p as any).imageUrls[0]) }))}
+          existingProducts={products.map(p => ({
+            id: p.id,
+            name: p.name,
+            thumbnail: p.image_url || ((p as any).imageUrls && (p as any).imageUrls[0]),
+            sku: p.sku,
+            price: (p as any).pricing?.price ?? p.price,
+            currency: (p as any).pricing?.currency || p.currency || 'KES',
+            stock: (p as any).stockQuantity ?? p.stock,
+            status: (p as any).status || 'active',
+            supplierName: p.supplierName
+          }))}
           onSave={async (data) => {
             try {
               const token = await auth.currentUser?.getIdToken();

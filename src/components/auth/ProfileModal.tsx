@@ -81,11 +81,8 @@ export default function ProfileModal({ isOpen, onClose, userAuth }: ProfileModal
         onClose();
       }, 1500);
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message || 'Failed to update profile.');
-      } else {
-        setError('Failed to update profile.');
-      }
+      const message = err instanceof Error ? err.message : 'Failed to update profile. Please try again.';
+      setError(message);
     } finally {
       setSaving(false);
     }

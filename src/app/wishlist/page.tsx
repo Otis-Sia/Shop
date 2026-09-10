@@ -210,7 +210,7 @@ export default function WishlistPage() {
                       {product.name}
                     </h3>
                     <p className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-4">
-                      Category: {product.category || 'Apparel'}
+                      Category: {product.category || 'General'}
                     </p>
 
                     {/* Price & Actions */}

@@ -47,6 +47,17 @@ export async function POST(req: Request) {
       delete body.downloadUrl;
     }
 
+    if (Array.isArray(body.variants)) {
+      body.variants = body.variants.map((v: any, idx: number) => ({
+        ...v,
+        attributes: (Array.isArray(v.attributes) && v.attributes.length > 0)
+          ? v.attributes
+          : [{ name: "Title", value: v.name || `Variant ${idx + 1}`, isVariantAxis: true }],
+        price: v.price !== undefined && v.price !== null && v.price !== "" ? Number(v.price) : Number(body.pricing?.price || body.price || 0),
+        stockQuantity: v.stockQuantity !== undefined && v.stockQuantity !== null && v.stockQuantity !== "" ? Number(v.stockQuantity) : 0,
+      }));
+    }
+
     // 2. Parse and validate
     const parsed = createProductSchema.parse(body);
 

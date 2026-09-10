@@ -11,11 +11,11 @@ interface ProductAIAssistantProps {
 
 export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantProps) {
   const { showToast } = useToast();
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [rawDetails, setRawDetails] = useState("");
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
+  const [isFindingImages, setIsFindingImages] = useState(false);
 
-const handleAIAutoFill = async () => {
+  const handleAIAutoFill = async () => {
     if (!rawDetails.trim() && !(currentData.media && currentData.media.length > 0)) {
       showToast("Please enter some product details or upload an image first.", "warning");
       return;
@@ -29,7 +29,8 @@ const handleAIAutoFill = async () => {
         body: JSON.stringify({ 
           rawDetails, 
           images: currentData.media?.map(m => m.url) || [], 
-          currentName: currentData.name 
+          currentName: currentData.name,
+          findImages: false,
         }),
       });
       
@@ -45,7 +46,9 @@ const handleAIAutoFill = async () => {
         brand: generated.brand || currentData.brand,
         tags: generated.tags || currentData.tags,
         sku: generated.sku || currentData.sku,
-        categoryIds: generated.category ? [...(currentData.categoryIds || []), generated.category] : currentData.categoryIds,
+        categoryIds: generated.category 
+          ? Array.from(new Set([generated.category, ...(Array.isArray(generated.subcategories) ? generated.subcategories : [])].filter(Boolean)))
+          : currentData.categoryIds,
         // Wrap raw pricing strings or numbers into the new pricing object
         pricing: generated.price !== undefined && generated.price !== null ? {
           ...currentData.pricing,
@@ -85,7 +88,13 @@ const handleAIAutoFill = async () => {
           }
           return baseAttrs.length > 0 ? baseAttrs : currentData.attributes;
         })(),
-        features: Array.isArray(generated.features) ? generated.features : currentData.features,
+        features: Array.isArray(generated.features) && generated.features.length > 0
+          ? generated.features
+          : (typeof generated.features === 'string' && generated.features.trim()
+              ? generated.features.split('\n').map((l: string) => l.trim()).filter(Boolean)
+              : (generated.attributes && typeof generated.attributes === 'object' && !Array.isArray(generated.attributes)
+                  ? Object.entries(generated.attributes).map(([k, v]) => `${k}: ${v}`)
+                  : currentData.features)),
         variants: Array.isArray(generated.variants) && generated.variants.length > 0 ? generated.variants.map((v: any) => ({
           id: `var-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           sku: v.sku || '',
@@ -94,16 +103,6 @@ const handleAIAutoFill = async () => {
           stockQuantity: v.stockQuantity || 0,
           isActive: true
         })) : currentData.variants,
-        media: (Array.isArray(generated.imageUrls) && generated.imageUrls.length > 0 && (!currentData.media || currentData.media.length === 0))
-          ? generated.imageUrls.map((url: string, pIdx: number) => ({
-              id: `media-${Date.now()}-${pIdx}`,
-              url,
-              type: "image" as const,
-              position: pIdx,
-              isPrimary: pIdx === 0,
-              altText: (Array.isArray(generated.imageAltTexts) && generated.imageAltTexts[pIdx]) ? generated.imageAltTexts[pIdx] : generated.name
-            }))
-          : currentData.media,
         // Basic SEO injection
         seo: {
           ...currentData.seo,
@@ -113,7 +112,7 @@ const handleAIAutoFill = async () => {
         }
       });
       
-      showToast("AI Magic Fill complete!", "success");
+      showToast("AI Auto-Fill complete!", "success");
       setRawDetails("");
     } catch (err: any) {
       console.error(err);
@@ -123,12 +122,66 @@ const handleAIAutoFill = async () => {
     }
   };
 
+  const handleFindImages = async () => {
+    const query = (currentData.name || rawDetails || "").trim();
+    if (!query) {
+      showToast("Please enter a product name or product details first to find images.", "warning");
+      return;
+    }
+
+    setIsFindingImages(true);
+    try {
+      const brandPart = (currentData.brand && currentData.brand !== "Generic") ? `${currentData.brand} ` : "";
+      const searchQuery = `${brandPart}${query}`.slice(0, 120);
+
+      const res = await fetch("/api/admin/products/search-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: searchQuery, count: 6 }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to find images");
+
+      const foundList: Array<{ url: string; title?: string }> = data.images || [];
+      if (foundList.length === 0) {
+        showToast("No matching images found. Try adding a more specific product title.", "warning");
+        return;
+      }
+
+      const existingMedia = Array.isArray(currentData.media) ? currentData.media : [];
+      const existingUrls = new Set(existingMedia.map(m => m.url));
+      const newMediaItems = [...existingMedia];
+
+      foundList.forEach((item) => {
+        if (item.url && !existingUrls.has(item.url)) {
+          existingUrls.add(item.url);
+          newMediaItems.push({
+            url: item.url,
+            type: "image" as const,
+            position: newMediaItems.length,
+            isPrimary: newMediaItems.length === 0,
+            altText: item.title || currentData.name || "Product image"
+          });
+        }
+      });
+
+      onApply({ media: newMediaItems });
+      showToast(`Found and added ${foundList.length} product images!`, "success");
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || "Error generating images", "error");
+    } finally {
+      setIsFindingImages(false);
+    }
+  };
+
   return (
     <div className="p-6 border border-primary/40 bg-surface-dim rounded-xl space-y-4">
       <h3 className="font-bold text-xl mb-4 border-b border-primary/20 pb-2 text-primary">AI Magic Fill</h3>
       
       <p className="text-xs text-on-surface-variant leading-relaxed">
-        One button to rule them all! The AI will scan any uploaded <strong>images</strong> and read the <strong>notes</strong> below to automatically generate the product name, SKU, price, SEO, categories, tags, description, specs, and matching web product images.
+        The AI will scan any uploaded <strong>images</strong> and read the <strong>notes</strong> below to automatically generate the product name, SKU, price, SEO, categories, tags, description, and specs. Image generation is optional and can be run separately using the dedicated image button below.
       </p>
 
       <div className="space-y-2">
@@ -138,14 +191,25 @@ const handleAIAutoFill = async () => {
           placeholder="Optional: Paste raw supplier info, dimensions, or a messy description here..."
           className="w-full p-3 border border-outline/30 bg-background rounded-lg text-sm h-28 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
         />
-        <button
-          type="button"
-          onClick={handleAIAutoFill}
-          disabled={isGeneratingDetails || (!rawDetails.trim() && !(currentData.media && currentData.media.length > 0))}
-          className="w-full px-4 py-3 bg-primary text-on-primary font-bold uppercase tracking-wider text-sm hover:bg-primary/90 disabled:opacity-50 rounded-lg shadow-sm transition-all"
-        >
-          {isGeneratingDetails ? "Generating Magic..." : "Auto-Fill Everything"}
-        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={handleAIAutoFill}
+            disabled={isGeneratingDetails || (!rawDetails.trim() && !(currentData.media && currentData.media.length > 0))}
+            className="w-full px-4 py-3 bg-primary text-on-primary font-bold uppercase tracking-wider text-sm hover:bg-primary/90 disabled:opacity-50 rounded-lg shadow-sm transition-all"
+          >
+            {isGeneratingDetails ? "Generating Magic..." : "Auto-Fill Everything"}
+          </button>
+          
+          <button
+            type="button"
+            onClick={handleFindImages}
+            disabled={isFindingImages || (!currentData.name?.trim() && !rawDetails.trim())}
+            className="w-full px-4 py-3 bg-surface border-2 border-primary text-primary font-bold uppercase tracking-wider text-sm hover:bg-primary/10 disabled:opacity-50 rounded-lg shadow-sm transition-all"
+          >
+            {isFindingImages ? "Finding Images..." : "Generate / Find Images"}
+          </button>
+        </div>
       </div>
     </div>
   );
