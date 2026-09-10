@@ -564,3 +564,30 @@ CREATE TABLE IF NOT EXISTS pesapal_ipn_logs (
 CREATE INDEX IF NOT EXISTS idx_checkouts_tracking_id ON checkouts(pesapal_tracking_id);
 CREATE INDEX IF NOT EXISTS idx_orders_checkout_id ON orders(checkout_id);
 CREATE INDEX IF NOT EXISTS idx_orders_tracking_id ON orders(pesapal_tracking_id);
+
+-- ============================================================================
+-- SAFARICOM DARAJA M-PESA INTEGRATION
+-- ============================================================================
+ALTER TABLE checkouts ADD COLUMN IF NOT EXISTS mpesa_request_id VARCHAR(255);
+ALTER TABLE checkouts ADD COLUMN IF NOT EXISTS mpesa_receipt_number VARCHAR(100);
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS mpesa_request_id VARCHAR(255);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS mpesa_receipt_number VARCHAR(100);
+
+CREATE TABLE IF NOT EXISTS mpesa_transaction_logs (
+    id VARCHAR(255) PRIMARY KEY,
+    merchant_request_id VARCHAR(255),
+    checkout_request_id VARCHAR(255) NOT NULL,
+    result_code INTEGER,
+    result_desc TEXT,
+    mpesa_receipt_number VARCHAR(100),
+    amount DECIMAL(10, 2),
+    phone_number VARCHAR(50),
+    payload JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_checkouts_mpesa_request ON checkouts(mpesa_request_id);
+CREATE INDEX IF NOT EXISTS idx_orders_mpesa_request ON orders(mpesa_request_id);
+CREATE INDEX IF NOT EXISTS idx_mpesa_logs_checkout_req ON mpesa_transaction_logs(checkout_request_id);
+

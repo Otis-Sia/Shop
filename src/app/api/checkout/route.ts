@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     for (const item of items) {
       const { data: product, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, product_variants(*)')
         .eq('id', item.productId.toString())
         .maybeSingle();
 
@@ -52,6 +52,36 @@ export async function POST(request: Request) {
       const stock = product.stock !== null && product.stock !== undefined ? Number(product.stock) : null;
       const name = product.name || 'Product';
       const merchantId = product.merchant_id || 'admin';
+
+      // Determine variant information
+      let variantSku: string | null = null;
+      let variantImageUrl: string | null = null;
+      let variantName: string | null = item.variantName || null;
+
+      if (product.product_variants && product.product_variants.length > 0) {
+        let matchingVariant: any = null;
+        if (item.selectedVariantIndex !== undefined && item.selectedVariantIndex !== null && product.product_variants[item.selectedVariantIndex]) {
+          matchingVariant = product.product_variants[item.selectedVariantIndex];
+        } else {
+          matchingVariant = product.product_variants.find((v: any) => {
+            const matchSize = v.size ? v.size === item.selectedSize : true;
+            const matchColor = v.color ? v.color === item.selectedColor : true;
+            return matchSize && matchColor;
+          });
+        }
+
+        if (matchingVariant) {
+          variantSku = matchingVariant.sku || null;
+          variantImageUrl = matchingVariant.image_url || null;
+          variantName = matchingVariant.name || variantName;
+        }
+      }
+
+      const imageUrls = product.image_urls || [];
+      const fallbackImg = imageUrls.length > 0 ? imageUrls[0] : null;
+      const resolvedImageUrl = item.imageUrl || variantImageUrl || fallbackImg;
+      const resolvedSku = item.sku || variantSku || product.sku || null;
+      const resolvedSupplier = item.supplierName || product.supplier_name || null;
 
       if (product.track_inventory && stock !== null) {
         if (stock < item.quantity) {
@@ -77,9 +107,15 @@ export async function POST(request: Request) {
         quantity: item.quantity,
         price: price,
         name: name,
+        variantName: variantName,
         selectedColor: item.selectedColor || null,
         selectedSize: item.selectedSize || null,
-        selectedVariantIndex: item.selectedVariantIndex !== undefined ? item.selectedVariantIndex : null
+        color: item.selectedColor || item.color || null,
+        size: item.selectedSize || item.size || null,
+        selectedVariantIndex: item.selectedVariantIndex !== undefined ? item.selectedVariantIndex : null,
+        imageUrl: resolvedImageUrl,
+        sku: resolvedSku,
+        supplierName: resolvedSupplier
       });
     }
 

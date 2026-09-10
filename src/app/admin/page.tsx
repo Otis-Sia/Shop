@@ -18,7 +18,8 @@ import {
   Store,
   Eye
 } from "lucide-react";
-import { CURRENCY_CONFIG } from '@/lib/utils/currency';
+import { CURRENCY_CONFIG } from "@/lib/utils/currency";
+import { formatDate } from "@/lib/utils/date";
 
 export default function MerchantDashboard() {
   const [profile, setProfile] = useState<any>(null);
@@ -280,13 +281,7 @@ export default function MerchantDashboard() {
                 ) : (
                   recentOrders.map((order) => {
                     const statusClass = statusColors[order.status?.toLowerCase()] || "bg-surface-container text-on-surface border border-on-surface";
-                    const orderDate = order.createdAt 
-                      ? new Date((order.createdAt as { seconds?: number }).seconds! * 1000).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric"
-                        })
-                      : "N/A";
+                    const orderDate = formatDate(order.createdAt);
                     return (
                       <tr key={order.id} className="hover:bg-on-surface/5 transition-colors">
                         <td className="p-4 font-mono text-xs">{order.id?.substring(0, 8)}...</td>

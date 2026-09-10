@@ -25,6 +25,33 @@ export default function ProfileModal({ isOpen, onClose, userAuth }: ProfileModal
     phone: ''
   });
 
+  const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (!showSuggestions || !formData.location || formData.location.trim().length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setIsSearchingLocation(true);
+      fetch(`/api/location/search?query=${encodeURIComponent(formData.location)}&limit=5`)
+        .then(res => res.json())
+        .then(data => {
+          setAddressSuggestions(data.results || []);
+          setIsSearchingLocation(false);
+        })
+        .catch(err => {
+          console.error("Location search error:", err);
+          setIsSearchingLocation(false);
+        });
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [formData.location, showSuggestions]);
+
   useEffect(() => {
     if (isOpen && userAuth) {
       setLoading(true);
@@ -171,10 +198,17 @@ export default function ProfileModal({ isOpen, onClose, userAuth }: ProfileModal
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-on-surface uppercase tracking-wider" htmlFor="location">
-                    Location
-                  </label>
+                <div className="space-y-1.5 relative">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-on-surface uppercase tracking-wider" htmlFor="location">
+                      Location / City, Country
+                    </label>
+                    {isSearchingLocation && (
+                      <span className="text-[10px] text-primary-container font-semibold animate-pulse flex items-center gap-1">
+                        <Icon name="sync" className="text-xs animate-spin" /> Searching...
+                      </span>
+                    )}
+                  </div>
                   <div className="relative">
                     <Icon name="location_on" className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface/40 text-base" />
                     <input
@@ -182,10 +216,43 @@ export default function ProfileModal({ isOpen, onClose, userAuth }: ProfileModal
                       id="location"
                       name="location"
                       value={formData.location}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        setShowSuggestions(true);
+                      }}
+                      onFocus={() => setShowSuggestions(true)}
+                      placeholder="e.g. Nairobi, Kenya"
                       className="w-full bg-surface border-2 border-on-surface/20 rounded-none pl-9 pr-3 py-2 text-sm text-on-surface focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all outline-none"
                     />
                   </div>
+
+                  {showSuggestions && addressSuggestions.length > 0 && (
+                    <ul className="absolute z-20 left-0 right-0 top-full mt-1 bg-surface border-2 border-on-surface/20 shadow-lg divide-y divide-on-surface/10 max-h-48 overflow-y-auto">
+                      {addressSuggestions.map((item) => (
+                        <li key={item.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const locParts = [item.city || item.street, item.country].filter(Boolean);
+                              const selectedText = locParts.length > 0 ? locParts.join(', ') : item.displayName;
+                              setFormData(prev => ({ ...prev, location: selectedText }));
+                              setShowSuggestions(false);
+                              setAddressSuggestions([]);
+                            }}
+                            className="w-full text-left p-2.5 hover:bg-surface-container transition-colors flex items-start gap-2 text-xs text-on-surface"
+                          >
+                            <Icon name="location_on" className="text-primary-container text-sm shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-bold text-on-surface">
+                                {[item.city || item.street, item.country].filter(Boolean).join(', ')}
+                              </p>
+                              <p className="text-[10px] text-on-surface/60 line-clamp-1">{item.displayName}</p>
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">

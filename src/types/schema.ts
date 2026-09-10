@@ -140,6 +140,8 @@ export interface OrderItem {
   color?: string | null;
   size?: string | null;
   imageUrl?: string | null;
+  sku?: string | null;
+  supplierName?: string | null;
 }
 
 // 4. Orders Collection
@@ -159,6 +161,8 @@ export interface Order {
   paymentMethod?: string;
   paymentReference?: string;
   pesapalTrackingId?: string;
+  mpesaRequestId?: string;
+  mpesaReceiptNumber?: string;
   paymentStatus?: "pending" | "completed" | "failed";
   createdAt: TimestampType;
   updatedAt: TimestampType;
@@ -189,6 +193,8 @@ export interface Checkout {
   paymentMethod?: string;
   paymentReference?: string;
   pesapalTrackingId?: string;
+  mpesaRequestId?: string;
+  mpesaReceiptNumber?: string;
   paymentStatus?: "pending" | "completed" | "failed";
   createdAt: TimestampType;
   updatedAt: TimestampType;

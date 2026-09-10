@@ -12,11 +12,26 @@ export async function GET(
     const { id } = await params;
     const supabase = getServiceSupabase();
 
-    const { data: order, error } = await supabase
+    let { data: order, error } = await supabase
       .from('orders')
       .select('*')
       .eq('id', id)
       .maybeSingle();
+
+    if (!order) {
+      // Fallback: search by checkout_id
+      const { data: checkoutOrder, error: chkError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('checkout_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!chkError && checkoutOrder) {
+        order = checkoutOrder;
+      }
+    }
 
     if (error) {
       console.error('Error fetching order from Supabase:', error);
@@ -40,6 +55,9 @@ export async function GET(
       shippingAddress: typeof order.shipping_address === 'string' ? JSON.parse(order.shipping_address) : order.shipping_address,
       shippingInformation: typeof order.shipping_information === 'string' ? JSON.parse(order.shipping_information) : order.shipping_information,
       items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+      paymentMethod: order.payment_method || 'demo_card',
+      paymentStatus: order.payment_status || 'pending',
+      mpesaReceiptNumber: order.mpesa_receipt_number || null,
       createdAt: order.created_at,
       updatedAt: order.updated_at
     };

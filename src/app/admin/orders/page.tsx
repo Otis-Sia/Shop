@@ -5,6 +5,7 @@ import { auth } from "@/lib/firebase";
 import { getMerchantOrders } from "@/lib/api/order";
 import { Order } from "@/types/schema";
 import { CURRENCY_CONFIG } from '@/lib/utils/currency';
+import { formatDate } from '@/lib/utils/date';
 
 export default function MerchantOrders() {
   const { showToast } = useToast();
@@ -103,7 +104,7 @@ export default function MerchantOrders() {
               </tr>
             ) : (
               orders.map((order) => {
-                const date = order.createdAt ? new Date((order.createdAt as { seconds?: number }).seconds! * 1000).toLocaleDateString() : 'N/A';
+                const date = formatDate(order.createdAt);
                 const isExpanded = expandedOrderId === order.id;
 
                 return (
@@ -112,13 +113,43 @@ export default function MerchantOrders() {
                       <td className="p-4 font-mono text-sm">{order.id}</td>
                       <td className="p-4">{date}</td>
                       <td className="p-4">
-                        <div className="flex gap-1.5 flex-wrap">
+                        <div className="flex flex-col gap-2 min-w-[240px] max-w-[340px]">
                           {order.items?.map((item: any, idx: number) => (
-                            item.imageUrl ? (
-                              <img key={idx} src={item.imageUrl} alt={item.name} className="w-10 h-10 object-cover border-2 border-on-surface" title={item.name} />
-                            ) : (
-                              <div key={idx} className="w-10 h-10 bg-surface-dim border-2 border-on-surface flex items-center justify-center text-[10px] font-bold" title={item.name}>No Img</div>
-                            )
+                            <div key={idx} className="flex items-start gap-2.5 bg-surface-container-low/40 p-1.5 border border-on-surface/20">
+                              {item.imageUrl ? (
+                                <img
+                                  src={item.imageUrl}
+                                  alt={item.name}
+                                  className="w-10 h-10 object-cover border-2 border-on-surface shrink-0"
+                                />
+                              ) : (
+                                <div
+                                  className="w-10 h-10 bg-surface-dim border-2 border-on-surface flex items-center justify-center text-[9px] font-bold shrink-0 text-secondary"
+                                >
+                                  No Img
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold text-xs leading-tight truncate text-on-surface" title={item.name}>
+                                  {item.name}
+                                </p>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[10px]">
+                                  {item.sku && (
+                                    <span className="font-mono font-bold bg-surface-dim border border-on-surface/30 px-1 py-0.5 text-on-surface">
+                                      SKU: {item.sku}
+                                    </span>
+                                  )}
+                                  {item.supplierName && (
+                                    <span className="font-bold bg-secondary-container text-on-surface px-1 py-0.5 border border-on-surface/30">
+                                      {item.supplierName}
+                                    </span>
+                                  )}
+                                  <span className="text-secondary font-bold">
+                                    x{item.quantity}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </td>
@@ -164,22 +195,28 @@ export default function MerchantOrders() {
                               <h4 className="font-bold uppercase text-sm border-b-2 border-on-surface pb-1 mb-4">Order Items</h4>
                               <div className="space-y-4">
                                 {order.items.map((item: any, idx: number) => (
-                                  <div key={idx} className="flex justify-between items-center border-b border-on-surface pb-2">
-                                    <div className="flex gap-4 items-center">
-                                      {item.imageUrl && (
+                                  <div key={idx} className="flex justify-between items-start border-b border-on-surface pb-3 gap-4">
+                                    <div className="flex gap-4 items-start">
+                                      {item.imageUrl ? (
                                         <img src={item.imageUrl} alt={item.name} className="w-16 h-16 object-cover border-2 border-on-surface shrink-0" />
+                                      ) : (
+                                        <div className="w-16 h-16 bg-surface border-2 border-on-surface flex items-center justify-center text-[10px] font-bold shrink-0 text-secondary">
+                                          No Img
+                                        </div>
                                       )}
                                       <div>
                                         <p className="font-bold text-sm">{item.name}</p>
                                         <div className="text-[10px] font-black text-secondary uppercase tracking-widest mt-1 space-y-0.5">
+                                          {item.sku && <p className="font-mono text-on-surface">SKU: {item.sku}</p>}
+                                          {item.supplierName && <p className="text-on-surface">Supplier: {item.supplierName}</p>}
                                           <p>Variant name: {item.variantName || 'null'}</p>
                                           <p>Size: {item.size || item.selectedSize || 'null'}</p>
                                           <p>Color: {item.color || item.selectedColor || 'null'}</p>
                                         </div>
-                                        <p className="text-xs text-secondary mt-0.5 font-bold">Qty: {item.quantity}</p>
+                                        <p className="text-xs text-secondary mt-1 font-bold">Qty: {item.quantity}</p>
                                       </div>
                                     </div>
-                                    <p className="font-bold text-sm">{CURRENCY_CONFIG.symbol} {(item.price * item.quantity).toFixed(2)}</p>
+                                    <p className="font-bold text-sm shrink-0">{CURRENCY_CONFIG.symbol} {(item.price * item.quantity).toFixed(2)}</p>
                                   </div>
                                 ))}
                                 <div className="flex justify-between items-center pt-2">
@@ -206,7 +243,7 @@ export default function MerchantOrders() {
           <div className="bg-surface border-4 border-on-surface p-8 text-center font-bold">No orders found.</div>
         ) : (
           orders.map((order) => {
-            const date = order.createdAt ? new Date((order.createdAt as { seconds?: number }).seconds! * 1000).toLocaleDateString() : 'N/A';
+            const date = formatDate(order.createdAt);
             const isExpanded = expandedOrderId === order.id;
 
             return (
@@ -222,19 +259,46 @@ export default function MerchantOrders() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 items-center py-1">
-                  <div className="flex gap-1.5 flex-wrap">
+                <div className="py-1">
+                  <div className="flex flex-col gap-2">
                     {order.items?.map((item: any, idx: number) => (
-                      item.imageUrl ? (
-                        <img key={idx} src={item.imageUrl} alt={item.name} className="w-10 h-10 object-cover border-2 border-on-surface" title={item.name} />
-                      ) : (
-                        <div key={idx} className="w-10 h-10 bg-surface-dim border-2 border-on-surface flex items-center justify-center text-[10px] font-bold" title={item.name}>No Img</div>
-                      )
+                      <div key={idx} className="flex items-start gap-2.5 bg-surface-container-low/40 p-1.5 border border-on-surface/20">
+                        {item.imageUrl ? (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="w-10 h-10 object-cover border-2 border-on-surface shrink-0"
+                          />
+                        ) : (
+                          <div
+                            className="w-10 h-10 bg-surface-dim border-2 border-on-surface flex items-center justify-center text-[9px] font-bold shrink-0 text-secondary"
+                          >
+                            No Img
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-xs leading-tight truncate text-on-surface" title={item.name}>
+                            {item.name}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[9px]">
+                            {item.sku && (
+                              <span className="font-mono font-bold bg-surface-dim border border-on-surface/30 px-1 py-0.5 text-on-surface">
+                                SKU: {item.sku}
+                              </span>
+                            )}
+                            {item.supplierName && (
+                              <span className="font-bold bg-secondary-container text-on-surface px-1 py-0.5 border border-on-surface/30">
+                                {item.supplierName}
+                              </span>
+                            )}
+                            <span className="text-secondary font-bold">
+                              x{item.quantity}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
-                  <span className="text-[11px] text-secondary font-black uppercase tracking-wider">
-                    {order.items?.length || 0} items
-                  </span>
                 </div>
 
                 <div className="flex justify-between items-center py-2 border-y-2 border-surface-container">
@@ -287,19 +351,25 @@ export default function MerchantOrders() {
                       <h4 className="font-bold uppercase text-xs border-b-2 border-on-surface pb-1 mb-3">Order Items</h4>
                       <div className="space-y-4">
                         {order.items.map((item: any, idx: number) => (
-                          <div key={idx} className="flex justify-between items-center border-b border-on-surface/30 pb-2 gap-4">
-                            <div className="flex gap-3 items-center">
-                              {item.imageUrl && (
+                          <div key={idx} className="flex justify-between items-start border-b border-on-surface/30 pb-3 gap-3">
+                            <div className="flex gap-3 items-start">
+                              {item.imageUrl ? (
                                 <img src={item.imageUrl} alt={item.name} className="w-12 h-12 object-cover border border-on-surface shrink-0" />
+                              ) : (
+                                <div className="w-12 h-12 bg-surface border border-on-surface flex items-center justify-center text-[9px] font-bold shrink-0 text-secondary">
+                                  No Img
+                                </div>
                               )}
                               <div>
-                                <p className="font-bold text-xs">{item.name}</p>
-                                <div className="text-[9px] font-black text-secondary uppercase tracking-widest mt-0.5 space-y-0.5">
+                                <p className="font-bold text-xs leading-snug">{item.name}</p>
+                                <div className="text-[9px] font-black text-secondary uppercase tracking-widest mt-1 space-y-0.5">
+                                  {item.sku && <p className="font-mono text-on-surface">SKU: {item.sku}</p>}
+                                  {item.supplierName && <p className="text-on-surface">Supplier: {item.supplierName}</p>}
                                   <p>Variant: {item.variantName || 'null'}</p>
                                   <p>Size: {item.size || item.selectedSize || 'null'}</p>
                                   <p>Color: {item.color || item.selectedColor || 'null'}</p>
                                 </div>
-                                <p className="text-[10px] text-secondary mt-0.5 font-bold">Qty: {item.quantity}</p>
+                                <p className="text-[10px] text-secondary mt-1 font-bold">Qty: {item.quantity}</p>
                               </div>
                             </div>
                             <p className="font-bold text-xs shrink-0">{CURRENCY_CONFIG.symbol} {(item.price * item.quantity).toFixed(2)}</p>
