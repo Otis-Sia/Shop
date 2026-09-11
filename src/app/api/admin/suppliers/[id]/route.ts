@@ -34,7 +34,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     }
 
     const body = await request.json();
-    const { name, whatsapp_number, location } = body;
+    const { name, whatsapp_number, location, contact_person, payment_info } = body;
 
     // Check if supplier exists to get old name
     const { data: oldSupplier } = await supabase
@@ -49,6 +49,8 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
             name,
             whatsapp_number: whatsapp_number || '',
             location: location || '',
+            contact_person: contact_person || '',
+            payment_info: payment_info || '',
             updated_at: new Date().toISOString()
         })
         .eq('id', id)

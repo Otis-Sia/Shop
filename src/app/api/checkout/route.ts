@@ -119,14 +119,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. Decrement stocks
-    for (const update of stockUpdates) {
-      await supabase
-        .from('products')
-        .update({ stock: update.newStock, updated_at: new Date().toISOString() })
-        .eq('id', update.id);
-    }
-
+    // 2. Stock will be decremented upon payment confirmation (in Daraja callback or verification query)
     const timestamp = new Date().toISOString();
 
     // 3. Create Cart record in Supabase

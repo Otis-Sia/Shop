@@ -60,14 +60,38 @@ export async function GET(request: Request) {
             })
             .eq('id', checkout.id);
 
-          await supabase
+          const { data: updatedOrders } = await supabase
             .from('orders')
             .update({
               payment_status: 'completed',
               status: 'paid',
               updated_at: timestamp,
             })
-            .eq('checkout_id', checkout.id);
+            .eq('checkout_id', checkout.id)
+            .select('items');
+
+          if (updatedOrders && updatedOrders.length > 0) {
+            for (const ord of updatedOrders) {
+              const orderItems = typeof ord.items === 'string' ? JSON.parse(ord.items) : (ord.items || []);
+              for (const item of orderItems) {
+                if (item.productId && item.quantity) {
+                  const { data: prod } = await supabase
+                    .from('products')
+                    .select('id, stock, track_inventory')
+                    .eq('id', item.productId.toString())
+                    .maybeSingle();
+
+                  if (prod && prod.track_inventory && prod.stock !== null && prod.stock !== undefined) {
+                    const newStock = Math.max(0, Number(prod.stock) - Number(item.quantity));
+                    await supabase
+                      .from('products')
+                      .update({ stock: newStock, updated_at: timestamp })
+                      .eq('id', prod.id);
+                  }
+                }
+              }
+            }
+          }
 
           return NextResponse.json({
             status: 'completed',

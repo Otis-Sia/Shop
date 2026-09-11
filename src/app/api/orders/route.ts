@@ -46,6 +46,14 @@ export async function GET(request: Request) {
       query = query.eq('user_id', uid);
     }
 
+    // Only show orders where payment has been approved/completed, unless explicitly querying by payment_status
+    const paymentStatusParam = searchParams.get('payment_status') || searchParams.get('paymentStatus');
+    if (paymentStatusParam) {
+      query = query.eq('payment_status', paymentStatusParam);
+    } else {
+      query = query.or('payment_status.eq.completed,status.eq.paid');
+    }
+
     query = query.order('created_at', { ascending: false });
 
     const { data: orders, error } = await query;

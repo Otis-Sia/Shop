@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, whatsapp_number, location } = body;
+    const { name, whatsapp_number, location, contact_person, payment_info } = body;
 
     if (!name) {
         return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -91,7 +91,9 @@ export async function POST(request: Request) {
             id: uuidv4(),
             name,
             whatsapp_number: whatsapp_number || '',
-            location: location || ''
+            location: location || '',
+            contact_person: contact_person || '',
+            payment_info: payment_info || ''
         })
         .select()
         .single();

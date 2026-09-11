@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createOrder } from '@/lib/api/order';
-import { getCart, CartItem } from '@/lib/api/cart';
+import { getCart, clearCart, CartItem } from '@/lib/api/cart';
 import { getUserProfile, User } from '@/lib/api/auth';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -149,6 +149,11 @@ export default function CheckoutPage() {
           const data = await res.json();
           if (data.status === 'completed') {
             clearInterval(interval);
+            try {
+              await clearCart();
+            } catch (clearErr) {
+              console.warn('Error clearing cart after payment:', clearErr);
+            }
             setStkStatus('success');
             setStkMessage('Payment received! Redirecting to confirmation...');
             setTimeout(() => {

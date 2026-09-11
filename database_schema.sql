@@ -283,6 +283,8 @@ CREATE TABLE IF NOT EXISTS suppliers (
     name VARCHAR(255) NOT NULL UNIQUE,
     whatsapp_number VARCHAR(50),
     location VARCHAR(255),
+    contact_person VARCHAR(255),
+    payment_info TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

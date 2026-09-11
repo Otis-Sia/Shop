@@ -38,8 +38,6 @@ export const createOrder = async (
       throw new Error(data.error || 'Failed to checkout');
     }
 
-    await clearCart();
-
     if (data.createdOrders && data.createdOrders.length > 0) {
       const order = data.createdOrders[0] as CreateOrderResult;
       order.redirectUrl = data.redirectUrl || null;

@@ -68,8 +68,8 @@ export async function POST(request: Request) {
       })
       .or(`mpesa_request_id.eq.${CheckoutRequestID},payment_reference.eq.${CheckoutRequestID}`);
 
-    // 3. Update Orders rows
-    await supabase
+    // 3. Update Orders rows and deduct stock if successful
+    const { data: updatedOrders } = await supabase
       .from('orders')
       .update({
         payment_status: paymentStatus,
@@ -77,7 +77,32 @@ export async function POST(request: Request) {
         mpesa_receipt_number: mpesaReceiptNumber,
         updated_at: timestamp,
       })
-      .or(`mpesa_request_id.eq.${CheckoutRequestID},payment_reference.eq.${CheckoutRequestID}`);
+      .or(`mpesa_request_id.eq.${CheckoutRequestID},payment_reference.eq.${CheckoutRequestID}`)
+      .select('items');
+
+    // Deduct stock upon confirmed payment
+    if (isSuccess && updatedOrders && updatedOrders.length > 0) {
+      for (const ord of updatedOrders) {
+        const orderItems = typeof ord.items === 'string' ? JSON.parse(ord.items) : (ord.items || []);
+        for (const item of orderItems) {
+          if (item.productId && item.quantity) {
+            const { data: prod } = await supabase
+              .from('products')
+              .select('id, stock, track_inventory')
+              .eq('id', item.productId.toString())
+              .maybeSingle();
+
+            if (prod && prod.track_inventory && prod.stock !== null && prod.stock !== undefined) {
+              const newStock = Math.max(0, Number(prod.stock) - Number(item.quantity));
+              await supabase
+                .from('products')
+                .update({ stock: newStock, updated_at: timestamp })
+                .eq('id', prod.id);
+            }
+          }
+        }
+      }
+    }
 
     // Safaricom Daraja expects standard acknowledgment
     return NextResponse.json({

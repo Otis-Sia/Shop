@@ -11,6 +11,8 @@ interface Supplier {
   name: string;
   whatsapp_number: string;
   location: string;
+  contact_person?: string;
+  payment_info?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -64,7 +66,7 @@ export default function AdminSuppliers() {
   };
 
   const handleAddNew = () => {
-    setEditForm({ name: "", whatsapp_number: "", location: "" });
+    setEditForm({ name: "", whatsapp_number: "", location: "", contact_person: "", payment_info: "" });
     setIsEditing(true);
   };
 
@@ -199,6 +201,25 @@ export default function AdminSuppliers() {
                   placeholder="City, Country"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-black uppercase mb-1">Contact Person</label>
+                <input
+                  type="text"
+                  value={editForm.contact_person || ""}
+                  onChange={(e) => setEditForm({ ...editForm, contact_person: e.target.value })}
+                  className="w-full border-2 border-on-surface p-2 text-sm bg-surface font-bold"
+                  placeholder="e.g. John Doe"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-black uppercase mb-1">Payment Info</label>
+                <textarea
+                  value={editForm.payment_info || ""}
+                  onChange={(e) => setEditForm({ ...editForm, payment_info: e.target.value })}
+                  className="w-full border-2 border-on-surface p-2 text-sm bg-surface font-bold min-h-[80px]"
+                  placeholder="e.g. Bank details, MPesa Till, etc."
+                />
+              </div>
               
               <div className="flex gap-3 justify-end pt-4 border-t-2 border-on-surface/20">
                 <button
@@ -228,6 +249,8 @@ export default function AdminSuppliers() {
               <th className="p-4 border-b-4 border-on-surface">Name</th>
               <th className="p-4 border-b-4 border-on-surface">WhatsApp</th>
               <th className="p-4 border-b-4 border-on-surface">Location</th>
+              <th className="p-4 border-b-4 border-on-surface">Contact Person</th>
+              <th className="p-4 border-b-4 border-on-surface">Payment Info</th>
               <th className="p-4 border-b-4 border-on-surface text-right">Actions</th>
             </tr>
           </thead>
@@ -244,6 +267,8 @@ export default function AdminSuppliers() {
                   <td className="p-4 font-bold">{supplier.name}</td>
                   <td className="p-4 font-mono text-sm">{supplier.whatsapp_number || "-"}</td>
                   <td className="p-4">{supplier.location || "-"}</td>
+                  <td className="p-4">{supplier.contact_person || "-"}</td>
+                  <td className="p-4 text-xs max-w-[200px] truncate" title={supplier.payment_info}>{supplier.payment_info || "-"}</td>
                   <td className="p-4 text-right">
                     <div className="flex gap-2 justify-end">
                       <Link

@@ -12,31 +12,42 @@ export default function MerchantOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<'approved' | 'pending'>('approved');
+
+  const fetchOrders = async (pFilter = paymentFilter) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    setLoading(true);
+
+    try {
+      const token = await user.getIdToken();
+      const url = pFilter === 'pending' 
+        ? '/api/orders?filter=merchant&payment_status=pending' 
+        : '/api/orders?filter=merchant';
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data.orders || []);
+      }
+    } catch (error) {
+      console.error("Error fetching merchant orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      try {
-        const ordersList = await getMerchantOrders();
-        setOrders(ordersList);
-      } catch (error) {
-        console.error("Error fetching merchant orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (auth.currentUser) {
-      fetchOrders();
+      fetchOrders(paymentFilter);
     } else {
       const unsubscribe = auth.onAuthStateChanged((user) => {
-        if (user) fetchOrders();
+        if (user) fetchOrders(paymentFilter);
       });
       return () => unsubscribe();
     }
-  }, []);
+  }, [paymentFilter]);
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
@@ -80,9 +91,33 @@ export default function MerchantOrders() {
 
   return (
     <div className="p-4 sm:p-8">
-      <h1 className="font-headline-lg font-black text-2xl sm:text-4xl mb-8 uppercase border-b-4 border-on-surface inline-block pb-2">
-        My Orders
-      </h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <h1 className="font-headline-lg font-black text-2xl sm:text-4xl uppercase border-b-4 border-on-surface inline-block pb-2">
+          My Orders
+        </h1>
+        <div className="flex items-center gap-2 border-2 border-on-surface p-1 bg-surface-container-low w-fit">
+          <button
+            onClick={() => setPaymentFilter('approved')}
+            className={`px-4 py-1.5 text-xs font-black uppercase tracking-wider transition-colors ${
+              paymentFilter === 'approved'
+                ? 'bg-on-surface text-surface'
+                : 'text-on-surface hover:bg-surface-dim'
+            }`}
+          >
+            Confirmed Orders
+          </button>
+          <button
+            onClick={() => setPaymentFilter('pending')}
+            className={`px-4 py-1.5 text-xs font-black uppercase tracking-wider transition-colors ${
+              paymentFilter === 'pending'
+                ? 'bg-on-surface text-surface'
+                : 'text-on-surface hover:bg-surface-dim'
+            }`}
+          >
+            Payment Pending
+          </button>
+        </div>
+      </div>
 
       {/* Desktop Table View */}
       <div className="hidden md:block bg-surface border-4 border-on-surface overflow-x-auto">
