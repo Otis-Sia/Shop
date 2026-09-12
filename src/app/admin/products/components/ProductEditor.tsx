@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { CreateProductInput, ProductType } from "@/lib/products/types";
+import { CreateProductInput, CreateProductVariantInput, ProductType } from "@/lib/products/types";
 
 import { ProductDetailsForm } from "./ProductDetailsForm";
 import { ProductPricingForm } from "./ProductPricingForm";
@@ -171,6 +171,15 @@ export function ProductEditor({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSkuManuallyEdited, setIsSkuManuallyEdited] = useState(Boolean(initialData?.sku));
+  const [overridePrice, setOverridePrice] = useState<boolean>(() => {
+    const base = Number(initialData?.pricing?.price ?? initialData?.price) || 0;
+    const vars = initialData?.variants || [];
+    return Boolean(
+      vars.some(
+        (v: any) => v.price !== undefined && v.price !== null && Number(v.price) > 0 && Number(v.price) !== base
+      )
+    );
+  });
 
   const [showDuplicateDropdown, setShowDuplicateDropdown] = useState(false);
   const [dismissedName, setDismissedName] = useState<string | null>(null);
@@ -298,6 +307,29 @@ export function ProductEditor({
     return `${uniqueSupplierLetters}-${productCode}`;
   }
 
+  function ensureUniqueVariantSkus(baseSku: string, variants: CreateProductVariantInput[]): CreateProductVariantInput[] {
+    const usedSkus = new Set<string>();
+    const cleanBaseSku = (baseSku || "SKU").trim();
+
+    return variants.map((v, idx) => {
+      const attrTokens = (v.attributes || [])
+        .map((a: any) => (a.value || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase())
+        .filter(Boolean);
+      const suffix = attrTokens.length > 0 ? attrTokens.join("-") : `${idx + 1}`;
+      let candidate = (v.sku && typeof v.sku === "string" && v.sku.trim()) ? v.sku.trim() : `${cleanBaseSku}-${suffix}`;
+
+      let uniqueSku = candidate;
+      let counter = 1;
+      while (usedSkus.has(uniqueSku.toUpperCase())) {
+        counter++;
+        uniqueSku = `${candidate}-${counter}`;
+      }
+
+      usedSkus.add(uniqueSku.toUpperCase());
+      return { ...v, sku: uniqueSku };
+    });
+  }
+
   const handleUpdate = (field: keyof CreateProductInput, value: any) => {
     if (field === "sku") {
       setIsSkuManuallyEdited(true);
@@ -307,14 +339,24 @@ export function ProductEditor({
       if (!isSkuManuallyEdited && (field === "name" || field === "supplierName")) {
         next.sku = generateSku(next.supplierName, next.name);
       }
+      if (field === "pricing" && !overridePrice) {
+        const newPrice = Number(value?.price) || 0;
+        if (next.variants && next.variants.length > 0) {
+          next.variants = next.variants.map((v) => ({
+            ...v,
+            price: newPrice > 0 ? newPrice : undefined,
+          }));
+        }
+      }
+      if (field === "variants" && !overridePrice) {
+        const currentPrice = Number(next.pricing?.price) || 0;
+        next.variants = (value || []).map((v: CreateProductVariantInput) => ({
+          ...v,
+          price: currentPrice > 0 ? currentPrice : undefined,
+        }));
+      }
       if (next.variants && next.variants.length > 0) {
-        next.variants = next.variants.map((v) => {
-          if (!v.sku || field === "name" || field === "supplierName") {
-            const variantName = (next.name || "") + " " + (v.attributes || []).map((a) => a.value).join(" ");
-            return { ...v, sku: generateSku(next.supplierName, variantName) };
-          }
-          return v;
-        });
+        next.variants = ensureUniqueVariantSkus(next.sku || "SKU", next.variants);
       }
       return next;
     });
@@ -326,11 +368,15 @@ export function ProductEditor({
       if (!isSkuManuallyEdited && (next.name || next.supplierName)) {
         next.sku = generateSku(next.supplierName, next.name);
       }
+      if (!overridePrice && next.variants && next.variants.length > 0) {
+        const regularPrice = Number(next.pricing?.price) || 0;
+        next.variants = next.variants.map((v) => ({
+          ...v,
+          price: regularPrice > 0 ? regularPrice : undefined,
+        }));
+      }
       if (next.variants && next.variants.length > 0) {
-        next.variants = next.variants.map((v) => {
-          const variantName = (next.name || "") + " " + (v.attributes || []).map((a) => a.value).join(" ");
-          return { ...v, sku: generateSku(next.supplierName, variantName) };
-        });
+        next.variants = ensureUniqueVariantSkus(next.sku || "SKU", next.variants);
       }
       return next;
     });
@@ -398,6 +444,16 @@ export function ProductEditor({
         shipping: targetProductType === "physical" ? formData.shipping : undefined,
         downloadUrl: targetProductType === "digital" ? formData.downloadUrl : undefined,
       };
+
+      if (payload.variants && payload.variants.length > 0) {
+        payload.variants = ensureUniqueVariantSkus(payload.sku || formData.sku || "SKU", payload.variants);
+        if (!overridePrice) {
+          payload.variants = payload.variants.map((v) => ({
+            ...v,
+            price: regularPrice,
+          }));
+        }
+      }
 
       await onSave(payload);
     } catch (err: any) {
@@ -593,6 +649,21 @@ export function ProductEditor({
           <ProductVariantManager 
             variants={formData.variants} 
             attributes={formData.attributes} 
+            basePrice={Number(formData.pricing?.price) || 0}
+            overridePrice={overridePrice}
+            onChangeOverridePrice={(val) => {
+              setOverridePrice(val);
+              if (!val) {
+                const currentBase = Number(formData.pricing?.price) || 0;
+                handleUpdate(
+                  "variants",
+                  (formData.variants || []).map((v) => ({
+                    ...v,
+                    price: currentBase > 0 ? currentBase : undefined,
+                  }))
+                );
+              }
+            }}
             onChangeVariants={(val) => handleUpdate("variants", val)} 
             onChangeAttributes={(val) => handleUpdate("attributes", val)} 
           />

@@ -188,6 +188,22 @@ export default function MerchantProducts() {
           ? generateSku(finalSupplier, finalName) 
           : (data.sku || prev.sku);
 
+        const rawCost = (data.costPrice !== undefined && data.costPrice !== null && !isNaN(Number(data.costPrice)) && Number(data.costPrice) > 0)
+          ? Number(data.costPrice)
+          : (data.price !== undefined && data.price !== null && !isNaN(Number(data.price)) && Number(data.price) > 0
+              ? Number(data.price)
+              : (prev.costPrice !== undefined && prev.costPrice !== null ? Number(prev.costPrice) : undefined));
+
+        let regularPrice = (data.price !== undefined && data.price !== null && !isNaN(Number(data.price)))
+          ? Number(data.price)
+          : (prev.price !== undefined && prev.price !== null ? Number(prev.price) : 0);
+
+        if (rawCost && rawCost > 0) {
+          if (!regularPrice || regularPrice <= rawCost) {
+            regularPrice = Math.ceil((rawCost * 1.4) / 50) * 50;
+          }
+        }
+
         return {
           ...prev,
           name: finalName,
@@ -205,9 +221,9 @@ export default function MerchantProducts() {
           weight: data.weight !== undefined && data.weight !== null ? data.weight : (data.estimatedWeight !== undefined && data.estimatedWeight !== null ? data.estimatedWeight : prev.weight),
           weightUnit: data.weightUnit || prev.weightUnit || 'kg',
           attributes: data.attributes ? (typeof data.attributes === 'object' ? data.attributes : prev.attributes) : prev.attributes,
-          price: data.price !== null && data.price !== undefined ? data.price : prev.price,
+          price: regularPrice,
           salePrice: data.salePrice !== null && data.salePrice !== undefined ? data.salePrice : prev.salePrice,
-          costPrice: data.costPrice !== null && data.costPrice !== undefined ? data.costPrice : prev.costPrice,
+          costPrice: rawCost !== undefined ? rawCost : prev.costPrice,
           stock: data.stock !== null && data.stock !== undefined ? data.stock : prev.stock,
           features: Array.isArray(data.features) && data.features.length > 0 
             ? data.features.join('\n') : (typeof data.features === 'string' ? data.features : prev.features),
@@ -227,33 +243,75 @@ export default function MerchantProducts() {
             ? true 
             : (Array.isArray(data.colors) && data.colors.length > 1 ? true : prev.hasVariants),
           variants: (Array.isArray(data.variants) && data.variants.length > 0)
-            ? data.variants.map((v: any, vIdx: number) => {
-                const vColor = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '') || '';
-                const vSize = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => ['size', 'capacity', 'dimension'].includes(a.name?.toLowerCase()))?.value : '') || '';
-                const vName = v.name && !v.name.toLowerCase().startsWith('option ') && !v.name.toLowerCase().startsWith('variant ')
-                  ? v.name 
-                  : ([vColor, vSize].filter(Boolean).join(' - ') || `Variant ${vIdx + 1}`);
-                return {
-                  ...v,
-                  id: v.id || `v_${Date.now()}_${vIdx}`,
-                  name: vName,
-                  color: vColor,
-                  size: vSize,
-                  price: v.price !== null && v.price !== undefined ? Number(v.price) : (data.price || prev.price || 0),
-                  stock: v.stock !== null && v.stock !== undefined ? Number(v.stock) : (data.stock || prev.stock || 0),
-                  sku: v.sku || `${finalSku || 'SKU'}-${vColor ? vColor.substring(0, 3).toUpperCase() : vIdx + 1}`
-                };
-              })
+            ? (() => {
+                const usedSkus = new Set<string>();
+                return data.variants.map((v: any, vIdx: number) => {
+                  const vColor = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '') || '';
+                  const vSize = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => ['size', 'capacity', 'dimension'].includes(a.name?.toLowerCase()))?.value : '') || '';
+                  const vName = v.name && !v.name.toLowerCase().startsWith('option ') && !v.name.toLowerCase().startsWith('variant ')
+                    ? v.name 
+                    : ([vColor, vSize].filter(Boolean).join(' - ') || `Variant ${vIdx + 1}`);
+
+                  const attrTokens = [vColor, vSize].filter(Boolean).map(s => s.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()).filter(Boolean);
+                  const suffix = attrTokens.length > 0 ? attrTokens.join('-') : `${vIdx + 1}`;
+                  let candidateSku = (v.sku && typeof v.sku === 'string' && v.sku.trim())
+                    ? v.sku.trim()
+                    : `${finalSku || 'SKU'}-${suffix}`;
+
+                  let uniqueSku = candidateSku;
+                  let counter = 1;
+                  while (usedSkus.has(uniqueSku.toUpperCase())) {
+                    counter++;
+                    uniqueSku = `${candidateSku}-${counter}`;
+                  }
+                  usedSkus.add(uniqueSku.toUpperCase());
+
+                  const vCost = (v.costPrice !== undefined && v.costPrice !== null && !isNaN(Number(v.costPrice)) && Number(v.costPrice) > 0)
+                    ? Number(v.costPrice)
+                    : rawCost;
+                  let vPrice = v.price !== null && v.price !== undefined ? Number(v.price) : (regularPrice || 0);
+                  if (vCost && vPrice <= vCost) {
+                    vPrice = Math.ceil((vCost * 1.4) / 50) * 50;
+                  }
+
+                  return {
+                    ...v,
+                    id: v.id || `v_${Date.now()}_${vIdx}`,
+                    name: vName,
+                    color: vColor,
+                    size: vSize,
+                    price: vPrice,
+                    costPrice: vCost,
+                    stock: v.stock !== null && v.stock !== undefined ? Number(v.stock) : (data.stock || prev.stock || 0),
+                    sku: uniqueSku
+                  };
+                });
+              })()
             : ((Array.isArray(data.colors) && data.colors.length > 1)
-                ? data.colors.map((c: string, cIdx: number) => ({
-                    id: `v_${Date.now()}_${cIdx}`,
-                    name: c,
-                    color: c,
-                    size: Array.isArray(data.sizes) && data.sizes.length === 1 ? data.sizes[0] : '',
-                    price: data.price || prev.price || 0,
-                    stock: data.stock || prev.stock || 0,
-                    sku: `${finalSku || 'SKU'}-${c.substring(0, 3).toUpperCase()}`
-                  }))
+                ? (() => {
+                    const usedSkus = new Set<string>();
+                    return data.colors.map((c: string, cIdx: number) => {
+                      const cleanColor = c.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                      let candidateSku = `${finalSku || 'SKU'}-${cleanColor.substring(0, 4) || (cIdx + 1)}`;
+                      let uniqueSku = candidateSku;
+                      let counter = 1;
+                      while (usedSkus.has(uniqueSku.toUpperCase())) {
+                        counter++;
+                        uniqueSku = `${candidateSku}-${counter}`;
+                      }
+                      usedSkus.add(uniqueSku.toUpperCase());
+
+                      return {
+                        id: `v_${Date.now()}_${cIdx}`,
+                        name: c,
+                        color: c,
+                        size: Array.isArray(data.sizes) && data.sizes.length === 1 ? data.sizes[0] : '',
+                        price: data.price || prev.price || 0,
+                        stock: data.stock || prev.stock || 0,
+                        sku: uniqueSku
+                      };
+                    });
+                  })()
                 : prev.variants),
           imageUrls: (Array.isArray(data.imageUrls) && data.imageUrls.length > 0)
             ? data.imageUrls 
@@ -2001,13 +2059,6 @@ export default function MerchantProducts() {
               Scan Duplicates
             </Link>
             <button 
-              onClick={handleFullSync}
-              disabled={isSyncingCatalog}
-              className="bg-surface text-green-700 border-4 border-green-600 px-4 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-base font-bold uppercase shadow-[4px_4px_0px_0px_#16a34a] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_#16a34a] transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
-            >
-              {isSyncingCatalog ? "Syncing..." : "Sync to WhatsApp"}
-            </button>
-            <button 
               onClick={() => {
                 handleAddNew();
                 setIsQuickAdd(false);
@@ -2380,23 +2431,6 @@ export default function MerchantProducts() {
                               WhatsApp
                             </button>
 
-                            {/* Single Sync to Meta */}
-                            <button
-                              type="button"
-                              onClick={() => handleSingleSync(product)}
-                              disabled={isSingleSyncing}
-                              title="Sync this product to Meta / WhatsApp Catalog"
-                              className="text-xs border-2 border-on-surface bg-surface text-on-surface px-2 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)] disabled:opacity-50"
-                            >
-                              {isSingleSyncing ? "..." : "Sync"}
-                            </button>
-
-                            <button 
-                              onClick={() => handleDuplicate(product)}
-                              className="text-xs border-2 border-on-surface bg-primary-container text-on-surface px-2 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                            >
-                              Duplicate
-                            </button>
                             <button 
                               onClick={() => handleEdit(product)}
                               className="text-xs border-2 border-on-surface px-2.5 py-1 font-bold hover:bg-on-surface hover:text-surface transition-colors shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
@@ -2502,20 +2536,6 @@ export default function MerchantProducts() {
                         className="text-xs border-2 border-green-700 bg-green-50 text-green-800 px-2 py-1 font-bold shadow-[2px_2px_0px_0px_#15803d]"
                       >
                         WhatsApp
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSingleSync(product)}
-                        disabled={isSingleSyncing}
-                        className="text-xs border-2 border-on-surface px-2 py-1 font-bold shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                      >
-                        {isSingleSyncing ? "..." : "Sync"}
-                      </button>
-                      <button 
-                        onClick={() => handleDuplicate(product)}
-                        className="text-xs border-2 border-on-surface bg-primary-container text-on-surface px-2.5 py-1 font-bold shadow-[2px_2px_0px_0px_var(--color-on-surface)]"
-                      >
-                        Duplicate
                       </button>
                       <button 
                         onClick={() => handleEdit(product)}

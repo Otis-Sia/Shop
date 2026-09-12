@@ -19,7 +19,9 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-require-imports": "warn",
-      "prefer-const": "warn"
+      "prefer-const": "warn",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/set-state-in-effect": "off"
     }
   }
 ]);

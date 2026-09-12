@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase/server';
+import { sanitizeCatalogImageUrls, isValidCatalogImageUrl } from '@/lib/images/catalog-images';
 import { escape } from 'querystring';
 
 export const dynamic = 'force-dynamic';
@@ -53,10 +54,14 @@ export async function GET(req: Request) {
         const currency = 'KES'; // Force KES for all products 
 
         const link = `${baseUrl}/products/${product.id}`;
-        const imageUrls = product.image_urls || [];
-        const mainImage = imageUrls.length > 0 ? imageUrls[0] : (product.image_url || '');
+        const rawImageUrls = product.image_urls || [];
+        const sanitizedImages = sanitizeCatalogImageUrls(rawImageUrls);
+        const fallbackImage = (product.image_url && isValidCatalogImageUrl(product.image_url)) ? product.image_url : '';
+        const mainImage = sanitizedImages[0] || fallbackImage;
 
-        const availability = (product.track_inventory && product.stock <= 0) ? 'out of stock' : 'in stock';
+        const isTracked = product.track_inventory ?? true;
+        const inStock = !isTracked || product.stock === null || product.stock === undefined || Number(product.stock) > 0;
+        const availability = inStock ? 'in stock' : 'out of stock';
 
         // Basic fields
         xml += `    <item>
@@ -83,8 +88,8 @@ export async function GET(req: Request) {
         }
 
         // Additional images (up to 10 for Google Merchant Center)
-        if (imageUrls.length > 1) {
-          imageUrls.slice(1, 11).forEach((imgUrl: string) => {
+        if (sanitizedImages.length > 1) {
+          sanitizedImages.slice(1, 11).forEach((imgUrl: string) => {
             if (imgUrl) {
               xml += `      <g:additional_image_link>${escapeXml(imgUrl)}</g:additional_image_link>\n`;
             }

@@ -48,6 +48,7 @@ export async function POST(req: Request) {
     }
 
     if (Array.isArray(body.variants)) {
+      const seenSkus = new Set<string>();
       body.variants = body.variants.map((v: any, idx: number) => {
         const color = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '') || '';
         const size = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '') || '';
@@ -56,8 +57,20 @@ export async function POST(req: Request) {
           ? v.name
           : (attrValues.length > 0 ? attrValues.join(' / ') : [color, size].filter(Boolean).join(' / ')) || `Variant ${idx + 1}`;
 
+        const baseSku = (v.sku && typeof v.sku === 'string' && v.sku.trim())
+          ? v.sku.trim()
+          : `${body.sku || 'SKU'}-${idx + 1}`;
+        let uniqueSku = baseSku;
+        let counter = 1;
+        while (seenSkus.has(uniqueSku.toUpperCase())) {
+          counter++;
+          uniqueSku = `${baseSku}-${counter}`;
+        }
+        seenSkus.add(uniqueSku.toUpperCase());
+
         return {
           ...v,
+          sku: uniqueSku,
           name: compositeName,
           color: color,
           size: size,

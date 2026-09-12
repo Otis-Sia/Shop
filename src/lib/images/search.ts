@@ -1,3 +1,5 @@
+import { isValidCatalogImageUrl } from './catalog-images';
+
 export interface ProductImageSearchResult {
   url: string;
   thumbnail?: string;
@@ -14,11 +16,43 @@ export async function searchProductImages(query: string, count: number = 6): Pro
 
   const addResult = (item: ProductImageSearchResult) => {
     if (!item.url || seenUrls.has(item.url)) return;
+    if (!isValidCatalogImageUrl(item.url)) return;
     seenUrls.add(item.url);
     results.push(item);
   };
 
-  // 1. Primary: Tavily Search
+  // 1. First Priority: Google Search (Custom Search JSON API)
+  const googleApiKey = process.env.GOOGLE_SEARCH_API_KEY || process.env.GOOGLE_CSE_KEY;
+  const googleCx = process.env.GOOGLE_SEARCH_ENGINE_ID || process.env.GOOGLE_CSE_ID || process.env.GOOGLE_SEARCH_CX;
+
+  if (googleApiKey && googleCx) {
+    try {
+      const url = `https://customsearch.googleapis.com/customsearch/v1?cx=${googleCx}&q=${encodeURIComponent(cleanQuery)}&searchType=image&key=${googleApiKey}&num=${Math.min(count, 10)}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data: any = await res.json();
+        if (Array.isArray(data.items)) {
+          for (const item of data.items) {
+            if (item.link) {
+              addResult({
+                url: item.link,
+                thumbnail: item.image?.thumbnailLink || item.link,
+                title: item.title || cleanQuery,
+                source: 'Google Search',
+              });
+            }
+          }
+          if (results.length > 0) return results.slice(0, count);
+        }
+      } else {
+        console.warn(`Google Search returned status ${res.status}, failing over to Tavily.`);
+      }
+    } catch (err) {
+      console.warn('Google Search error, failing over to Tavily:', err);
+    }
+  }
+
+  // 2. Second Priority: Tavily Search
   const tavilyApiKey = process.env.TAVILY_API_KEY;
   if (tavilyApiKey) {
     try {
@@ -65,19 +99,55 @@ export async function searchProductImages(query: string, count: number = 6): Pro
           }
         }
 
-        // If Tavily returned valid images, return them immediately without calling Serper
         if (results.length > 0) {
           return results.slice(0, count);
         }
       } else {
-        console.warn(`Tavily search returned status ${res.status}, failing over to Serper.`);
+        console.warn(`Tavily search returned status ${res.status}, failing over to Brave Search.`);
       }
     } catch (err) {
-      console.warn('Tavily search error, failing over to Serper:', err);
+      console.warn('Tavily search error, failing over to Brave Search:', err);
     }
   }
 
-  // 2. Failover: Serper.dev Google Images (called ONLY if Tavily failed or returned 0 images)
+  // 3. Third Priority: Brave Search
+  const braveApiKey = process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY;
+  if (braveApiKey) {
+    try {
+      const url = `https://api.search.brave.com/res/v1/images/search?q=${encodeURIComponent(cleanQuery)}&count=${Math.min(count, 20)}&safesearch=strict`;
+      const res = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'X-Subscription-Token': braveApiKey,
+        },
+      });
+
+      if (res.ok) {
+        const data: any = await res.json();
+        if (Array.isArray(data.results)) {
+          for (const item of data.results) {
+            const directUrl = item.properties?.url || item.url;
+            const thumbUrl = item.thumbnail?.src || directUrl;
+            if (directUrl) {
+              addResult({
+                url: directUrl,
+                thumbnail: thumbUrl,
+                title: item.title || cleanQuery,
+                source: 'Brave Search',
+              });
+            }
+          }
+          if (results.length > 0) return results.slice(0, count);
+        }
+      } else {
+        console.warn(`Brave Search returned status ${res.status}, failing over to Serper.`);
+      }
+    } catch (err) {
+      console.warn('Brave Search error, failing over to Serper:', err);
+    }
+  }
+
+  // 4. Fourth Priority: Serper.dev Google Images
   const serperApiKey = process.env.SERPER_API_KEY;
   if (serperApiKey) {
     try {
@@ -109,78 +179,14 @@ export async function searchProductImages(query: string, count: number = 6): Pro
           }
         }
       } else {
-        console.warn(`Serper search returned status ${res.status}, failing over to secondary providers.`);
+        console.warn(`Serper search returned status ${res.status}, failing over to secondary fallbacks.`);
       }
     } catch (err) {
-      console.warn('Serper search error, failing over to secondary providers:', err);
+      console.warn('Serper search error, failing over to secondary fallbacks:', err);
     }
   }
 
-  // 3. Secondary Failover: Google Custom Search Engine
-  const googleApiKey = process.env.GOOGLE_SEARCH_API_KEY || process.env.GOOGLE_CSE_KEY;
-  const googleCx = process.env.GOOGLE_SEARCH_ENGINE_ID || process.env.GOOGLE_CSE_ID || process.env.GOOGLE_SEARCH_CX;
-
-  if (googleApiKey && googleCx) {
-    try {
-      const url = `https://customsearch.googleapis.com/customsearch/v1?cx=${googleCx}&q=${encodeURIComponent(cleanQuery)}&searchType=image&key=${googleApiKey}&num=${Math.min(count, 10)}`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const data: any = await res.json();
-        if (Array.isArray(data.items)) {
-          for (const item of data.items) {
-            if (item.link) {
-              addResult({
-                url: item.link,
-                thumbnail: item.image?.thumbnailLink || item.link,
-                title: item.title || cleanQuery,
-                source: 'Google',
-              });
-            }
-          }
-          if (results.length > 0) return results.slice(0, count);
-        }
-      }
-    } catch (err) {
-      console.warn('Google Custom Search error:', err);
-    }
-  }
-
-  // 4. Secondary Failover: Brave Search
-  const braveApiKey = process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY;
-  if (braveApiKey) {
-    try {
-      const url = `https://api.search.brave.com/res/v1/images/search?q=${encodeURIComponent(cleanQuery)}&count=${Math.min(count, 20)}&safesearch=strict`;
-      const res = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'X-Subscription-Token': braveApiKey,
-        },
-      });
-
-      if (res.ok) {
-        const data: any = await res.json();
-        if (Array.isArray(data.results)) {
-          for (const item of data.results) {
-            const directUrl = item.properties?.url || item.url;
-            const thumbUrl = item.thumbnail?.src || directUrl;
-            if (directUrl) {
-              addResult({
-                url: directUrl,
-                thumbnail: thumbUrl,
-                title: item.title || cleanQuery,
-                source: 'Brave',
-              });
-            }
-          }
-          if (results.length > 0) return results.slice(0, count);
-        }
-      }
-    } catch (err) {
-      console.warn('Brave Search error:', err);
-    }
-  }
-
-  // 5. Secondary Failover: SerpApi
+  // 5. Fallback: SerpApi
   const serpApiKey = process.env.SERPAPI_API_KEY;
   if (serpApiKey) {
     try {
@@ -207,7 +213,7 @@ export async function searchProductImages(query: string, count: number = 6): Pro
     }
   }
 
-  // 6. Secondary Failover: Unsplash
+  // 6. Fallback: Unsplash
   const unsplashKey = process.env.UNSPLASH_ACCESS_KEY;
   if (unsplashKey) {
     try {

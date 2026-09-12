@@ -8,11 +8,48 @@ interface ProductVariantManagerProps {
   attributes?: CreateProductAttributeInput[];
   onChangeVariants: (variants: CreateProductVariantInput[]) => void;
   onChangeAttributes: (attributes: CreateProductAttributeInput[]) => void;
+  basePrice?: number;
+  overridePrice?: boolean;
+  onChangeOverridePrice?: (override: boolean) => void;
 }
 
-export function ProductVariantManager({ variants = [], attributes = [], onChangeVariants, onChangeAttributes }: ProductVariantManagerProps) {
+export function ProductVariantManager({
+  variants = [],
+  attributes = [],
+  onChangeVariants,
+  onChangeAttributes,
+  basePrice = 0,
+  overridePrice,
+  onChangeOverridePrice,
+}: ProductVariantManagerProps) {
   const [newAttrName, setNewAttrName] = useState("");
   const [newAttrValue, setNewAttrValue] = useState("");
+
+  const [internalOverridePrice, setInternalOverridePrice] = useState<boolean>(() => {
+    if (overridePrice !== undefined) return overridePrice;
+    return variants.some(
+      (v) =>
+        v.price !== undefined &&
+        v.price !== null &&
+        Number(v.price) > 0 &&
+        Number(v.price) !== Number(basePrice)
+    );
+  });
+
+  const isOverridePrice = overridePrice !== undefined ? overridePrice : internalOverridePrice;
+
+  const handleToggleOverridePrice = (checked: boolean) => {
+    setInternalOverridePrice(checked);
+    onChangeOverridePrice?.(checked);
+    if (!checked) {
+      // When unchecking, sync all variants to the main product's price
+      const updated = variants.map((v) => ({
+        ...v,
+        price: basePrice > 0 ? basePrice : undefined,
+      }));
+      onChangeVariants(updated);
+    }
+  };
 
   const handleAddAttribute = () => {
     if (!newAttrName || !newAttrValue) return;
@@ -35,15 +72,18 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
       ? [{ ...attributes[0] }]
       : [{ name: "Variant", value: `Variant ${variants.length + 1}`, isVariantAxis: true }];
     const compositeName = defaultAttributes.map(a => a.value).join(" / ") || `Variant ${variants.length + 1}`;
+    const nextIdx = variants.length + 1;
+    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
 
     onChangeVariants([
       ...variants,
       {
-        id: `var-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        id: `var-${Date.now()}-${randomSuffix}`,
         name: compositeName,
-        sku: `VAR-${Date.now()}`,
+        sku: `VAR-${Date.now().toString(36).toUpperCase()}-${nextIdx}`,
         attributes: defaultAttributes,
         stockQuantity: 0,
+        price: isOverridePrice ? undefined : (basePrice > 0 ? basePrice : undefined),
       }
     ]);
   };
@@ -156,7 +196,7 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
 
       {/* Variants List */}
       <div className="space-y-4 pt-4 border-t border-outline/10">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
           <div>
             <h4 className="font-bold uppercase text-sm">Variants</h4>
             <p className="text-xs text-on-surface-variant">Each variant represents a purchasable option with distinct attributes (e.g. Black / 42)</p>
@@ -164,10 +204,42 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
           <button
             type="button"
             onClick={addEmptyVariant}
-            className="px-4 py-1.5 border-2 border-on-surface bg-surface text-on-surface rounded-lg text-xs font-bold uppercase hover:bg-surface-dim"
+            className="px-4 py-1.5 border-2 border-on-surface bg-surface text-on-surface rounded-lg text-xs font-bold uppercase hover:bg-surface-dim self-start sm:self-auto"
           >
             + Add Variant
           </button>
+        </div>
+
+        {/* Override price checkmark */}
+        <div className="p-3.5 bg-surface-container/30 border-2 border-outline/20 rounded-xl flex items-start sm:items-center justify-between gap-3">
+          <label className="flex items-start sm:items-center gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              id="override-price-checkbox"
+              checked={isOverridePrice}
+              onChange={(e) => handleToggleOverridePrice(e.target.checked)}
+              className="w-4 h-4 mt-0.5 sm:mt-0 rounded border-outline/40 text-primary focus:ring-primary accent-on-surface cursor-pointer"
+            />
+            <div>
+              <span className="font-bold text-xs uppercase tracking-wider block">
+                Override price
+              </span>
+              <span className="text-[11px] text-on-surface-variant block mt-0.5">
+                {isOverridePrice
+                  ? "Different prices enabled for variants. You can set individual prices on each variant below."
+                  : `All variants use the same price as the main product (${basePrice && basePrice > 0 ? `KES ${basePrice.toLocaleString()}` : "Same as main product"}).`}
+              </span>
+            </div>
+          </label>
+          <div className="hidden sm:block text-right">
+            <span className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded border ${
+              isOverridePrice 
+                ? "bg-primary/10 text-primary border-primary/30" 
+                : "bg-surface-container text-on-surface-variant border-outline/20"
+            }`}>
+              {isOverridePrice ? "Custom Variant Pricing Enabled" : "Same as Main Product"}
+            </span>
+          </div>
         </div>
 
         {variants.length === 0 ? (
@@ -249,12 +321,21 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
                   {/* Core Details Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block font-bold text-xs uppercase mb-1">SKU</label>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block font-bold text-xs uppercase">SKU</label>
+                        {variants.some((other, oIdx) => oIdx !== idx && other.sku && variant.sku && other.sku.trim().toUpperCase() === variant.sku.trim().toUpperCase()) && (
+                          <span className="text-error font-extrabold text-[10px] uppercase tracking-wider">Duplicate SKU</span>
+                        )}
+                      </div>
                       <input
                         type="text"
                         value={variant.sku}
                         onChange={(e) => updateVariant(idx, "sku", e.target.value)}
-                        className="w-full p-2 border border-outline/30 rounded-lg text-xs"
+                        className={`w-full p-2 border rounded-lg text-xs ${
+                          variants.some((other, oIdx) => oIdx !== idx && other.sku && variant.sku && other.sku.trim().toUpperCase() === variant.sku.trim().toUpperCase())
+                            ? "border-error bg-error-container/20 text-error font-bold"
+                            : "border-outline/30"
+                        }`}
                       />
                     </div>
                     <div>
@@ -287,15 +368,40 @@ export function ProductVariantManager({ variants = [], attributes = [], onChange
                   {/* Pricing Overrides */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-outline/10">
                     <div>
-                      <label className="block font-bold text-xs uppercase mb-1">Price Override (KES)</label>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block font-bold text-xs uppercase">
+                          Price {isOverridePrice ? "Override" : ""} (KES)
+                        </label>
+                        {!isOverridePrice && (
+                          <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">Locked to Main</span>
+                        )}
+                      </div>
                       <input
                         type="number"
                         step="0.01"
-                        placeholder="Base price"
-                        value={variant.price !== undefined && variant.price !== null ? variant.price : ""}
+                        placeholder={basePrice > 0 ? `${basePrice}` : "0.00"}
+                        value={
+                          isOverridePrice
+                            ? (variant.price !== undefined && variant.price !== null ? variant.price : "")
+                            : (basePrice > 0 ? basePrice : (variant.price !== undefined && variant.price !== null ? variant.price : ""))
+                        }
+                        disabled={!isOverridePrice}
                         onChange={(e) => updateVariant(idx, "price", e.target.value !== "" ? parseFloat(e.target.value) : undefined)}
-                        className="w-full p-2 border border-outline/30 rounded-lg text-xs"
+                        className={`w-full p-2 border rounded-lg text-xs transition-colors ${
+                          !isOverridePrice
+                            ? "bg-surface-container/50 border-outline/20 text-on-surface-variant cursor-not-allowed font-medium"
+                            : "border-outline/30 bg-surface font-bold text-on-surface"
+                        }`}
                       />
+                      {!isOverridePrice ? (
+                        <p className="text-[10px] text-on-surface-variant mt-1">
+                          Same as main product ({basePrice > 0 ? `KES ${basePrice.toLocaleString()}` : "Not set"}). Check &apos;Override price&apos; to change.
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-primary font-medium mt-1">
+                          Custom price for this variant.
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block font-bold text-xs uppercase mb-1">Cost Override (KES)</label>

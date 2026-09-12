@@ -6,6 +6,7 @@ import {
   CreateProductInput,
 } from "./types";
 import { getServiceSupabase } from "@/lib/supabase/server";
+import { sanitizeCatalogImageUrls } from "@/lib/images/catalog-images";
 
 export interface ProductRepository {
   findById(id: string): Promise<Product | null>;
@@ -121,7 +122,7 @@ export class SupabaseProductRepository implements ProductRepository {
         country_of_origin: product.shipping?.countryOfOrigin || 'Kenya',
         weight: product.shipping?.weight?.value ?? null,
         weight_unit: product.shipping?.weight?.unit || 'kg',
-        image_urls: (product.media || []).map(m => m.url),
+        image_urls: sanitizeCatalogImageUrls((product.media || []).map(m => m.url)),
 
         created_at: product.createdAt.toISOString(),
         updated_at: product.updatedAt.toISOString(),
@@ -133,7 +134,8 @@ export class SupabaseProductRepository implements ProductRepository {
     // Save Variants
     if (product.variants && product.variants.length > 0) {
       const fallbackPrice = Number(product.pricing?.price ?? 0);
-      const variantsToUpsert = product.variants.map((v) => {
+      const seenSkus = new Set<string>();
+      const variantsToUpsert = product.variants.map((v, index) => {
         const colorAttr = v.attributes?.find(a => a.name?.toLowerCase() === 'color')?.value;
         const sizeAttr = v.attributes?.find(a => a.name?.toLowerCase() === 'size')?.value;
         const color = v.color || colorAttr || null;
@@ -141,11 +143,22 @@ export class SupabaseProductRepository implements ProductRepository {
         const attrValues = (v.attributes || []).map(a => a.value).filter(Boolean);
         const compositeName = v.name?.trim() || (attrValues.length > 0 ? attrValues.join(' / ') : [color, size].filter(Boolean).join(' / ')) || 'Variant';
 
+        const baseSku = (v.sku && typeof v.sku === 'string' && v.sku.trim())
+          ? v.sku.trim()
+          : `${product.sku || 'SKU'}-${index + 1}`;
+        let uniqueSku = baseSku;
+        let counter = 1;
+        while (seenSkus.has(uniqueSku.toUpperCase())) {
+          counter++;
+          uniqueSku = `${baseSku}-${counter}`;
+        }
+        seenSkus.add(uniqueSku.toUpperCase());
+
         return {
           id: v.id,
           product_id: product.id,
           name: compositeName,
-          sku: v.sku,
+          sku: uniqueSku,
           barcode: v.barcode,
           color: color,
           size: size,

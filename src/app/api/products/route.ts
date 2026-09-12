@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { verifyIdToken } from '@/lib/firebase-auth-edge';
 import { getServiceSupabase } from '@/lib/supabase/server';
 import { syncSingleProduct } from '@/lib/api/meta';
+import { sanitizeCatalogImageUrls } from '@/lib/images/catalog-images';
 
 export const dynamic = 'force-dynamic';
 
@@ -367,7 +368,7 @@ export async function POST(request: Request) {
       group_category: body.groupCategory || '',
       category: body.category || '',
       subcategories: body.subcategories || [],
-      image_urls: body.imageUrls || (body.image_url ? [body.image_url] : []),
+      image_urls: sanitizeCatalogImageUrls(body.imageUrls || (body.image_url ? [body.image_url] : [])),
       image_alt_texts: body.imageAltTexts || {},
       allow_multiple_purchases: body.allowMultiplePurchases !== false,
       video_url: body.videoUrl || '',
@@ -404,6 +405,7 @@ export async function POST(request: Request) {
 
     // Insert new variants if present and hasVariants is enabled
     if (body.hasVariants && body.variants && Array.isArray(body.variants) && body.variants.length > 0) {
+      const seenVariantSkus = new Set<string>();
       const variantRows = body.variants.map((v: any, index: number) => {
         const color = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '') || '';
         const size = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '') || '';
@@ -411,11 +413,22 @@ export async function POST(request: Request) {
         const fallbackName = attrValues.length > 0 ? attrValues.join(' / ') : [color, size].filter(Boolean).join(' / ');
         const name = (v.name && !v.name.toLowerCase().startsWith('option ')) ? v.name : (fallbackName || `Variant ${index + 1}`);
 
+        const baseCandidate = (v.sku && typeof v.sku === 'string' && v.sku.trim())
+          ? v.sku.trim()
+          : `${productPayload.sku || 'SKU'}-${index + 1}`;
+        let uniqueSku = baseCandidate;
+        let counter = 1;
+        while (seenVariantSkus.has(uniqueSku.toUpperCase())) {
+          counter++;
+          uniqueSku = `${baseCandidate}-${counter}`;
+        }
+        seenVariantSkus.add(uniqueSku.toUpperCase());
+
         return {
           id: v.id || `${productId}_v${index}_${Date.now()}`,
           product_id: productId,
           name: name,
-          sku: v.sku || `${productPayload.sku || 'SKU'}-${index + 1}`,
+          sku: uniqueSku,
           size: size,
           color: color,
           attributes: v.attributes || [],

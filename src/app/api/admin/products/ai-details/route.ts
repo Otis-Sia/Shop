@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getServiceSupabase } from '@/lib/supabase/server';
 import { searchProductImages } from '@/lib/images/search';
+import { sanitizeCatalogImageUrls } from '@/lib/images/catalog-images';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,9 +51,9 @@ Return a JSON object containing the following fields based on the provided text 
 - attributes: detailed key-value object containing all product specifications and attributes extracted from text and image (e.g., {"Material": "Stainless Steel", "Capacity": "1.8L", "Power": "350W", "Voltage": "220-240V", "Color": "White", "Model": "TYB-202-A", "Warranty": "1 Year"}).
 - supplierName: supplier, vendor, dropshipper, or manufacturer name if mentioned (otherwise null).
 - sku: product SKU, model number, or generate a professional 6-8 character SKU if none exists.
-- costPrice: supplier cost / cost price / wholesale price / buy price in KES as a clean number (e.g. 1200.00 or null if not found).
-- price: selling price / retail price in KES as a clean number (e.g. 1600.00 or null if not found).
-- salePrice: discounted / promotional / sale price in KES as a clean number (or null if not found).
+- costPrice: merchant's wholesale sourcing cost / buying price in KES as a clean number (e.g. 1200.00). CRITICAL: ANY cost, price, or monetary quote found in the raw text or supplier notes (e.g. "1500", "Ksh 1800", "2200/=", "Cost: 1200", "@ 950") MUST be placed into this costPrice field as the Buying Price!
+- price: recommended customer retail selling price in KES as a clean number (e.g. 1700.00). MUST be strictly higher than costPrice (recommend a realistic Kenyan retail market selling price with a 35% to 50% retail margin above costPrice, rounded up to the nearest 50 KES).
+- salePrice: discounted / promotional / sale price in KES as a clean number if applicable (must be strictly between costPrice and price, or null).
 - stock: inventory quantity / units available as an integer (e.g. 50 or null if not found).
 - colors: array of distinct color names mentioned or visible in the image (e.g. ["Black", "White"]).
 - sizes: array of distinct sizes or dimensions mentioned (e.g. ["S", "M", "L", "XL"]).
@@ -66,7 +67,8 @@ Return a JSON object containing the following fields based on the provided text 
   * "color": Distinct color name if applicable (e.g. "Green", "Blue", "Clear", "Pink") or null.
   * "size": Distinct size/capacity/dimensions if applicable (e.g. "500ml", "1040ml", "Set of 3") or null.
   * "sku": Unique variant SKU (e.g. "Dyta-MCE6-GRN", "Dyta-MCE6-BLU").
-  * "price": Variant price in KES as a number (default to base price if not different).
+  * "costPrice": Variant wholesale buying cost in KES if different across options, or null.
+  * "price": Variant retail selling price in KES as a number strictly higher than costPrice (default to base price if not different).
   * "stock": Estimated stock quantity (e.g. 15).
   * "attributes": Array of key-value attributes (e.g. [{"name": "Color", "value": "Green"}]).
   If multiple colors or sizes are listed in the description (e.g. Green, Blue, Clear, Pink), ALWAYS generate a corresponding variant object for each choice!
@@ -263,7 +265,7 @@ Do not include markdown code fences (like \`\`\`json). Output raw valid JSON onl
             if (!combined.includes(url)) combined.push(url);
           });
           
-          parsed.imageUrls = combined;
+          parsed.imageUrls = sanitizeCatalogImageUrls(combined);
         } catch (imgErr) {
           console.warn('Image auto-discovery error:', imgErr);
         }

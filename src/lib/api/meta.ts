@@ -1,4 +1,5 @@
 import axios from "axios";
+import { sanitizeCatalogImageUrls, isValidCatalogImageUrl } from "@/lib/images/catalog-images";
 
 try {
   // Prevent IPv6 timeout issues when calling Meta Graph API on Linux/serverless
@@ -99,12 +100,15 @@ export async function syncProducts(products: any[]) {
     .filter((p) => p && (p.id || p.sku) && p.name)
     .map((product) => {
       const productId = String(product.id || product.sku);
-      const mainImage = (product.imageUrls && product.imageUrls[0]) || product.image_url || "";
+      const rawImages = (product.imageUrls || product.image_urls || []);
+      const sanitizedImages = sanitizeCatalogImageUrls(rawImages);
+      const fallbackImage = (product.image_url && isValidCatalogImageUrl(product.image_url)) ? product.image_url : "";
+      const mainImage = sanitizedImages[0] || fallbackImage;
       const priceVal = Number(product.price || 0).toFixed(2);
       const currencyVal = (product.currency || "KES").toUpperCase();
       const inStock = product.trackInventory === false || product.stock === null || product.stock === undefined || Number(product.stock) > 0;
       const category = product.category || "General";
-      const additionalImages = (product.imageUrls || []).slice(1, 11).filter(Boolean);
+      const additionalImages = sanitizedImages.slice(1, 11);
       const salePriceVal = product.salePrice ? Number(product.salePrice).toFixed(2) : null;
       const richDescription = buildRichWhatsAppDescription(product);
 

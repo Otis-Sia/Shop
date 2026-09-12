@@ -9,6 +9,22 @@ interface ProductAIAssistantProps {
   onApply: (updates: Partial<CreateProductInput>) => void;
 }
 
+function extractQuotedCostFromText(text: string): number | undefined {
+  if (!text) return undefined;
+  const patterns = [
+    /(?:cost|buy|wholesale|buying|price|ksh|kes|@)\s*[:=-]?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+)\s*(?:\/=|bob|ksh|kes)?/i,
+    /([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]{3,6})\s*(?:\/=|bob|ksh|kes)/i
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const num = parseFloat(match[1].replace(/,/g, ''));
+      if (!isNaN(num) && num > 0) return num;
+    }
+  }
+  return undefined;
+}
+
 export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantProps) {
   const { showToast } = useToast();
   const [rawDetails, setRawDetails] = useState("");
@@ -39,6 +55,38 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
       
       const generated = json.data?.generated_json || json.data || json;
       
+      // Quoted cost in AI Magic Fill is the wholesale Buying Price (costPrice)
+      const textQuotedCost = extractQuotedCostFromText(rawDetails);
+      const rawCost = (generated.costPrice !== undefined && generated.costPrice !== null && !isNaN(parseFloat(generated.costPrice)) && parseFloat(generated.costPrice) > 0)
+        ? parseFloat(generated.costPrice)
+        : (textQuotedCost !== undefined && textQuotedCost > 0
+            ? textQuotedCost
+            : (generated.price !== undefined && generated.price !== null && !isNaN(parseFloat(generated.price)) && parseFloat(generated.price) > 0
+                ? parseFloat(generated.price)
+                : (currentData.pricing?.costPrice && !isNaN(Number(currentData.pricing.costPrice)) ? Number(currentData.pricing.costPrice) : undefined)));
+
+      let regularPrice = (generated.price !== undefined && generated.price !== null && !isNaN(parseFloat(generated.price)))
+        ? parseFloat(generated.price)
+        : (currentData.pricing?.price && !isNaN(Number(currentData.pricing.price)) ? Number(currentData.pricing.price) : 0);
+
+      // Ensure regular retail selling price is strictly greater than costPrice
+      if (rawCost && rawCost > 0) {
+        if (!regularPrice || regularPrice <= rawCost) {
+          // Standard profitable retail markup (40% margin rounded to nearest 50 KES)
+          regularPrice = Math.ceil((rawCost * 1.4) / 50) * 50;
+        }
+      }
+
+      let salePrice = (generated.salePrice !== undefined && generated.salePrice !== null && !isNaN(parseFloat(generated.salePrice)))
+        ? parseFloat(generated.salePrice)
+        : currentData.pricing?.salePrice;
+
+      if (salePrice !== undefined && salePrice !== null) {
+        if ((rawCost && salePrice < rawCost) || salePrice >= regularPrice) {
+          salePrice = undefined;
+        }
+      }
+
       onApply({
         name: generated.name || currentData.name,
         description: generated.description || currentData.description,
@@ -50,13 +98,15 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
           ? Array.from(new Set([generated.category, ...(Array.isArray(generated.subcategories) ? generated.subcategories : [])].filter(Boolean)))
           : currentData.categoryIds,
         // Wrap raw pricing strings or numbers into the new pricing object
-        pricing: generated.price !== undefined && generated.price !== null ? {
+        pricing: {
           ...currentData.pricing,
-          price: parseFloat(generated.price) || currentData.pricing?.price || 0,
-          costPrice: generated.costPrice ? parseFloat(generated.costPrice) : currentData.pricing?.costPrice,
+          price: regularPrice,
+          costPrice: rawCost,
+          salePrice: salePrice,
+          compareAtPrice: salePrice ? regularPrice : currentData.pricing?.compareAtPrice,
           currency: generated.currency || currentData.pricing?.currency || "KES",
           taxable: currentData.pricing?.taxable ?? true
-        } : (currentData.pricing ? { ...currentData.pricing, currency: currentData.pricing.currency || "KES" } : { price: 0, currency: "KES", taxable: true }),
+        },
         // Shipping & Weight
         shipping: {
           ...currentData.shipping,
@@ -95,34 +145,67 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
               : (generated.attributes && typeof generated.attributes === 'object' && !Array.isArray(generated.attributes)
                   ? Object.entries(generated.attributes).map(([k, v]) => `${k}: ${v}`)
                   : currentData.features)),
-        variants: Array.isArray(generated.variants) && generated.variants.length > 0 ? generated.variants.map((v: any, idx: number) => {
-          const attrList = Array.isArray(v.attributes) ? [...v.attributes] : [];
-          if (v.color && !attrList.some((a: any) => a.name?.toLowerCase() === 'color')) {
-            attrList.push({ name: 'Color', value: v.color, isVariantAxis: true });
+        variants: (() => {
+          if (!Array.isArray(generated.variants) || generated.variants.length === 0) {
+            return currentData.variants;
           }
-          if (v.size && !attrList.some((a: any) => a.name?.toLowerCase() === 'size')) {
-            attrList.push({ name: 'Size', value: v.size, isVariantAxis: true });
-          }
-          const colorVal = v.color || attrList.find((a: any) => a.name?.toLowerCase() === 'color')?.value || '';
-          const sizeVal = v.size || attrList.find((a: any) => a.name?.toLowerCase() === 'size')?.value || '';
-          const attrVals = attrList.map((a: any) => a.value).filter(Boolean);
-          const compositeName = v.name && !v.name.toLowerCase().startsWith('option ') && !v.name.toLowerCase().startsWith('variant ')
-            ? v.name
-            : (attrVals.length > 0 ? attrVals.join(' / ') : [colorVal, sizeVal].filter(Boolean).join(' / ') || `Variant ${idx + 1}`);
+          const baseSku = (generated.sku || currentData.sku || 'SKU').trim();
+          const usedSkus = new Set<string>();
 
-          return {
-            id: `var-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            name: compositeName,
-            sku: v.sku || '',
-            color: colorVal,
-            size: sizeVal,
-            imageUrl: v.imageUrl || v.image_url || '',
-            attributes: attrList.length > 0 ? attrList : [{ name: 'Variant', value: compositeName, isVariantAxis: true }],
-            price: v.price ? Number(v.price) : undefined,
-            stockQuantity: v.stockQuantity !== undefined ? Number(v.stockQuantity) : (v.stock !== undefined ? Number(v.stock) : 0),
-            isActive: true
-          };
-        }) : currentData.variants,
+          return generated.variants.map((v: any, idx: number) => {
+            const attrList = Array.isArray(v.attributes) ? [...v.attributes] : [];
+            if (v.color && !attrList.some((a: any) => a.name?.toLowerCase() === 'color')) {
+              attrList.push({ name: 'Color', value: v.color, isVariantAxis: true });
+            }
+            if (v.size && !attrList.some((a: any) => a.name?.toLowerCase() === 'size')) {
+              attrList.push({ name: 'Size', value: v.size, isVariantAxis: true });
+            }
+            const colorVal = v.color || attrList.find((a: any) => a.name?.toLowerCase() === 'color')?.value || '';
+            const sizeVal = v.size || attrList.find((a: any) => a.name?.toLowerCase() === 'size')?.value || '';
+            const attrVals = attrList.map((a: any) => a.value).filter(Boolean);
+            const compositeName = v.name && !v.name.toLowerCase().startsWith('option ') && !v.name.toLowerCase().startsWith('variant ')
+              ? v.name
+              : (attrVals.length > 0 ? attrVals.join(' / ') : [colorVal, sizeVal].filter(Boolean).join(' / ') || `Variant ${idx + 1}`);
+
+            const attrTokens = [colorVal, sizeVal]
+              .filter(Boolean)
+              .map((s) => s.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())
+              .filter(Boolean);
+            const suffix = attrTokens.length > 0 ? attrTokens.join('-') : `${idx + 1}`;
+            let candidateSku = (v.sku && typeof v.sku === 'string' && v.sku.trim())
+              ? v.sku.trim()
+              : `${baseSku}-${suffix}`;
+
+            let uniqueSku = candidateSku;
+            let counter = 1;
+            while (usedSkus.has(uniqueSku.toUpperCase())) {
+              counter++;
+              uniqueSku = `${candidateSku}-${counter}`;
+            }
+            usedSkus.add(uniqueSku.toUpperCase());
+
+            const variantCost = (v.costPrice !== undefined && v.costPrice !== null && !isNaN(parseFloat(v.costPrice)) && parseFloat(v.costPrice) > 0)
+              ? parseFloat(v.costPrice)
+              : undefined;
+
+            // Variants always inherit the main product regular price by default
+            const variantPrice = regularPrice > 0 ? regularPrice : undefined;
+
+            return {
+              id: `var-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              name: compositeName,
+              sku: uniqueSku,
+              color: colorVal,
+              size: sizeVal,
+              imageUrl: v.imageUrl || v.image_url || '',
+              attributes: attrList.length > 0 ? attrList : [{ name: 'Variant', value: compositeName, isVariantAxis: true }],
+              price: variantPrice,
+              costPrice: variantCost,
+              stockQuantity: v.stockQuantity !== undefined ? Number(v.stockQuantity) : (v.stock !== undefined ? Number(v.stock) : 0),
+              isActive: true
+            };
+          });
+        })(),
         // Basic SEO injection
         seo: {
           ...currentData.seo,
