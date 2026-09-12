@@ -133,22 +133,35 @@ export class SupabaseProductRepository implements ProductRepository {
     // Save Variants
     if (product.variants && product.variants.length > 0) {
       const fallbackPrice = Number(product.pricing?.price ?? 0);
-      const variantsToUpsert = product.variants.map((v) => ({
-        id: v.id,
-        product_id: product.id,
-        sku: v.sku,
-        barcode: v.barcode,
-        attributes: v.attributes,
-        price: v.price !== undefined && v.price !== null ? Number(v.price) : fallbackPrice,
-        compare_at_price: v.compareAtPrice !== undefined && v.compareAtPrice !== null ? Number(v.compareAtPrice) : null,
-        cost_price: v.costPrice !== undefined && v.costPrice !== null ? Number(v.costPrice) : null,
-        stock: v.stockQuantity ?? 0,
-        weight: v.weight ?? null,
-        dimensions: v.dimensions ?? null,
-        images: v.images ?? [],
-        is_default: v.isDefault ?? false,
-        is_active: v.isActive ?? true,
-      }));
+      const variantsToUpsert = product.variants.map((v) => {
+        const colorAttr = v.attributes?.find(a => a.name?.toLowerCase() === 'color')?.value;
+        const sizeAttr = v.attributes?.find(a => a.name?.toLowerCase() === 'size')?.value;
+        const color = v.color || colorAttr || null;
+        const size = v.size || sizeAttr || null;
+        const attrValues = (v.attributes || []).map(a => a.value).filter(Boolean);
+        const compositeName = v.name?.trim() || (attrValues.length > 0 ? attrValues.join(' / ') : [color, size].filter(Boolean).join(' / ')) || 'Variant';
+
+        return {
+          id: v.id,
+          product_id: product.id,
+          name: compositeName,
+          sku: v.sku,
+          barcode: v.barcode,
+          color: color,
+          size: size,
+          attributes: v.attributes,
+          price: v.price !== undefined && v.price !== null ? Number(v.price) : fallbackPrice,
+          compare_at_price: v.compareAtPrice !== undefined && v.compareAtPrice !== null ? Number(v.compareAtPrice) : null,
+          cost_price: v.costPrice !== undefined && v.costPrice !== null ? Number(v.costPrice) : null,
+          stock: v.stockQuantity ?? 0,
+          weight: v.weight ?? null,
+          dimensions: v.dimensions ?? null,
+          image_url: v.imageUrl || (v.images && v.images[0]) || null,
+          images: v.images ?? [],
+          is_default: v.isDefault ?? false,
+          is_active: v.isActive ?? true,
+        };
+      });
 
       const { error: variantError } = await supabase
         .from("product_variants")
@@ -187,21 +200,33 @@ export class SupabaseProductRepository implements ProductRepository {
       inventory: dbProduct.inventory || { trackInventory: dbProduct.track_inventory || false, allowBackorder: dbProduct.allow_backorders || false },
       stockQuantity: dbProduct.stock_quantity || dbProduct.stock || 0,
       attributes: dbProduct.attributes || [],
-      variants: (dbProduct.product_variants || []).map((v: any) => ({
-        id: v.id,
-        sku: v.sku,
-        barcode: v.barcode,
-        attributes: v.attributes,
-        price: v.price,
-        compareAtPrice: v.compare_at_price,
-        costPrice: v.cost_price,
-        stockQuantity: v.stock,
-        weight: v.weight,
-        dimensions: v.dimensions,
-        images: v.images,
-        isDefault: v.is_default,
-        isActive: v.is_active,
-      })),
+      variants: (dbProduct.product_variants || []).map((v: any) => {
+        const color = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '') || '';
+        const size = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '') || '';
+        const attrValues = Array.isArray(v.attributes) ? v.attributes.map((a: any) => a.value).filter(Boolean) : [];
+        const fallbackName = attrValues.length > 0 ? attrValues.join(' / ') : [color, size].filter(Boolean).join(' / ');
+        const name = (v.name && !v.name.toLowerCase().startsWith('option ')) ? v.name : (fallbackName || 'Variant');
+
+        return {
+          id: v.id,
+          name: name,
+          sku: v.sku,
+          barcode: v.barcode,
+          color: color,
+          size: size,
+          imageUrl: v.image_url || (Array.isArray(v.images) ? v.images[0] : '') || '',
+          attributes: v.attributes || [],
+          price: v.price,
+          compareAtPrice: v.compare_at_price,
+          costPrice: v.cost_price,
+          stockQuantity: v.stock,
+          weight: v.weight,
+          dimensions: v.dimensions,
+          images: v.images || [],
+          isDefault: v.is_default,
+          isActive: v.is_active,
+        };
+      }),
       hasVariants: dbProduct.has_variants || false,
       media: dbProduct.media || [],
       seo: dbProduct.seo || {},

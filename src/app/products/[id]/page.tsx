@@ -125,19 +125,89 @@ export default function ProductDetailPage() {
     return Number.isFinite(variantPrice) ? variantPrice : Number(product?.price || 0);
   };
 
-  const availableColors = selectedVariant
-    ? parseCommaSeparated(selectedVariant.color)
-    : Array.from(new Set([
-        ...(product?.colors || []),
-        ...(product?.variants || []).flatMap((v: any) => parseCommaSeparated(v.color))
-      ]));
+  const allVariantColors = (product?.variants || []).flatMap((v: any) => {
+    const directColors = parseCommaSeparated(v.color);
+    if (directColors.length > 0) return directColors;
+    if (Array.isArray(v.attributes)) {
+      const attrColor = v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value;
+      if (attrColor) return [attrColor];
+    }
+    return [];
+  });
 
-  const availableSizes = selectedVariant
-    ? getVariantSizes(selectedVariant)
-    : Array.from(new Set([
-        ...(product?.sizes || []),
-        ...(product?.variants || []).flatMap((v: any) => parseCommaSeparated(v.size))
-      ]));
+  const allProductColors = [
+    ...(product?.colors || []),
+    ...(Array.isArray(product?.attributes) ? product.attributes.filter((a: any) => a.name?.toLowerCase() === 'color').map((a: any) => a.value) : []),
+    ...allVariantColors
+  ];
+
+  const availableColors = Array.from(new Set(allProductColors)).filter(Boolean);
+
+  const allVariantSizes = (product?.variants || []).flatMap((v: any) => {
+    const directSizes = parseCommaSeparated(v.size);
+    if (directSizes.length > 0) return directSizes;
+    if (Array.isArray(v.attributes)) {
+      const attrSize = v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value;
+      if (attrSize) return [attrSize];
+    }
+    return [];
+  });
+
+  const allProductSizes = [
+    ...(product?.sizes || []),
+    ...(Array.isArray(product?.attributes) ? product.attributes.filter((a: any) => a.name?.toLowerCase() === 'size').map((a: any) => a.value) : []),
+    ...allVariantSizes
+  ];
+
+  const availableSizes = Array.from(new Set(allProductSizes)).filter(Boolean);
+
+  const handleSelectColor = (color: string) => {
+    setSelectedColor(color);
+    if (product?.hasVariants && Array.isArray(product.variants) && product.variants.length > 0) {
+      let matchIdx = product.variants.findIndex((v: any) => {
+        const vColor = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '');
+        const vSize = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '');
+        return vColor?.toLowerCase() === color.toLowerCase() && (selectedSize ? vSize?.toLowerCase() === selectedSize.toLowerCase() : true);
+      });
+      if (matchIdx === -1) {
+        matchIdx = product.variants.findIndex((v: any) => {
+          const vColor = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '');
+          return vColor?.toLowerCase() === color.toLowerCase();
+        });
+      }
+      if (matchIdx !== -1) {
+        setSelectedVariantIndex(matchIdx);
+        const matchVariant = product.variants[matchIdx];
+        if (matchVariant.imageUrl) setActiveImage(matchVariant.imageUrl);
+        const vSize = matchVariant.size || (Array.isArray(matchVariant.attributes) ? matchVariant.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '');
+        if (vSize) setSelectedSize(vSize);
+      }
+    }
+  };
+
+  const handleSelectSize = (size: string) => {
+    setSelectedSize(size);
+    if (product?.hasVariants && Array.isArray(product.variants) && product.variants.length > 0) {
+      let matchIdx = product.variants.findIndex((v: any) => {
+        const vColor = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '');
+        const vSize = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '');
+        return vSize?.toLowerCase() === size.toLowerCase() && (selectedColor ? vColor?.toLowerCase() === selectedColor.toLowerCase() : true);
+      });
+      if (matchIdx === -1) {
+        matchIdx = product.variants.findIndex((v: any) => {
+          const vSize = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '');
+          return vSize?.toLowerCase() === size.toLowerCase();
+        });
+      }
+      if (matchIdx !== -1) {
+        setSelectedVariantIndex(matchIdx);
+        const matchVariant = product.variants[matchIdx];
+        if (matchVariant.imageUrl) setActiveImage(matchVariant.imageUrl);
+        const vColor = matchVariant.color || (Array.isArray(matchVariant.attributes) ? matchVariant.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '');
+        if (vColor) setSelectedColor(vColor);
+      }
+    }
+  };
 
   const galleryItems = Array.from(new Map([
     ...(product?.image_url ? [[product.image_url, { src: product.image_url, label: 'Main image' }] as const] : []),
@@ -162,8 +232,24 @@ export default function ProductDetailPage() {
     }
 
     if (product.hasVariants && product.variants && product.variants.length > 0 && selectedVariantIndex === null) {
-      setValidationError("Please select a variant before adding to cart.");
-      return;
+      if (selectedColor || selectedSize) {
+        const autoIdx = product.variants.findIndex((v: any) => {
+          const vColor = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '');
+          const vSize = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '');
+          const matchC = !selectedColor || vColor?.toLowerCase() === selectedColor.toLowerCase();
+          const matchS = !selectedSize || vSize?.toLowerCase() === selectedSize.toLowerCase();
+          return matchC && matchS;
+        });
+        if (autoIdx !== -1) {
+          setSelectedVariantIndex(autoIdx);
+        } else {
+          setValidationError("Please select an option before adding to cart.");
+          return;
+        }
+      } else {
+        setValidationError("Please select an option before adding to cart.");
+        return;
+      }
     }
 
     setValidationError(null);
@@ -388,19 +474,75 @@ export default function ProductDetailPage() {
 
           {/* Option Settings */}
           <div className="space-y-4 border-t-2 border-surface-container pt-4">
-            {/* Variants List */}
+            {/* Colors Axis Selector */}
+            {availableColors.length > 0 && (
+              <div className="space-y-2">
+                <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">
+                  Color: {selectedColor ? <span className="text-on-surface font-black uppercase">{selectedColor}</span> : <span className="text-error font-black uppercase">Required</span>}
+                </label>
+                <div className="flex flex-wrap gap-2 items-center">
+                  {availableColors.map(color => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => handleSelectColor(color)}
+                      className={`flex items-center gap-2 px-3 py-1.5 border-2 text-xs font-bold uppercase transition-all rounded-full ${
+                        color.toLowerCase() === selectedColor?.toLowerCase()
+                          ? 'border-on-surface bg-primary-container text-on-primary-container shadow-sm'
+                          : 'border-surface-dim hover:border-on-surface bg-surface text-on-surface'
+                      }`}
+                    >
+                      <span
+                        className="w-3.5 h-3.5 rounded-full border border-on-surface/30 shrink-0"
+                        style={{ backgroundColor: mapColorToCss(color) }}
+                      />
+                      <span>{color}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sizes Axis Selector */}
+            {availableSizes.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">
+                  Size: {selectedSize ? <span className="text-on-surface font-black">{selectedSize}</span> : <span className="text-error font-black uppercase">Required</span>}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {availableSizes.map(size => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => handleSelectSize(size)}
+                      className={`px-3.5 py-1.5 border-2 text-xs font-extrabold uppercase transition-all ${
+                        size.toLowerCase() === selectedSize?.toLowerCase()
+                          ? 'bg-primary-container text-on-primary-container border-on-surface shadow-sm' 
+                          : 'bg-surface text-on-surface border-surface-dim hover:border-on-surface hover:bg-surface-container'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Variants List & Specific Overrides */}
             {product.hasVariants && product.variants && product.variants.length > 0 && (() => {
               const getVariantLabel = (v: any, idx: number) => {
                 if (v.name && !v.name.toLowerCase().startsWith('option ') && !v.name.toLowerCase().startsWith('variant ')) {
                   return v.name;
                 }
-                const variantSizes = getVariantSizes(v);
-                const parts = [v.color, variantSizes.join(', ')].filter(Boolean);
-                if (parts.length > 0) return parts.join(' • ');
+                const color = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '') || '';
+                const size = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '') || '';
+                const variantSizes = parseCommaSeparated(size);
+                const parts = [color, variantSizes.join(', ')].filter(Boolean);
+                if (parts.length > 0) return parts.join(' / ');
 
                 if (Array.isArray(v.attributes) && v.attributes.length > 0) {
                   const attrVals = v.attributes.map((a: any) => a.value || a.name).filter(Boolean);
-                  if (attrVals.length > 0) return attrVals.join(' • ');
+                  if (attrVals.length > 0) return attrVals.join(' / ');
                 }
 
                 if (product.colors && product.colors[idx]) {
@@ -409,13 +551,13 @@ export default function ProductDetailPage() {
                 if (product.sizes && product.sizes[idx]) {
                   return product.sizes[idx];
                 }
-                return `Option ${idx + 1}`;
+                return v.name || `Variant ${idx + 1}`;
               };
 
               return (
-                <div className="space-y-2">
+                <div className="space-y-2 pt-2">
                   <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">
-                    Select Variant: {selectedVariantIndex !== null ? <span className="text-on-surface font-black uppercase">{getVariantLabel(product.variants[selectedVariantIndex], selectedVariantIndex)}</span> : <span className="text-error font-black uppercase">Required</span>}
+                    Select Option: {selectedVariantIndex !== null ? <span className="text-on-surface font-black uppercase">{getVariantLabel(product.variants[selectedVariantIndex], selectedVariantIndex)}</span> : <span className="text-error font-black uppercase">Required</span>}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {product.variants.map((v: any, idx: number) => {
@@ -425,26 +567,24 @@ export default function ProductDetailPage() {
                       return (
                         <button
                           key={idx}
+                          type="button"
                           onClick={() => {
                             setSelectedVariantIndex(idx);
-                            setSelectedColor(null);
-                            setSelectedSize(null);
+                            const vColor = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '');
+                            const vSize = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '');
+                            if (vColor) setSelectedColor(vColor);
+                            if (vSize) setSelectedSize(vSize);
                             if (v.imageUrl) setActiveImage(v.imageUrl);
-                            // Auto-select color/size if the variant only has one option
-                            const parsedColors = parseCommaSeparated(v.color);
-                            if (parsedColors.length === 1) setSelectedColor(parsedColors[0]);
-                            const parsedSizes = getVariantSizes(v);
-                            if (parsedSizes.length === 1) setSelectedSize(parsedSizes[0]);
                           }}
                           className={`text-left p-2.5 border-2 text-xs font-bold transition-all flex items-center justify-between gap-2 ${
                             isSelected 
-                              ? 'bg-primary-container text-on-primary-container border-on-surface' 
+                              ? 'bg-primary-container text-on-primary-container border-on-surface shadow-sm' 
                               : 'bg-surface text-on-surface border-surface-dim hover:border-on-surface hover:bg-surface-container'
                           }`}
                         >
                           <div className="flex items-center gap-2 overflow-hidden">
                             {v.imageUrl && (
-                              <img src={v.imageUrl} alt={label} className="w-16 h-16 object-cover border-2 border-on-surface shrink-0" />
+                              <img src={v.imageUrl} alt={label} className="w-12 h-12 object-cover border-2 border-on-surface shrink-0" />
                             )}
                             <span className="truncate uppercase">
                               {label}
@@ -458,52 +598,6 @@ export default function ProductDetailPage() {
                 </div>
               );
             })()}
-
-            {/* Colors */}
-            {availableColors.length > 0 && (
-              <div className="space-y-2 pt-2">
-                <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">
-                  Select Color: {selectedColor ? <span className="text-on-surface font-black uppercase">{selectedColor}</span> : <span className="text-error font-black uppercase">Required</span>}
-                </label>
-                <div className="flex gap-2">
-                  {availableColors.map(color => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      style={{ backgroundColor: mapColorToCss(color) }}
-                      className={`w-8 h-8 rounded-full border-2 transition-transform active:scale-90 ${
-                        color === selectedColor ? 'border-primary-container scale-105 shadow-sm' : 'border-on-surface'
-                      }`}
-                      title={color}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Sizes */}
-            {availableSizes.length > 0 && (
-              <div className="space-y-2 pt-2">
-                <label className="font-extrabold text-[10px] uppercase tracking-widest block text-secondary">
-                  Select Size: {selectedSize ? <span className="text-on-surface font-black">{selectedSize}</span> : <span className="text-error font-black uppercase">Required</span>}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {availableSizes.map(size => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 border-2 text-xs font-extrabold uppercase transition-all ${
-                        size === selectedSize 
-                          ? 'bg-primary-container text-on-primary-container border-on-surface' 
-                          : 'bg-surface text-on-surface border-on-surface hover:bg-surface-container'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Validation Error Banner */}

@@ -63,18 +63,26 @@ const mapDbProductToProduct = (p: any, variants: any[] = [], merchantProfile: an
     merchantInfo,
     allowMultiplePurchases: p.allow_multiple_purchases !== false,
     hasVariants: p.has_variants || false,
-    variants: variants.map((v: any) => ({
-      id: v.id,
-      productId: v.product_id,
-      name: v.name || '',
-      sku: v.sku || '',
-      size: v.size || '',
-      color: v.color || '',
-      attributes: v.attributes || [],
-      price: Number(v.price || 0),
-      stock: v.stock !== null && v.stock !== undefined ? Number(v.stock) : 0,
-      imageUrl: v.image_url || ''
-    })),
+    variants: variants.map((v: any, idx: number) => {
+      const color = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '') || '';
+      const size = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '') || '';
+      const attrValues = Array.isArray(v.attributes) ? v.attributes.map((a: any) => a.value).filter(Boolean) : [];
+      const fallbackName = attrValues.length > 0 ? attrValues.join(' / ') : [color, size].filter(Boolean).join(' / ');
+      const name = (v.name && !v.name.toLowerCase().startsWith('option ')) ? v.name : (fallbackName || `Variant ${idx + 1}`);
+
+      return {
+        id: v.id,
+        productId: v.product_id,
+        name: name,
+        sku: v.sku || '',
+        size: size,
+        color: color,
+        attributes: v.attributes || [],
+        price: Number(v.price || 0),
+        stock: v.stock !== null && v.stock !== undefined ? Number(v.stock) : 0,
+        imageUrl: v.image_url || v.imageUrl || ''
+      };
+    }),
     reviewStats: {
       totalReviews: (p.product_reviews || []).length,
       averageRating: (p.product_reviews || []).length > 0
@@ -396,20 +404,28 @@ export async function POST(request: Request) {
 
     // Insert new variants if present and hasVariants is enabled
     if (body.hasVariants && body.variants && Array.isArray(body.variants) && body.variants.length > 0) {
-      const variantRows = body.variants.map((v: any, index: number) => ({
-        id: v.id || `${productId}_v${index}_${Date.now()}`,
-        product_id: productId,
-        name: v.name || v.color || v.size || '',
-        sku: v.sku || `${productPayload.sku || 'SKU'}-${index + 1}`,
-        size: v.size || '',
-        color: v.color || '',
-        attributes: v.attributes || [],
-        price: Number(v.price || productPayload.price),
-        stock: v.stock !== undefined && v.stock !== null && v.stock !== '' ? Number(v.stock) : productPayload.stock,
-        image_url: v.imageUrl || v.image_url || '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }));
+      const variantRows = body.variants.map((v: any, index: number) => {
+        const color = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '') || '';
+        const size = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '') || '';
+        const attrValues = Array.isArray(v.attributes) ? v.attributes.map((a: any) => a.value).filter(Boolean) : [];
+        const fallbackName = attrValues.length > 0 ? attrValues.join(' / ') : [color, size].filter(Boolean).join(' / ');
+        const name = (v.name && !v.name.toLowerCase().startsWith('option ')) ? v.name : (fallbackName || `Variant ${index + 1}`);
+
+        return {
+          id: v.id || `${productId}_v${index}_${Date.now()}`,
+          product_id: productId,
+          name: name,
+          sku: v.sku || `${productPayload.sku || 'SKU'}-${index + 1}`,
+          size: size,
+          color: color,
+          attributes: v.attributes || [],
+          price: Number(v.price || productPayload.price),
+          stock: v.stock !== undefined && v.stock !== null && v.stock !== '' ? Number(v.stock) : productPayload.stock,
+          image_url: v.imageUrl || v.image_url || '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      });
 
       const { error: variantError } = await supabase
         .from('product_variants')

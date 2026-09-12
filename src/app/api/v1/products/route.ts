@@ -48,14 +48,26 @@ export async function POST(req: Request) {
     }
 
     if (Array.isArray(body.variants)) {
-      body.variants = body.variants.map((v: any, idx: number) => ({
-        ...v,
-        attributes: (Array.isArray(v.attributes) && v.attributes.length > 0)
-          ? v.attributes
-          : [{ name: "Title", value: v.name || `Variant ${idx + 1}`, isVariantAxis: true }],
-        price: v.price !== undefined && v.price !== null && v.price !== "" ? Number(v.price) : Number(body.pricing?.price || body.price || 0),
-        stockQuantity: v.stockQuantity !== undefined && v.stockQuantity !== null && v.stockQuantity !== "" ? Number(v.stockQuantity) : 0,
-      }));
+      body.variants = body.variants.map((v: any, idx: number) => {
+        const color = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '') || '';
+        const size = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '') || '';
+        const attrValues = (Array.isArray(v.attributes) ? v.attributes.map((a: any) => a.value).filter(Boolean) : []);
+        const compositeName = (v.name && !v.name.toLowerCase().startsWith('option '))
+          ? v.name
+          : (attrValues.length > 0 ? attrValues.join(' / ') : [color, size].filter(Boolean).join(' / ')) || `Variant ${idx + 1}`;
+
+        return {
+          ...v,
+          name: compositeName,
+          color: color,
+          size: size,
+          attributes: (Array.isArray(v.attributes) && v.attributes.length > 0)
+            ? v.attributes
+            : [{ name: "Variant", value: compositeName, isVariantAxis: true }],
+          price: v.price !== undefined && v.price !== null && v.price !== "" ? Number(v.price) : Number(body.pricing?.price || body.price || 0),
+          stockQuantity: v.stockQuantity !== undefined && v.stockQuantity !== null && v.stockQuantity !== "" ? Number(v.stockQuantity) : 0,
+        };
+      });
     }
 
     // 2. Parse and validate

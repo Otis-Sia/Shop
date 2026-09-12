@@ -42,6 +42,10 @@ export interface ProductAttribute {
 // A purchasable variant of a product (e.g. Red / Large)
 export interface ProductVariant {
   id: string;
+  name?: string;
+  color?: string;
+  size?: string;
+  imageUrl?: string;
   sku: string;
   barcode?: string;
   attributes: ProductAttribute[]; // subset that define this specific variant
@@ -198,6 +202,11 @@ export interface CreateProductAttributeInput {
 }
 
 export interface CreateProductVariantInput {
+  id?: string;
+  name?: string;
+  color?: string;
+  size?: string;
+  imageUrl?: string;
   sku: string;
   barcode?: string;
   attributes: CreateProductAttributeInput[];
@@ -210,6 +219,7 @@ export interface CreateProductVariantInput {
   dimensions?: Dimensions;
   images?: string[];
   isDefault?: boolean;
+  isActive?: boolean;
 }
 
 export interface CreateProductInput {

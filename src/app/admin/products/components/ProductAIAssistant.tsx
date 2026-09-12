@@ -95,14 +95,34 @@ export function ProductAIAssistant({ currentData, onApply }: ProductAIAssistantP
               : (generated.attributes && typeof generated.attributes === 'object' && !Array.isArray(generated.attributes)
                   ? Object.entries(generated.attributes).map(([k, v]) => `${k}: ${v}`)
                   : currentData.features)),
-        variants: Array.isArray(generated.variants) && generated.variants.length > 0 ? generated.variants.map((v: any) => ({
-          id: `var-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          sku: v.sku || '',
-          attributes: Array.isArray(v.attributes) ? v.attributes : [],
-          price: v.price ? Number(v.price) : undefined,
-          stockQuantity: v.stockQuantity || 0,
-          isActive: true
-        })) : currentData.variants,
+        variants: Array.isArray(generated.variants) && generated.variants.length > 0 ? generated.variants.map((v: any, idx: number) => {
+          const attrList = Array.isArray(v.attributes) ? [...v.attributes] : [];
+          if (v.color && !attrList.some((a: any) => a.name?.toLowerCase() === 'color')) {
+            attrList.push({ name: 'Color', value: v.color, isVariantAxis: true });
+          }
+          if (v.size && !attrList.some((a: any) => a.name?.toLowerCase() === 'size')) {
+            attrList.push({ name: 'Size', value: v.size, isVariantAxis: true });
+          }
+          const colorVal = v.color || attrList.find((a: any) => a.name?.toLowerCase() === 'color')?.value || '';
+          const sizeVal = v.size || attrList.find((a: any) => a.name?.toLowerCase() === 'size')?.value || '';
+          const attrVals = attrList.map((a: any) => a.value).filter(Boolean);
+          const compositeName = v.name && !v.name.toLowerCase().startsWith('option ') && !v.name.toLowerCase().startsWith('variant ')
+            ? v.name
+            : (attrVals.length > 0 ? attrVals.join(' / ') : [colorVal, sizeVal].filter(Boolean).join(' / ') || `Variant ${idx + 1}`);
+
+          return {
+            id: `var-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            name: compositeName,
+            sku: v.sku || '',
+            color: colorVal,
+            size: sizeVal,
+            imageUrl: v.imageUrl || v.image_url || '',
+            attributes: attrList.length > 0 ? attrList : [{ name: 'Variant', value: compositeName, isVariantAxis: true }],
+            price: v.price ? Number(v.price) : undefined,
+            stockQuantity: v.stockQuantity !== undefined ? Number(v.stockQuantity) : (v.stock !== undefined ? Number(v.stock) : 0),
+            isActive: true
+          };
+        }) : currentData.variants,
         // Basic SEO injection
         seo: {
           ...currentData.seo,

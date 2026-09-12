@@ -24,6 +24,11 @@ export const attributeSchema = z.object({
 });
 
 export const variantSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().max(255).optional(),
+  color: z.string().max(100).optional(),
+  size: z.string().max(100).optional(),
+  imageUrl: z.string().optional(),
   sku: z.string().min(1).max(64),
   barcode: z.string().max(64).optional(),
   attributes: z.array(attributeSchema).min(1, "Variant needs at least one attribute"),
@@ -36,6 +41,7 @@ export const variantSchema = z.object({
   dimensions: dimensionsSchema.optional(),
   images: z.array(z.string().url()).optional(),
   isDefault: z.boolean().optional(),
+  isActive: z.boolean().optional(),
 });
 
 export const mediaSchema = z.object({

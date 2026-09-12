@@ -32,6 +32,37 @@ export async function GET(
     const merchantProfile = product.users;
     const merchantName = merchantProfile?.store_name || (merchantProfile?.first_name ? `${merchantProfile.first_name} ${merchantProfile.last_name || ''}`.trim() : undefined);
 
+    const rawVariants = product.product_variants || [];
+    const mappedVariants = rawVariants.map((v: any) => {
+      const color = v.color || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'color')?.value : '') || '';
+      const size = v.size || (Array.isArray(v.attributes) ? v.attributes.find((a: any) => a.name?.toLowerCase() === 'size')?.value : '') || '';
+      const attrValues = Array.isArray(v.attributes) ? v.attributes.map((a: any) => a.value).filter(Boolean) : [];
+      const fallbackName = attrValues.length > 0 ? attrValues.join(' / ') : [color, size].filter(Boolean).join(' / ');
+      const name = (v.name && !v.name.toLowerCase().startsWith('option ')) ? v.name : (fallbackName || 'Variant');
+
+      return {
+        id: v.id,
+        productId: v.product_id,
+        name: name,
+        sku: v.sku || '',
+        size: size,
+        color: color,
+        attributes: v.attributes || [],
+        price: Number(v.price || 0),
+        compareAtPrice: v.compare_at_price !== null && v.compare_at_price !== undefined ? Number(v.compare_at_price) : undefined,
+        costPrice: v.cost_price !== null && v.cost_price !== undefined ? Number(v.cost_price) : undefined,
+        stock: v.stock !== null && v.stock !== undefined ? Number(v.stock) : 0,
+        imageUrl: v.image_url || (Array.isArray(v.images) ? v.images[0] : '') || ''
+      };
+    });
+
+    const derivedColors = (product.colors && product.colors.length > 0)
+      ? product.colors
+      : Array.from(new Set(mappedVariants.map((v: any) => v.color).filter(Boolean)));
+    const derivedSizes = (product.sizes && product.sizes.length > 0)
+      ? product.sizes
+      : Array.from(new Set(mappedVariants.map((v: any) => v.size).filter(Boolean)));
+
     const formattedProduct = {
       id: isNaN(Number(product.id)) ? product.id : Number(product.id),
       dbId: product.id,
@@ -48,12 +79,12 @@ export async function GET(
       stock: product.stock !== null && product.stock !== undefined ? Number(product.stock) : 0,
       tags: product.tags || [],
       features: product.features || [],
-      attributes: product.attributes || [],
-      weight: product.weight,
+      attributes: product.attributes || {},
+      weight: product.weight !== null && product.weight !== undefined ? Number(product.weight) : undefined,
       weightUnit: product.weight_unit || 'kg',
       labels: product.labels || [],
-      colors: product.colors || [],
-      sizes: product.sizes || [],
+      colors: derivedColors,
+      sizes: derivedSizes,
       grades: product.grades || [],
       sku: product.sku || '',
       capacity: product.capacity || '',
@@ -75,15 +106,7 @@ export async function GET(
       merchantStatus: merchantProfile?.merchant_status,
       allowMultiplePurchases: product.allow_multiple_purchases !== false,
       hasVariants: product.has_variants || false,
-      variants: (product.product_variants || []).map((v: any) => ({
-        id: v.id,
-        productId: v.product_id,
-        size: v.size || '',
-        color: v.color || '',
-        price: Number(v.price || 0),
-        stock: v.stock !== null && v.stock !== undefined ? Number(v.stock) : 0,
-        imageUrl: v.image_url || ''
-      })),
+      variants: mappedVariants,
       reviews: product.product_reviews || [],
       
       trackInventory: product.track_inventory !== false,
